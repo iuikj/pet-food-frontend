@@ -84,7 +84,7 @@ export default function DashboardWeekly() {
                         <p className="text-sm text-text-muted-light dark:text-text-muted-dark opacity-80 mb-6 max-w-[240px]">
                             添加您的爱宠信息，为它量身定制专属的科学营养计划。
                         </p>
-                        <Link to="/onboarding/step1" className="bg-primary text-white dark:text-gray-900 font-bold py-3 px-8 rounded-xl shadow-lg hover:shadow-glow hover:-translate-y-0.5 transition-all flex items-center gap-2">
+                        <Link to="/onboarding/step1" className="bg-primary text-white dark:text-gray-900 font-bold py-3 px-8 rounded-xl shadow-glow hover:shadow-glow-lg hover:brightness-110 hover:-translate-y-0.5 active:scale-[0.97] transition-all duration-200 flex items-center gap-2">
                             <span className="material-icons-round text-lg">add</span>
                             立即添加
                         </Link>
@@ -95,7 +95,7 @@ export default function DashboardWeekly() {
                     <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
                         今日餐食
                     </h3>
-                    <div className="bg-white dark:bg-surface-dark p-6 rounded-2xl shadow-soft border-2 border-dashed border-gray-200 dark:border-gray-700 flex flex-col items-center text-center gap-3 py-8">
+                    <div className="bg-white dark:bg-surface-dark p-6 rounded-2xl shadow-soft border-2 border-dashed border-gray-200 dark:border-gray-700 flex flex-col items-center text-center gap-3 py-8 hover:border-primary/30 hover:bg-primary/5 transition-all duration-300">
                         <div className="w-12 h-12 rounded-full bg-secondary/30 flex items-center justify-center text-yellow-700 dark:text-yellow-200 mb-1">
                             <span className="material-icons-round text-2xl">restaurant_menu</span>
                         </div>
@@ -110,12 +110,12 @@ export default function DashboardWeekly() {
                 </section>
 
                 <section className="grid grid-cols-2 gap-4">
-                    <div className="bg-accent-blue/20 dark:bg-accent-blue/10 p-5 rounded-2xl flex flex-col justify-center items-center h-36 relative overflow-hidden text-center">
+                    <div className="bg-accent-blue/20 dark:bg-accent-blue/10 p-5 rounded-2xl flex flex-col justify-center items-center h-36 relative overflow-hidden text-center hover:shadow-soft transition-all duration-300">
                         <span className="material-icons-round text-4xl text-accent-blue/70 mb-2">lock</span>
                         <h4 className="font-bold text-blue-900/60 dark:text-blue-100/60 mb-1">饮水量</h4>
                         <p className="text-xs text-blue-800/50 dark:text-blue-200/50 font-medium px-2">记录宠物数据以解锁更多功能</p>
                     </div>
-                    <div className="bg-secondary/20 dark:bg-secondary/10 p-5 rounded-2xl flex flex-col justify-center items-center h-36 relative overflow-hidden text-center">
+                    <div className="bg-secondary/20 dark:bg-secondary/10 p-5 rounded-2xl flex flex-col justify-center items-center h-36 relative overflow-hidden text-center hover:shadow-soft transition-all duration-300">
                         <span className="material-icons-round text-4xl text-secondary/70 mb-2">lock</span>
                         <h4 className="font-bold text-yellow-900/60 dark:text-yellow-100/60 mb-1">当前体重</h4>
                         <p className="text-xs text-yellow-800/50 dark:text-yellow-200/50 font-medium px-2">记录宠物数据以解锁更多功能</p>

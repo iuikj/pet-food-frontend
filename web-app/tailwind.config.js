@@ -23,6 +23,21 @@ export default {
       fontFamily: {
         display: ["'Plus Jakarta Sans'", "sans-serif"],
       },
+      borderRadius: {
+        'xl': '1rem',
+        '2xl': '1.5rem',
+        '3xl': '2rem',
+        '4xl': '2.5rem',
+      },
+      boxShadow: {
+        'xs': '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+        'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.08)',
+        'medium': '0 10px 30px -5px rgba(0, 0, 0, 0.12)',
+        'large': '0 20px 50px -10px rgba(0, 0, 0, 0.15)',
+        'glow': '0 0 20px rgba(163, 217, 165, 0.4)',
+        'glow-lg': '0 0 30px rgba(163, 217, 165, 0.5)',
+        'inner-soft': 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.06)',
+      },
       animation: {
         'spin-slow': 'spin 3s linear infinite',
         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',

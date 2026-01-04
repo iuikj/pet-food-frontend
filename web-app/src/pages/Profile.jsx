@@ -22,7 +22,7 @@ export default function Profile() {
             <main className="px-6 space-y-8">
                 <section className="flex items-center gap-4">
                     <div className="relative">
-                        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary to-accent-blue p-1">
+                        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary to-accent-blue p-1 shadow-glow">
                             <img alt="User Avatar" className="w-full h-full rounded-full object-cover border-2 border-white dark:border-background-dark" src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-1.2.1&auto=format&fit=crop&w=200&q=80" />
                         </div>
                         <div className="absolute bottom-0 right-0 w-6 h-6 bg-primary rounded-full border-2 border-white dark:border-background-dark flex items-center justify-center text-white">
@@ -45,7 +45,7 @@ export default function Profile() {
                         <h2 className="text-xl font-bold">我的宠物</h2>
                     </div>
                     <div className="space-y-4">
-                        <div className="bg-white dark:bg-surface-dark p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 relative overflow-hidden group">
+                        <div className="bg-white dark:bg-surface-dark p-5 rounded-2xl shadow-medium border border-gray-100 dark:border-gray-800 relative overflow-hidden group hover:shadow-large hover:-translate-y-1 transition-all duration-300">
                             <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full -mr-8 -mt-8 transition-transform group-hover:scale-110"></div>
                             <div className="flex gap-4 relative z-10">
                                 <div className="relative w-24 h-24 flex-shrink-0">
@@ -83,7 +83,7 @@ export default function Profile() {
                             </div>
                         </div>
 
-                        <div className="bg-white dark:bg-surface-dark p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 relative overflow-hidden">
+                        <div className="bg-white dark:bg-surface-dark p-5 rounded-2xl shadow-soft border border-gray-100 dark:border-gray-800 relative overflow-hidden hover:shadow-medium hover:-translate-y-1 transition-all duration-300">
                             <div className="flex gap-4">
                                 <div className="relative w-24 h-24 flex-shrink-0 bg-accent-blue/10 dark:bg-accent-blue/5 rounded-2xl flex items-center justify-center text-accent-blue border border-accent-blue/20">
                                     <span className="material-icons-round text-4xl opacity-80">pets</span>
@@ -120,7 +120,7 @@ export default function Profile() {
                             </div>
                         </div>
 
-                        <button className="w-full p-6 rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700 hover:border-primary/50 dark:hover:border-primary/50 bg-gray-50/50 dark:bg-surface-dark/30 hover:bg-primary/5 transition-all group flex flex-col items-center justify-center gap-2">
+                        <button className="w-full p-6 rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700 hover:border-primary/50 dark:hover:border-primary/50 bg-gray-50/50 dark:bg-surface-dark/30 hover:bg-primary/10 hover:shadow-soft transition-all duration-300 group flex flex-col items-center justify-center gap-2">
                             <div className="w-12 h-12 rounded-full bg-white dark:bg-surface-dark shadow-sm flex items-center justify-center text-text-muted-light group-hover:text-white group-hover:bg-primary transition-all duration-300">
                                 <span className="material-icons-round text-2xl">add</span>
                             </div>

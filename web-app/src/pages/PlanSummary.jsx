@@ -31,7 +31,7 @@ export default function PlanSummary() {
             <main className="px-6 space-y-6">
                 <section className="relative overflow-hidden">
                     <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-accent-blue/10 rounded-3xl blur-xl"></div>
-                    <div className="relative bg-white dark:bg-surface-dark p-5 rounded-3xl shadow-soft border border-primary/20">
+                    <div className="relative bg-white dark:bg-surface-dark p-5 rounded-3xl shadow-medium border border-primary/20 hover:shadow-large transition-all duration-300">
                         <div className="flex items-start gap-4">
                             <div className="w-12 h-12 rounded-2xl bg-primary/20 flex items-center justify-center text-primary shrink-0 relative">
                                 <span className="material-icons-round text-2xl animate-pulse">smart_toy</span>
@@ -59,7 +59,7 @@ export default function PlanSummary() {
                         </Link>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
-                        <div className="bg-surface-light dark:bg-surface-dark p-5 rounded-[2rem] shadow-card relative overflow-hidden group">
+                        <div className="bg-surface-light dark:bg-surface-dark p-5 rounded-[2rem] shadow-soft relative overflow-hidden group hover:shadow-medium hover:-translate-y-1 transition-all duration-300">
                             <div className="absolute top-0 right-0 w-24 h-24 bg-secondary/10 rounded-full -mr-8 -mt-8 transition-transform group-hover:scale-110"></div>
                             <div className="relative z-10">
                                 <div className="flex items-center gap-2 mb-3 text-secondary-600 dark:text-secondary-400">
@@ -75,7 +75,7 @@ export default function PlanSummary() {
                                 </div>
                             </div>
                         </div>
-                        <div className="bg-surface-light dark:bg-surface-dark p-5 rounded-[2rem] shadow-card relative overflow-hidden group">
+                        <div className="bg-surface-light dark:bg-surface-dark p-5 rounded-[2rem] shadow-soft relative overflow-hidden group hover:shadow-medium hover:-translate-y-1 transition-all duration-300">
                             <div className="absolute top-0 right-0 w-24 h-24 bg-accent-blue/10 rounded-full -mr-8 -mt-8 transition-transform group-hover:scale-110"></div>
                             <div className="relative z-10">
                                 <div className="flex items-center gap-2 mb-3 text-blue-500">
@@ -132,7 +132,7 @@ export default function PlanSummary() {
                             <div className="w-10 h-10 rounded-full bg-secondary text-yellow-900 flex items-center justify-center shadow-sm shrink-0 z-10 ring-4 ring-background-light dark:ring-background-dark">
                                 <span className="material-icons-round text-lg">wb_sunny</span>
                             </div>
-                            <div className="flex-1 bg-white dark:bg-surface-dark rounded-2xl p-4 shadow-soft border border-gray-100 dark:border-gray-800 hover:border-secondary/50 transition-colors">
+                            <div className="flex-1 bg-white dark:bg-surface-dark rounded-2xl p-4 shadow-soft border border-gray-100 dark:border-gray-800 hover:border-secondary/50 hover:shadow-medium transition-all duration-300">
                                 <div className="flex justify-between items-start mb-2">
                                     <h4 className="font-bold text-base">清蒸深海鳕鱼配南瓜</h4>
                                     <span className="text-xs font-semibold bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-lg">8:00 AM</span>
@@ -153,7 +153,7 @@ export default function PlanSummary() {
                             <div className="w-10 h-10 rounded-full bg-white dark:bg-surface-dark text-text-muted-light border border-gray-200 dark:border-gray-600 flex items-center justify-center shadow-sm shrink-0 z-10 ring-4 ring-background-light dark:ring-background-dark">
                                 <span className="material-icons-round text-lg">restaurant</span>
                             </div>
-                            <div className="flex-1 bg-white dark:bg-surface-dark rounded-2xl p-4 shadow-soft border border-gray-100 dark:border-gray-800 hover:border-primary/50 transition-colors">
+                            <div className="flex-1 bg-white dark:bg-surface-dark rounded-2xl p-4 shadow-soft border border-gray-100 dark:border-gray-800 hover:border-primary/50 hover:shadow-medium transition-all duration-300">
                                 <div className="flex justify-between items-start mb-2">
                                     <h4 className="font-bold text-base">火鸡肉胡萝卜泥</h4>
                                     <span className="text-xs font-semibold bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-lg">1:00 PM</span>
@@ -172,7 +172,7 @@ export default function PlanSummary() {
                             <div className="w-10 h-10 rounded-full bg-slate-700 text-white flex items-center justify-center shadow-sm shrink-0 z-10 ring-4 ring-background-light dark:ring-background-dark">
                                 <span className="material-icons-round text-lg">dark_mode</span>
                             </div>
-                            <div className="flex-1 bg-white dark:bg-surface-dark rounded-2xl p-4 shadow-soft border border-gray-100 dark:border-gray-800 hover:border-slate-400 transition-colors">
+                            <div className="flex-1 bg-white dark:bg-surface-dark rounded-2xl p-4 shadow-soft border border-gray-100 dark:border-gray-800 hover:border-slate-400 hover:shadow-medium transition-all duration-300">
                                 <div className="flex justify-between items-start mb-2">
                                     <h4 className="font-bold text-base">牛肉青豆拌饭</h4>
                                     <span className="text-xs font-semibold bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-lg">7:00 PM</span>
@@ -194,7 +194,7 @@ export default function PlanSummary() {
                 </section>
 
                 <section className="pb-6">
-                    <div className="bg-primary/5 dark:bg-primary/10 rounded-3xl p-5 border border-primary/10 dark:border-primary/20">
+                    <div className="bg-primary/5 dark:bg-primary/10 rounded-3xl p-5 border border-primary/10 dark:border-primary/20 hover:shadow-soft transition-all duration-300">
                         <div className="flex items-center gap-2 mb-3">
                             <span className="material-icons-round text-primary">verified</span>
                             <h3 className="font-bold text-text-main-light dark:text-text-main-dark">Agent 特别提示</h3>

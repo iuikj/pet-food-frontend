@@ -69,7 +69,7 @@ export default function DashboardDaily() {
                     </div>
                 </section>
 
-                <section className="bg-primary/20 dark:bg-primary/10 rounded-3xl p-6 relative overflow-hidden">
+                <section className="bg-primary/20 dark:bg-primary/10 rounded-3xl p-6 relative overflow-hidden shadow-soft hover:shadow-medium transition-all duration-300">
                     <div className="absolute -top-10 -right-10 w-40 h-40 bg-primary/20 rounded-full blur-3xl"></div>
                     <div className="absolute bottom-0 left-0 w-32 h-32 bg-secondary/30 rounded-full blur-2xl"></div>
                     <div className="relative z-10">
@@ -133,7 +133,7 @@ export default function DashboardDaily() {
                         <span className="text-xs bg-gray-200 dark:bg-gray-700 px-2 py-0.5 rounded text-text-muted-light dark:text-text-muted-dark font-normal">已安排3餐</span>
                     </h3>
                     <div className="space-y-4">
-                        <div className="bg-white dark:bg-surface-dark p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 flex items-center gap-4 opacity-60 transition-opacity hover:opacity-100">
+                        <div className="bg-white dark:bg-surface-dark p-5 rounded-2xl shadow-soft border border-gray-100 dark:border-gray-800 flex items-center gap-4 opacity-60 transition-all duration-300 hover:opacity-100 hover:shadow-medium">
                             <div className="w-12 h-12 rounded-full bg-secondary/30 flex items-center justify-center flex-shrink-0 text-yellow-700 dark:text-yellow-200">
                                 <span className="material-icons-round">wb_sunny</span>
                             </div>
@@ -149,7 +149,7 @@ export default function DashboardDaily() {
                             </div>
                         </div>
 
-                        <div className="bg-white dark:bg-surface-dark p-5 rounded-2xl shadow-soft border-l-4 border-l-primary relative overflow-hidden group">
+                        <div className="bg-white dark:bg-surface-dark p-5 rounded-2xl shadow-medium border-l-4 border-l-primary relative overflow-hidden group hover:shadow-large transition-all duration-300">
                             <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-white dark:from-surface-dark to-transparent z-10 pointer-events-none"></div>
                             <div className="flex items-center gap-4 relative z-0">
                                 <div className="w-12 h-12 rounded-full bg-accent-blue flex items-center justify-center flex-shrink-0 text-blue-800">
@@ -170,13 +170,13 @@ export default function DashboardDaily() {
                                         </span>
                                     </div>
                                 </div>
-                                <button className="w-10 h-10 rounded-xl bg-gray-50 dark:bg-gray-800 flex items-center justify-center text-text-muted-light dark:text-text-muted-dark hover:bg-primary hover:text-white transition-all shadow-sm">
+                                <button className="w-10 h-10 rounded-xl bg-gray-50 dark:bg-gray-800 flex items-center justify-center text-text-muted-light dark:text-text-muted-dark hover:bg-primary hover:text-white hover:scale-110 transition-all duration-200 shadow-sm">
                                     <span className="material-icons-round">add</span>
                                 </button>
                             </div>
                         </div>
 
-                        <div className="bg-white dark:bg-surface-dark p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 flex items-center gap-4">
+                        <div className="bg-white dark:bg-surface-dark p-5 rounded-2xl shadow-soft border border-gray-100 dark:border-gray-800 flex items-center gap-4 hover:shadow-medium transition-all duration-300">
                             <div className="w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0 text-purple-600 dark:text-purple-300">
                                 <span className="material-icons-round">nights_stay</span>
                             </div>
@@ -195,7 +195,7 @@ export default function DashboardDaily() {
                 </section>
 
                 <section className="grid grid-cols-2 gap-4">
-                    <div className="bg-accent-blue/30 dark:bg-accent-blue/10 p-5 rounded-2xl flex flex-col justify-between h-36 relative overflow-hidden">
+                    <div className="bg-accent-blue/30 dark:bg-accent-blue/10 p-5 rounded-2xl flex flex-col justify-between h-36 relative overflow-hidden hover:shadow-medium hover:scale-105 transition-all duration-300">
                         <span className="material-icons-round absolute -right-2 -bottom-4 text-6xl text-accent-blue opacity-50">water_drop</span>
                         <div>
                             <h4 className="font-bold text-blue-900 dark:text-blue-100">饮水量</h4>
@@ -206,7 +206,7 @@ export default function DashboardDaily() {
                             <span className="text-sm font-medium mb-1 text-blue-700 dark:text-blue-300">毫升</span>
                         </div>
                     </div>
-                    <div className="bg-secondary/30 dark:bg-secondary/10 p-5 rounded-2xl flex flex-col justify-between h-36 relative overflow-hidden">
+                    <div className="bg-secondary/30 dark:bg-secondary/10 p-5 rounded-2xl flex flex-col justify-between h-36 relative overflow-hidden hover:shadow-medium hover:scale-105 transition-all duration-300">
                         <span className="material-icons-round absolute -right-2 -bottom-4 text-6xl text-secondary opacity-50">monitor_weight</span>
                         <div>
                             <h4 className="font-bold text-yellow-900 dark:text-yellow-100">当前体重</h4>

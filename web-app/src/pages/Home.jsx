@@ -35,7 +35,7 @@ export default function Home() {
                         </div>
                     </div>
                     <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4 -mx-6 px-6">
-                        <div className="min-w-[140px] bg-white dark:bg-surface-dark p-4 rounded-2xl shadow-soft border-2 border-primary relative flex flex-col items-center gap-3 transition-transform transform scale-105">
+                        <div className="min-w-[140px] bg-white dark:bg-surface-dark p-4 rounded-2xl shadow-medium border-2 border-primary relative flex flex-col items-center gap-3 transition-all duration-300 transform scale-105">
                             <div className="absolute top-2 right-2 w-5 h-5 bg-primary rounded-full flex items-center justify-center text-white">
                                 <span className="material-icons-round text-xs">check</span>
                             </div>
@@ -47,7 +47,7 @@ export default function Home() {
                                 <p className="text-xs text-text-muted-light dark:text-text-muted-dark">金毛巡回犬</p>
                             </div>
                         </div>
-                        <div className="min-w-[140px] bg-white dark:bg-surface-dark p-4 rounded-2xl shadow-sm border border-transparent opacity-60 hover:opacity-100 transition-all flex flex-col items-center gap-3 grayscale cursor-pointer">
+                        <div className="min-w-[140px] bg-white dark:bg-surface-dark p-4 rounded-2xl shadow-soft border border-transparent opacity-60 hover:opacity-100 hover:shadow-medium hover:scale-105 transition-all duration-300 flex flex-col items-center gap-3 grayscale cursor-pointer">
                             <div className="w-16 h-16 rounded-full p-1 bg-gray-100 dark:bg-gray-800">
                                 <div className="w-full h-full bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center text-gray-400">
                                     <span className="material-icons-round">pets</span>
@@ -58,7 +58,7 @@ export default function Home() {
                                 <p className="text-xs text-text-muted-light dark:text-text-muted-dark">布偶猫</p>
                             </div>
                         </div>
-                        <div className="min-w-[140px] bg-gray-50 dark:bg-surface-dark/50 p-4 rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700 flex flex-col items-center justify-center gap-2 hover:border-primary/50 transition-colors cursor-pointer group">
+                        <div className="min-w-[140px] bg-gray-50 dark:bg-surface-dark/50 p-4 rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700 flex flex-col items-center justify-center gap-2 hover:border-primary/50 hover:bg-primary/5 transition-all duration-300 cursor-pointer group">
                             <Link to="/onboarding/step1" className="flex flex-col items-center gap-2 w-full h-full justify-center">
                                 <div className="w-12 h-12 rounded-full bg-white dark:bg-surface-dark flex items-center justify-center text-gray-400 group-hover:text-primary transition-colors shadow-sm">
                                     <span className="material-icons-round">add</span>
@@ -77,10 +77,10 @@ export default function Home() {
                         </h2>
                         <p className="text-sm text-text-muted-light dark:text-text-muted-dark mt-1 pl-8">描述它的特殊需求或健康目标。</p>
                     </div>
-                    <div className="bg-white dark:bg-surface-dark p-5 rounded-3xl shadow-soft space-y-4">
+                    <div className="bg-white dark:bg-surface-dark p-5 rounded-3xl shadow-soft hover:shadow-medium transition-all duration-300 space-y-4">
                         <div className="relative">
                             <textarea
-                                className="w-full bg-background-light dark:bg-background-dark border-0 rounded-2xl p-4 text-sm min-h-[140px] resize-none focus:ring-2 focus:ring-primary/50 placeholder-text-muted-light/50 dark:placeholder-text-muted-dark/50"
+                                className="w-full bg-background-light dark:bg-background-dark border-0 rounded-2xl p-4 text-sm min-h-[140px] resize-none focus:ring-2 focus:ring-primary/50 focus:shadow-glow transition-all duration-200 placeholder-text-muted-light/50 dark:placeholder-text-muted-dark/50"
                                 placeholder="例如：Cooper最近有点超重，我想给它制定一个减肥计划。它对鸡肉过敏，喜欢吃鱼。希望能增加关节保护的营养..."
                             ></textarea>
                             <button className="absolute bottom-3 right-3 p-2 rounded-full bg-white dark:bg-surface-dark shadow-sm text-primary hover:bg-primary hover:text-white transition-colors">
@@ -123,7 +123,7 @@ export default function Home() {
             </main>
 
             <div className="fixed bottom-[90px] left-0 right-0 px-6 z-40">
-                <Link to="/planning" className="w-full bg-primary text-white dark:text-gray-900 font-bold text-lg py-4 rounded-2xl shadow-glow hover:shadow-lg hover:brightness-105 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+                <Link to="/planning" className="w-full bg-primary text-white dark:text-gray-900 font-bold text-lg py-4 rounded-2xl shadow-glow hover:shadow-glow-lg hover:brightness-110 active:scale-[0.97] transition-all duration-200 flex items-center justify-center gap-2">
                     <span className="material-icons-round">restaurant_menu</span>
                     生成专属计划
                 </Link>

@@ -8,11 +8,36 @@
   }
 }
 
-/* Custom Utilities if needed */
+
+/* Custom Utilities */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+@layer utilities {
+
+  /* 玻璃态效果 */
+  .glass {
+    @apply bg-white/80 dark:bg-surface-dark/80 backdrop-blur-xl;
+  }
+
+  /* 卡片悬停效果 */
+  .card-hover {
+    @apply transition-all duration-300 hover:shadow-medium hover:-translate-y-1;
+  }
+
+  /* 平滑过渡 */
+  .transition-smooth {
+    @apply transition-all duration-300 ease-in-out;
+  }
+
+  /* 按钮悬停效果 */
+  .btn-hover {
+    @apply transition-all duration-200 hover:brightness-105 active:scale-[0.98];
+  }
 }
