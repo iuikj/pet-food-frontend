@@ -1,0 +1,157 @@
+<!-- Pet Diet Plan Home Page -->
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Agent 规划中</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#A3D9A5", // Soft sage green as primary
+                        secondary: "#FFE898", // Warm yellow for accents
+                        "accent-blue": "#B2EBF2", // Soft blue for hydration/mix
+                        "background-light": "#FAFAF9", // Warm off-white
+                        "background-dark": "#1C1C1E", // Soft dark gray
+                        "surface-light": "#FFFFFF",
+                        "surface-dark": "#2C2C2E",
+                        "text-main-light": "#2D3748",
+                        "text-main-dark": "#F7FAFC",
+                        "text-muted-light": "#718096",
+                        "text-muted-dark": "#A0AEC0",
+                    },
+                    fontFamily: {
+                        display: ["'Plus Jakarta Sans'", "sans-serif"],
+                    },
+                    borderRadius: {
+                        DEFAULT: "1rem",
+                        'xl': '1.5rem',
+                        '2xl': '2rem',
+                    },
+                    boxShadow: {
+                        'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
+                        'glow': '0 0 15px rgba(163, 217, 165, 0.3)',
+                    },
+                    animation: {
+                        'spin-slow': 'spin 3s linear infinite',
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    }
+                },
+            },
+        };
+    </script>
+    <style>
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+    <style>
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+    <style>
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+    <style>
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+</head>
+
+<body
+    class="bg-background-light dark:bg-background-dark font-display text-text-main-light dark:text-text-main-dark transition-colors duration-300 antialiased selection:bg-primary selection:text-white flex flex-col justify-center items-center relative overflow-hidden">
+    <div class="absolute inset-0 z-0">
+        <div
+            class="absolute top-1/4 left-1/4 w-64 h-64 bg-primary/20 rounded-full mix-blend-multiply filter blur-3xl animate-pulse-slow">
+        </div>
+        <div class="absolute top-1/4 right-1/4 w-64 h-64 bg-secondary/20 rounded-full mix-blend-multiply filter blur-3xl animate-pulse-slow"
+            style="animation-delay: 1s;"></div>
+        <div class="absolute bottom-1/4 left-1/2 -translate-x-1/2 w-64 h-64 bg-accent-blue/20 rounded-full mix-blend-multiply filter blur-3xl animate-pulse-slow"
+            style="animation-delay: 2s;"></div>
+    </div>
+    <div class="relative z-10 text-center p-8 w-full max-w-md">
+        <div class="mb-12 relative inline-block">
+            <div class="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse"></div>
+            <div
+                class="w-24 h-24 bg-surface-light dark:bg-surface-dark rounded-3xl shadow-soft flex items-center justify-center relative z-10 border border-primary/20">
+                <span class="material-symbols-outlined text-5xl text-primary animate-spin-slow">smart_toy</span>
+            </div>
+            <div
+                class="absolute -top-2 -right-2 w-8 h-8 bg-secondary rounded-full flex items-center justify-center text-yellow-900 shadow-sm animate-bounce">
+                <span class="material-icons-round text-sm">pets</span>
+            </div>
+            <div class="absolute -bottom-2 -left-2 w-8 h-8 bg-accent-blue rounded-full flex items-center justify-center text-blue-900 shadow-sm animate-bounce"
+                style="animation-delay: 0.5s;">
+                <span class="material-icons-round text-sm">restaurant</span>
+            </div>
+        </div>
+        <div class="space-y-4 mb-12">
+            <h1 class="text-xl font-bold">专属计划生成中...</h1>
+            <p class="text-xs text-text-muted-light dark:text-text-muted-dark">AI Agent 正在处理 48 项营养指标</p>
+        </div>
+        <div class="space-y-6 w-full px-4">
+            <div class="flex items-center gap-4 animate-fade-in-up" style="animation-delay: 0.2s;">
+                <div
+                    class="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-green-600 dark:text-green-400 shrink-0">
+                    <span class="material-icons-round text-lg">check</span>
+                </div>
+                <div class="flex-1 text-left">
+                    <h3 class="text-sm font-bold">分析 Cooper 的过敏史...</h3>
+                    <p class="text-[10px] text-text-muted-light">已排除：鸡肉、小麦、玉米</p>
+                </div>
+                <span class="material-symbols-outlined text-green-500 text-lg">done_all</span>
+            </div>
+            <div class="flex items-center gap-4 animate-fade-in-up" style="animation-delay: 0.8s;">
+                <div
+                    class="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0 relative">
+                    <span class="material-symbols-outlined text-lg animate-spin">sync</span>
+                </div>
+                <div class="flex-1 text-left">
+                    <h3 class="text-sm font-bold">计算每日最佳热量...</h3>
+                    <p class="text-[10px] text-text-muted-light">目标：减重 / 关节保护</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-4 opacity-50 animate-fade-in-up" style="animation-delay: 1.4s;">
+                <div
+                    class="w-10 h-10 rounded-full bg-gray-100 dark:bg-surface-dark flex items-center justify-center text-gray-400 shrink-0">
+                    <span class="material-icons-round text-lg">schedule</span>
+                </div>
+                <div class="flex-1 text-left">
+                    <h3 class="text-sm font-bold">生成本周食谱...</h3>
+                    <p class="text-[10px] text-text-muted-light">等待前序步骤完成</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        // Simple logic to toggle a class for demo purposes if needed
+        const toggleBtn = document.querySelector('button[title="Toggle Theme"]');
+        if (toggleBtn) {
+            toggleBtn.addEventListener('click', () => {
+                document.documentElement.classList.toggle('dark');
+            });
+        }
+    </script>
+</body>
+
+</html>
