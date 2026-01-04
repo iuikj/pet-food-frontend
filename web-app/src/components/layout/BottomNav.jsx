@@ -31,7 +31,10 @@ export default function BottomNav() {
                             <Link
                                 key={item.name}
                                 to={item.path}
-                                className="relative -top-6 bg-primary text-white dark:text-gray-900 w-14 h-14 rounded-full shadow-glow flex items-center justify-center transform transition-transform hover:scale-105 active:scale-95"
+                                className={`relative -top-6 w-14 h-14 rounded-full shadow-sm flex items-center justify-center transform transition-all hover:scale-105 active:scale-95 bg-surface-dark dark:bg-gray-700 ${isActive(item.path)
+                                        ? 'text-primary'
+                                        : 'text-white dark:text-white'
+                                    }`}
                             >
                                 <span className="material-icons-round text-2xl">{item.icon}</span>
                             </Link>
