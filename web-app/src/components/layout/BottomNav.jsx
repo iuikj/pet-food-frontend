@@ -10,15 +10,19 @@ export default function BottomNav() {
         if (path === '/') {
             return location.pathname === '/';
         }
+        // Plan创建页面需要精确或子路由匹配
+        if (path === '/plan/create') {
+            return location.pathname === '/plan/create' || location.pathname.startsWith('/plan/');
+        }
         // 其他路径使用 startsWith 来支持子路由
         return location.pathname.startsWith(path);
     };
 
     const navItems = [
         { name: 'Home', icon: 'home', path: '/' },
-        { name: 'Calendar', icon: 'calendar_today', path: '/dashboard/weekly' },
-        { name: 'Plan', icon: 'menu_book', path: '/plan/summary', isFab: true },
-        { name: 'Analysis', icon: 'pie_chart', path: '/dashboard/daily' },
+        { name: 'Calendar', icon: 'calendar_today', path: '/calendar' },
+        { name: 'Plan', icon: 'menu_book', path: '/plan/create', isFab: true },
+        { name: 'Analysis', icon: 'pie_chart', path: '/analysis' },
         { name: 'Profile', icon: 'person', path: '/profile' },
     ];
 
@@ -32,8 +36,8 @@ export default function BottomNav() {
                                 key={item.name}
                                 to={item.path}
                                 className={`relative -top-6 w-14 h-14 rounded-full shadow-sm flex items-center justify-center transform transition-all hover:scale-105 active:scale-95 bg-surface-dark dark:bg-gray-700 ${isActive(item.path)
-                                        ? 'text-primary'
-                                        : 'text-white dark:text-white'
+                                    ? 'text-primary'
+                                    : 'text-white dark:text-white'
                                     }`}
                             >
                                 <span className="material-icons-round text-2xl">{item.icon}</span>

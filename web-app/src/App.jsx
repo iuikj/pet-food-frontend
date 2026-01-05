@@ -11,6 +11,8 @@ import PlanSummary from './pages/PlanSummary';
 import PlanDetails from './pages/PlanDetails';
 import DashboardWeekly from './pages/DashboardWeekly';
 import DashboardDaily from './pages/DashboardDaily';
+import CalendarPage from './pages/CalendarPage';
+import AnalysisPage from './pages/AnalysisPage';
 import Profile from './pages/Profile';
 
 function AnimatedRoutes() {
@@ -20,9 +22,10 @@ function AnimatedRoutes() {
     <AnimatePresence mode="wait" initial={false}>
       <Routes location={location} key={location.pathname}>
         <Route element={<Layout />}>
-          <Route path="/" element={<Home />} />
-          <Route path="/dashboard/weekly" element={<DashboardWeekly />} />
-          <Route path="/dashboard/daily" element={<DashboardDaily />} />
+          <Route path="/" element={<DashboardWeekly />} />
+          <Route path="/calendar" element={<CalendarPage />} />
+          <Route path="/analysis" element={<AnalysisPage />} />
+          <Route path="/plan/create" element={<Home />} />
           <Route path="/plan/summary" element={<PlanSummary />} />
           <Route path="/profile" element={<Profile />} />
         </Route>
