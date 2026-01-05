@@ -122,7 +122,7 @@ export default function Home() {
                 </div>
             </main>
 
-            <div className="fixed bottom-[90px] left-0 right-0 px-6 z-40">
+            <div className="px-6 pb-24 bg-background-light dark:bg-background-dark">
                 <Link to="/planning" className="w-full bg-primary text-white dark:text-gray-900 font-bold text-lg py-4 rounded-2xl shadow-glow hover:shadow-glow-lg hover:brightness-110 active:scale-[0.97] transition-all duration-200 flex items-center justify-center gap-2">
                     <span className="material-icons-round">restaurant_menu</span>
                     生成专属计划

@@ -20,7 +20,7 @@ export default function OnboardingName() {
                 </div>
             </header>
 
-            <main className="px-6 pb-32 flex flex-col h-full overflow-y-auto">
+            <main className="px-6 pb-8 flex flex-col h-full overflow-y-auto">
                 <div className="flex gap-2 mb-8 mt-2 px-2">
                     <div className="h-1.5 flex-1 bg-primary rounded-full"></div>
                     <div className="h-1.5 flex-1 bg-gray-200 dark:bg-surface-dark rounded-full"></div>
@@ -54,7 +54,7 @@ export default function OnboardingName() {
                 </div>
             </main>
 
-            <div className="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-surface-dark/90 backdrop-blur-lg border-t border-gray-100 dark:border-gray-800 p-6 z-50 rounded-t-3xl shadow-[0_-5px_20px_rgba(0,0,0,0.03)]">
+            <div className="px-6 pb-6 bg-background-light dark:bg-background-dark">
                 <Link to="/onboarding/step2" className="w-full bg-primary hover:bg-green-400 text-white font-bold text-lg py-4 rounded-2xl shadow-glow transform transition-all active:scale-[0.98] flex items-center justify-center gap-2 group">
                     下一步
                     <span className="material-icons-round group-hover:translate-x-1 transition-transform">arrow_forward</span>

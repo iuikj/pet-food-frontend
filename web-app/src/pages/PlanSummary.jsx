@@ -29,9 +29,8 @@ export default function PlanSummary() {
             </header>
 
             <main className="px-6 space-y-6">
-                <section className="relative overflow-hidden">
-                    <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-accent-blue/10 rounded-3xl blur-xl"></div>
-                    <div className="relative bg-white dark:bg-surface-dark p-5 rounded-3xl shadow-medium border border-primary/20 hover:shadow-large transition-all duration-300">
+                <section>
+                    <div className="bg-white dark:bg-surface-dark p-5 rounded-3xl shadow-soft border border-primary/20 hover:shadow-medium transition-all duration-300">
                         <div className="flex items-start gap-4">
                             <div className="w-12 h-12 rounded-2xl bg-primary/20 flex items-center justify-center text-primary shrink-0 relative">
                                 <span className="material-icons-round text-2xl animate-pulse">smart_toy</span>
@@ -114,9 +113,9 @@ export default function PlanSummary() {
                             <button
                                 key={day}
                                 onClick={() => setActiveDay(day)}
-                                className={`px-5 py-2.5 rounded-xl text-sm font-bold shadow-glow whitespace-nowrap transition-colors ${activeDay === day
-                                    ? 'bg-primary text-white'
-                                    : 'bg-white dark:bg-surface-dark text-text-muted-light border border-gray-100 dark:border-gray-700'
+                                className={`px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all ${activeDay === day
+                                    ? 'bg-primary text-white shadow-soft'
+                                    : 'bg-white dark:bg-surface-dark text-text-muted-light border border-gray-100 dark:border-gray-700 hover:border-primary/30'
                                     }`}
                             >
                                 Day {day}

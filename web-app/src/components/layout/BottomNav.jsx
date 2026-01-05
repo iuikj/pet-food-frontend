@@ -19,11 +19,11 @@ export default function BottomNav() {
     };
 
     const navItems = [
-        { name: 'Home', icon: 'home', path: '/' },
-        { name: 'Calendar', icon: 'calendar_today', path: '/calendar' },
-        { name: 'Plan', icon: 'menu_book', path: '/plan/create', isFab: true },
-        { name: 'Analysis', icon: 'pie_chart', path: '/analysis' },
-        { name: 'Profile', icon: 'person', path: '/profile' },
+        { name: '主页', icon: 'home', path: '/' },
+        { name: '日历', icon: 'calendar_today', path: '/calendar' },
+        { name: '规划', icon: 'menu_book', path: '/plan/create', isFab: true },
+        { name: '分析', icon: 'pie_chart', path: '/analysis' },
+        { name: '我的', icon: 'person', path: '/profile' },
     ];
 
     return (

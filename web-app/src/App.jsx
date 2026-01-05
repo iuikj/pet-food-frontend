@@ -1,7 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import Layout from './components/layout/Layout';
-import Home from './pages/Home';
+import CreatePlan from './pages/CreatePlan';
 import Login from './pages/Login';
 import OnboardingName from './pages/OnboardingName';
 import OnboardingBasic from './pages/OnboardingBasic';
@@ -9,7 +9,7 @@ import OnboardingHealth from './pages/OnboardingHealth';
 import Loading from './pages/Loading';
 import PlanSummary from './pages/PlanSummary';
 import PlanDetails from './pages/PlanDetails';
-import DashboardWeekly from './pages/DashboardWeekly';
+import HomePage from './pages/HomePage';
 import DashboardDaily from './pages/DashboardDaily';
 import CalendarPage from './pages/CalendarPage';
 import AnalysisPage from './pages/AnalysisPage';
@@ -22,10 +22,10 @@ function AnimatedRoutes() {
     <AnimatePresence mode="wait" initial={false}>
       <Routes location={location} key={location.pathname}>
         <Route element={<Layout />}>
-          <Route path="/" element={<DashboardWeekly />} />
+          <Route path="/" element={<HomePage />} />
           <Route path="/calendar" element={<CalendarPage />} />
           <Route path="/analysis" element={<AnalysisPage />} />
-          <Route path="/plan/create" element={<Home />} />
+          <Route path="/plan/create" element={<CreatePlan />} />
           <Route path="/plan/summary" element={<PlanSummary />} />
           <Route path="/profile" element={<Profile />} />
         </Route>
