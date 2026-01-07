@@ -1,5 +1,8 @@
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
+import { PlanGenerationProvider } from './context/PlanGenerationContext';
+import { LocalNotifications } from '@capacitor/local-notifications';
+import { useEffect } from 'react';
 import Layout from './components/layout/Layout';
 import CreatePlan from './pages/CreatePlan';
 import Login from './pages/Login';
@@ -14,9 +17,33 @@ import DashboardDaily from './pages/DashboardDaily';
 import CalendarPage from './pages/CalendarPage';
 import AnalysisPage from './pages/AnalysisPage';
 import Profile from './pages/Profile';
+import { useBackButton } from './hooks/useBackButton';
 
 function AnimatedRoutes() {
   const location = useLocation();
+  const navigate = useNavigate();
+
+  // 处理移动端返回按钮
+  useBackButton();
+
+  // 处理通知点击 - 跳转到计划页面
+  useEffect(() => {
+    const notificationListener = LocalNotifications.addListener(
+      'localNotificationActionPerformed',
+      (notification) => {
+        console.log('Notification action performed:', notification);
+        // 点击通知后跳转到计划页面
+        const route = notification.notification?.extra?.route;
+        if (route) {
+          navigate(route);
+        }
+      }
+    );
+
+    return () => {
+      notificationListener.remove();
+    };
+  }, [navigate]);
 
   return (
     <AnimatePresence mode="wait" initial={false}>
@@ -42,10 +69,13 @@ function AnimatedRoutes() {
   );
 }
 
+
 function App() {
   return (
     <Router>
-      <AnimatedRoutes />
+      <PlanGenerationProvider>
+        <AnimatedRoutes />
+      </PlanGenerationProvider>
     </Router>
   );
 }

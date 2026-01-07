@@ -1,8 +1,35 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 
 export default function OnboardingName() {
+    const [petPhoto, setPetPhoto] = useState(null);
+    const [petName, setPetName] = useState('');
+
+    const takePicture = async () => {
+        try {
+            const image = await Camera.getPhoto({
+                quality: 90,
+                allowEditing: false,
+                resultType: CameraResultType.DataUrl,
+                source: CameraSource.Prompt,
+                width: 500,
+                height: 500,
+                saveToGallery: false,
+                promptLabelHeader: '选择照片来源',
+                promptLabelPhoto: '从相册选择',
+                promptLabelPicture: '拍照'
+            });
+
+            // image.dataUrl 包含base64图片数据
+            setPetPhoto(image.dataUrl);
+        } catch (error) {
+            console.error('选择照片失败:', error);
+            // 用户取消选择，不需要显示错误
+        }
+    };
+
     return (
         <motion.div
             initial={{ opacity: 0, x: 50 }}
@@ -35,18 +62,38 @@ export default function OnboardingName() {
 
                         <div className="relative group">
                             <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                            <div className="relative w-32 h-32 mx-auto bg-gray-100 dark:bg-surface-dark rounded-full flex items-center justify-center border-4 border-white dark:border-surface-light/5 shadow-soft cursor-pointer overflow-hidden hover:scale-105 transition-transform">
-                                <span className="material-icons-round text-4xl text-text-muted-light">add_a_photo</span>
-                                <img alt="Pet Preview" className="absolute inset-0 w-full h-full object-cover opacity-0 hover:opacity-100 transition-opacity" src="https://images.unsplash.com/photo-1552053831-71594a27632d?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&q=80" />
+                            <div
+                                onClick={takePicture}
+                                className="relative w-32 h-32 mx-auto bg-gray-100 dark:bg-surface-dark rounded-full flex items-center justify-center border-4 border-white dark:border-surface-light/5 shadow-soft cursor-pointer overflow-hidden hover:scale-105 transition-transform"
+                            >
+                                {petPhoto ? (
+                                    <>
+                                        <img
+                                            src={petPhoto}
+                                            alt="Pet"
+                                            className="w-full h-full object-cover"
+                                        />
+                                        <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
+                                            <span className="material-icons-round text-white text-3xl">edit</span>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <span className="material-icons-round text-4xl text-text-muted-light">add_a_photo</span>
+                                )}
                             </div>
-                            <p className="text-xs text-center mt-3 text-text-muted-light">点击上传照片</p>
+                            <p className="text-xs text-center mt-3 text-text-muted-light">
+                                {petPhoto ? '点击更换照片' : '点击上传照片'}
+                            </p>
                         </div>
 
                         <div className="space-y-4">
                             <div className="relative bg-surface-light dark:bg-surface-dark rounded-2xl shadow-soft transition-all focus-within:ring-2 focus-within:ring-primary/50 focus-within:shadow-glow">
                                 <input
+                                    value={petName}
+                                    onChange={(e) => setPetName(e.target.value)}
                                     className="w-full bg-transparent border-none py-4 px-5 text-xl font-bold text-center text-text-main-light dark:text-text-main-dark focus:ring-0 placeholder-gray-300 dark:placeholder-gray-600 rounded-2xl"
-                                    placeholder="输入名字" type="text"
+                                    placeholder="输入名字"
+                                    type="text"
                                 />
                             </div>
                         </div>

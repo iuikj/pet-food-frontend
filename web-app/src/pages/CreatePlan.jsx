@@ -1,15 +1,57 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { pageTransitions } from '../utils/animations';
+import { Geolocation } from '@capacitor/geolocation';
+import { Capacitor } from '@capacitor/core';
+import { Toast } from '@capacitor/toast';
 
 export default function Home() {
+    const navigate = useNavigate();
+
+    const handleGeneratePlan = async () => {
+        // 请求地理位置
+        if (Capacitor.isNativePlatform()) {
+            try {
+                const permission = await Geolocation.requestPermissions();
+
+                if (permission.location === 'granted') {
+                    const position = await Geolocation.getCurrentPosition();
+                    console.log('用户位置:', position.coords);
+                    // 显示成功提示
+                    await Toast.show({
+                        text: `已获取位置: ${position.coords.latitude.toFixed(2)}, ${position.coords.longitude.toFixed(2)}`,
+                        duration: 'short'
+                    });
+                    // 可以保存位置信息供后续使用
+                } else {
+                    await Toast.show({
+                        text: '需要位置权限以提供更精准的饮食建议',
+                        duration: 'long'
+                    });
+                }
+            } catch (error) {
+                console.error('获取位置失败:', error);
+                await Toast.show({
+                    text: '获取位置失败，请检查定位服务',
+                    duration: 'short'
+                });
+            }
+        } else {
+            // Web环境下的提示
+            console.log('[Web模式] 跳过地理位置请求，在移动端会请求位置权限');
+            alert('提示：在移动端会请求您的位置以提供更精准的饮食建议');
+        }
+
+        // 导航到loading页面
+        navigate('/planning');
+    };
     return (
         <motion.div
             {...pageTransitions}
             className="pb-32"
         >
-            <header className="px-6 pt-12 pb-2 flex justify-between items-center bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-md sticky top-0 z-40">
+            <header className="px-6 pt-12 pb-4 flex justify-between items-center bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-md sticky top-0 z-40">
                 <div className="flex items-center gap-2">
                     <button className="w-8 h-8 rounded-full flex items-center justify-center text-text-muted-light dark:text-text-muted-dark hover:bg-gray-100 dark:hover:bg-surface-dark transition-colors">
                         <span className="material-icons-round text-lg">arrow_back</span>
@@ -23,9 +65,9 @@ export default function Home() {
                 </div>
             </header>
 
-            <main className="px-6 space-y-8">
-                <section>
-                    <div className="flex justify-between items-end mb-4">
+            <main className="px-6 space-y-8 mt-4">
+                <section className="mt-6">
+                    <div className="flex justify-between items-end mb-6">
                         <div>
                             <h2 className="text-lg font-bold flex items-center gap-2">
                                 <span className="bg-primary text-white w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold">1</span>
@@ -34,7 +76,7 @@ export default function Home() {
                             <p className="text-sm text-text-muted-light dark:text-text-muted-dark mt-1 pl-8">为哪位毛孩子制定计划？</p>
                         </div>
                     </div>
-                    <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4 -mx-6 px-6">
+                    <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4 pt-4 -mx-6 px-6">
                         <div className="min-w-[140px] bg-white dark:bg-surface-dark p-4 rounded-2xl shadow-medium border-2 border-primary relative flex flex-col items-center gap-3 transition-all duration-300 transform scale-105">
                             <div className="absolute top-2 right-2 w-5 h-5 bg-primary rounded-full flex items-center justify-center text-white">
                                 <span className="material-icons-round text-xs">check</span>
@@ -123,10 +165,12 @@ export default function Home() {
             </main>
 
             <div className="px-6 pb-24 bg-background-light dark:bg-background-dark">
-                <Link to="/planning" className="w-full bg-primary text-white dark:text-gray-900 font-bold text-lg py-4 rounded-2xl shadow-glow hover:shadow-glow-lg hover:brightness-110 active:scale-[0.97] transition-all duration-200 flex items-center justify-center gap-2">
+                <button
+                    onClick={handleGeneratePlan}
+                    className="w-full bg-primary text-white dark:text-gray-900 font-bold text-lg py-4 rounded-2xl shadow-glow hover:shadow-glow-lg hover:brightness-110 active:scale-[0.97] transition-all duration-200 flex items-center justify-center gap-2">
                     <span className="material-icons-round">restaurant_menu</span>
                     生成专属计划
-                </Link>
+                </button>
             </div>
         </motion.div>
     );
