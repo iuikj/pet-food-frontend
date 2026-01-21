@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { pageTransitions } from '../utils/animations';
 
@@ -25,9 +26,12 @@ export default function Profile() {
                         <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary to-accent-blue p-1 shadow-glow">
                             <img alt="User Avatar" className="w-full h-full rounded-full object-cover border-2 border-white dark:border-background-dark" src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-1.2.1&auto=format&fit=crop&w=200&q=80" />
                         </div>
-                        <div className="absolute bottom-0 right-0 w-6 h-6 bg-primary rounded-full border-2 border-white dark:border-background-dark flex items-center justify-center text-white">
+                        <Link
+                            to="/profile/edit"
+                            className="absolute bottom-0 right-0 w-6 h-6 bg-primary rounded-full border-2 border-white dark:border-background-dark flex items-center justify-center text-white hover:bg-green-400 transition-colors"
+                        >
                             <span className="material-icons-round text-[14px]">edit</span>
-                        </div>
+                        </Link>
                     </div>
                     <div>
                         <h2 className="text-lg font-bold">Alex Chen</h2>
@@ -72,10 +76,10 @@ export default function Profile() {
                                 </div>
                             </div>
                             <div className="mt-5 pt-4 border-t border-gray-100 dark:border-gray-800 flex gap-3">
-                                <button className="flex-1 py-2.5 rounded-xl bg-background-light dark:bg-background-dark text-text-main-light dark:text-text-main-dark text-sm font-semibold hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-2">
+                                <Link to="/pet/edit/1" className="flex-1 py-2.5 rounded-xl bg-background-light dark:bg-background-dark text-text-main-light dark:text-text-main-dark text-sm font-semibold hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-2">
                                     <span className="material-icons-round text-base">edit</span>
                                     编辑
-                                </button>
+                                </Link>
                                 <button className="flex-1 py-2.5 rounded-xl border border-primary text-primary text-sm font-bold hover:bg-primary/5 transition-colors flex items-center justify-center gap-2">
                                     <span className="material-icons-round text-base">assignment</span>
                                     AI 档案
@@ -109,10 +113,10 @@ export default function Profile() {
                                 </div>
                             </div>
                             <div className="mt-5 pt-4 border-t border-gray-100 dark:border-gray-800 flex gap-3">
-                                <button className="flex-1 py-2.5 rounded-xl bg-background-light dark:bg-background-dark text-text-main-light dark:text-text-main-dark text-sm font-semibold hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-2">
+                                <Link to="/pet/edit/2" className="flex-1 py-2.5 rounded-xl bg-background-light dark:bg-background-dark text-text-main-light dark:text-text-main-dark text-sm font-semibold hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-2">
                                     <span className="material-icons-round text-base">edit</span>
                                     编辑
-                                </button>
+                                </Link>
                                 <button className="flex-1 py-2.5 rounded-xl border border-primary text-primary text-sm font-bold hover:bg-primary/5 transition-colors flex items-center justify-center gap-2">
                                     <span className="material-icons-round text-base">assignment</span>
                                     AI 档案
@@ -120,12 +124,12 @@ export default function Profile() {
                             </div>
                         </div>
 
-                        <button className="w-full p-6 rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700 hover:border-primary/50 dark:hover:border-primary/50 bg-gray-50/50 dark:bg-surface-dark/30 hover:bg-primary/10 hover:shadow-soft transition-all duration-300 group flex flex-col items-center justify-center gap-2">
+                        <Link to="/onboarding/step1" className="w-full p-6 rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700 hover:border-primary/50 dark:hover:border-primary/50 bg-gray-50/50 dark:bg-surface-dark/30 hover:bg-primary/10 hover:shadow-soft transition-all duration-300 group flex flex-col items-center justify-center gap-2">
                             <div className="w-12 h-12 rounded-full bg-white dark:bg-surface-dark shadow-sm flex items-center justify-center text-text-muted-light group-hover:text-white group-hover:bg-primary transition-all duration-300">
                                 <span className="material-icons-round text-2xl">add</span>
                             </div>
                             <span className="font-bold text-text-muted-light dark:text-text-muted-dark group-hover:text-primary transition-colors">新增宠物</span>
-                        </button>
+                        </Link>
                     </div>
                 </section>
             </main>

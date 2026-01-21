@@ -1,9 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { pageTransitions } from '../utils/animations';
+import PetSelectorMenu from '../components/PetSelectorMenu';
 
 export default function DashboardWeekly() {
+    const [isPetMenuOpen, setIsPetMenuOpen] = useState(false);
+    const [selectedPet, setSelectedPet] = useState(null);
+
+    const handlePetSelect = (pet) => {
+        setSelectedPet(pet);
+        // 可以在此处添加切换当前宠物的逻辑
+    };
+
     return (
         <motion.div
             {...pageTransitions}
@@ -12,18 +21,24 @@ export default function DashboardWeekly() {
             <header className="px-6 pt-12 pb-4 flex justify-between items-center bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-md sticky top-0 z-50">
                 <div className="flex items-center gap-3">
                     <div className="relative">
-                        <Link to="/onboarding/step1" className="w-12 h-12 rounded-full bg-gray-100 dark:bg-surface-dark border-2 border-dashed border-primary/50 flex items-center justify-center text-primary shadow-sm hover:bg-primary hover:text-white transition-all">
+                        <button
+                            onClick={() => setIsPetMenuOpen(true)}
+                            className="w-12 h-12 rounded-full bg-gray-100 dark:bg-surface-dark border-2 border-dashed border-primary/50 flex items-center justify-center text-primary shadow-sm hover:bg-primary hover:text-white transition-all"
+                        >
                             <span className="material-icons-round">add</span>
-                        </Link>
+                        </button>
                     </div>
                     <div>
                         <p className="text-xs text-text-muted-light dark:text-text-muted-dark font-medium uppercase tracking-wider">
                             欢迎使用
                         </p>
-                        <Link to="/onboarding/step1" className="text-xl font-bold flex items-center gap-1 hover:text-primary transition-colors">
-                            添加宠物
+                        <button
+                            onClick={() => setIsPetMenuOpen(true)}
+                            className="text-xl font-bold flex items-center gap-1 hover:text-primary transition-colors"
+                        >
+                            {selectedPet ? selectedPet.name : '选择宠物'}
                             <span className="material-icons-round text-primary text-sm">arrow_forward_ios</span>
-                        </Link>
+                        </button>
                     </div>
                 </div>
                 <div className="flex gap-3">
@@ -122,6 +137,13 @@ export default function DashboardWeekly() {
                     </div>
                 </section>
             </main>
+
+            {/* 宠物选择菜单 */}
+            <PetSelectorMenu
+                isOpen={isPetMenuOpen}
+                onClose={() => setIsPetMenuOpen(false)}
+                onSelectPet={handlePetSelect}
+            />
         </motion.div>
     );
 }

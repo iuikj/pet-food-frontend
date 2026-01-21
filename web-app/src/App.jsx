@@ -17,6 +17,8 @@ import DashboardDaily from './pages/DashboardDaily';
 import CalendarPage from './pages/CalendarPage';
 import AnalysisPage from './pages/AnalysisPage';
 import Profile from './pages/Profile';
+import ProfileEdit from './pages/ProfileEdit';
+import PetEdit from './pages/PetEdit';
 import { useBackButton } from './hooks/useBackButton';
 
 function AnimatedRoutes() {
@@ -64,6 +66,8 @@ function AnimatedRoutes() {
         <Route path="/onboarding/step3" element={<OnboardingHealth />} />
         <Route path="/planning" element={<Loading />} />
         <Route path="/plan/details" element={<PlanDetails />} />
+        <Route path="/profile/edit" element={<ProfileEdit />} />
+        <Route path="/pet/edit/:id" element={<PetEdit />} />
       </Routes>
     </AnimatePresence>
   );
