@@ -5,7 +5,14 @@ import { usePlanGeneration } from '../context/PlanGenerationContext';
 
 export default function Loading() {
     const navigate = useNavigate();
-    const { status, progress, currentStepIndex, steps, startGeneration } = usePlanGeneration();
+    const {
+        status,
+        progress,
+        currentStepIndex,
+        steps,
+        startGeneration,
+        isBackgroundRunning
+    } = usePlanGeneration();
 
     useEffect(() => {
         if (status === 'idle') {
@@ -54,6 +61,32 @@ export default function Loading() {
                         <p className="text-xs text-text-muted-light dark:text-text-muted-dark">AI Agent 正在处理 48 项营养指标</p>
                     </div>
                 </div>
+
+                {/* 后台运行提示卡片 */}
+                <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-gradient-to-r from-primary/10 to-secondary/10 p-4 rounded-2xl mb-6 border border-primary/20"
+                >
+                    <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                            <span className="material-symbols-outlined text-primary text-lg">
+                                {isBackgroundRunning ? 'cloud_sync' : 'notifications_active'}
+                            </span>
+                        </div>
+                        <div className="flex-1">
+                            <h4 className="font-semibold text-sm text-text-main-light dark:text-text-main-dark mb-1">
+                                {isBackgroundRunning ? '后台运行中' : '支持后台运行'}
+                            </h4>
+                            <p className="text-xs text-text-muted-light dark:text-text-muted-dark leading-relaxed">
+                                {isBackgroundRunning
+                                    ? '任务正在后台继续运行，完成后会通过通知提醒您。'
+                                    : '您可以退出此页面或最小化应用，任务将在后台继续运行，完成后会通过通知提醒您。'
+                                }
+                            </p>
+                        </div>
+                    </div>
+                </motion.div>
 
                 <div className="relative w-full mb-8 h-56">
                     {/* Carousel Container */}
@@ -110,7 +143,7 @@ export default function Loading() {
                         {steps.map((step, idx) => (
                             <li key={idx} className="flex items-start gap-3">
                                 <span className={`material-symbols-outlined text-sm mt-1 ${idx < currentStepIndex ? 'text-primary' :
-                                        idx === currentStepIndex ? 'text-secondary animate-spin-slow' : 'text-gray-400 dark:text-gray-600'
+                                    idx === currentStepIndex ? 'text-secondary animate-spin-slow' : 'text-gray-400 dark:text-gray-600'
                                     }`}>
                                     {idx < currentStepIndex ? 'check_circle' :
                                         idx === currentStepIndex ? 'radio_button_checked' : 'radio_button_unchecked'}
@@ -132,21 +165,34 @@ export default function Loading() {
                 </div>
             </main>
 
+            {/* 底部导航栏 - 允许用户切换到其他页面 */}
             <nav className="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-surface-dark/90 backdrop-blur-lg border-t border-gray-100 dark:border-gray-800 pb-safe pt-2 px-6 pb-6 rounded-t-3xl shadow-[0_-5px_20px_rgba(0,0,0,0.03)] z-50">
                 <div className="flex justify-between items-center">
-                    <button className="flex flex-col items-center gap-1 w-12 text-text-muted-light dark:text-text-muted-dark hover:text-primary transition-colors">
+                    <button
+                        onClick={() => navigate('/')}
+                        className="flex flex-col items-center gap-1 w-12 text-text-muted-light dark:text-text-muted-dark hover:text-primary transition-colors"
+                    >
                         <span className="material-symbols-outlined">home</span>
                     </button>
-                    <button className="flex flex-col items-center gap-1 w-12 text-text-muted-light dark:text-text-muted-dark hover:text-primary transition-colors">
+                    <button
+                        onClick={() => navigate('/calendar')}
+                        className="flex flex-col items-center gap-1 w-12 text-text-muted-light dark:text-text-muted-dark hover:text-primary transition-colors"
+                    >
                         <span className="material-symbols-outlined">calendar_today</span>
                     </button>
                     <button className="relative -top-6 bg-primary text-white dark:text-gray-900 w-14 h-14 rounded-full shadow-glow flex items-center justify-center transform transition-transform hover:scale-105 active:scale-95">
                         <span className="material-symbols-outlined text-2xl">menu_book</span>
                     </button>
-                    <button className="flex flex-col items-center gap-1 w-12 text-text-muted-light dark:text-text-muted-dark hover:text-primary transition-colors">
+                    <button
+                        onClick={() => navigate('/analysis')}
+                        className="flex flex-col items-center gap-1 w-12 text-text-muted-light dark:text-text-muted-dark hover:text-primary transition-colors"
+                    >
                         <span className="material-symbols-outlined">pie_chart</span>
                     </button>
-                    <button className="flex flex-col items-center gap-1 w-12 text-text-muted-light dark:text-text-muted-dark hover:text-primary transition-colors">
+                    <button
+                        onClick={() => navigate('/profile')}
+                        className="flex flex-col items-center gap-1 w-12 text-text-muted-light dark:text-text-muted-dark hover:text-primary transition-colors"
+                    >
                         <span className="material-symbols-outlined">person</span>
                     </button>
                 </div>
