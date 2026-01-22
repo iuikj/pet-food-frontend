@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePlanGeneration } from '../context/PlanGenerationContext';
+import { usePets } from '../context/PetContext';
 
 export default function Loading() {
     const navigate = useNavigate();
@@ -13,14 +14,19 @@ export default function Loading() {
         startGeneration,
         isBackgroundRunning
     } = usePlanGeneration();
+    const { currentPet, setPetHasPlan } = usePets();
 
     useEffect(() => {
         if (status === 'idle') {
             startGeneration();
         } else if (status === 'completed') {
+            // 标记当前宠物已有食谱
+            if (currentPet) {
+                setPetHasPlan(currentPet.id, true);
+            }
             navigate('/plan/summary');
         }
-    }, [status, navigate, startGeneration]);
+    }, [status, navigate, startGeneration, currentPet, setPetHasPlan]);
 
     return (
         <div className="bg-background-light dark:bg-background-dark font-display text-text-main-light dark:text-text-main-dark transition-colors duration-300 antialiased selection:bg-primary selection:text-white pb-32 min-h-[max(884px,100dvh)]">

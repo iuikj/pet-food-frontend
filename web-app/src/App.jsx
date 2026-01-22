@@ -1,6 +1,8 @@
 import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { PlanGenerationProvider } from './context/PlanGenerationContext';
+import { PetProvider } from './context/PetContext';
+import { UserProvider } from './context/UserContext';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { useEffect } from 'react';
 import Layout from './components/layout/Layout';
@@ -77,9 +79,13 @@ function AnimatedRoutes() {
 function App() {
   return (
     <Router>
-      <PlanGenerationProvider>
-        <AnimatedRoutes />
-      </PlanGenerationProvider>
+      <UserProvider>
+        <PetProvider>
+          <PlanGenerationProvider>
+            <AnimatedRoutes />
+          </PlanGenerationProvider>
+        </PetProvider>
+      </UserProvider>
     </Router>
   );
 }

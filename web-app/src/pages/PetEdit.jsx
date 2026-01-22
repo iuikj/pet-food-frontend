@@ -1,42 +1,32 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
-
-// 示例宠物数据（后续可从状态管理获取）
-const demoPets = {
-    '1': {
-        id: 1,
-        name: 'Cooper',
-        type: '金毛寻回犬',
-        age: 3,
-        weight: 32,
-        avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBn9rRCCpDfMxR_3IoYBOVyNDNZADIHVHTErFZ1ecKqEnKJ0vl_NEf61nPEpN-muNBhi2X3_9QzQm9O2BOI0Y1XcNXFmw72fBSTG5SIfIRxxxsBrWfLqP0YcYbeXzX9-qStq9BpTXHo0YiOnjUMUtKIpl9qUKV7iaxqxdvMpKRAPntZHVH9ENBDRsvfy-7C6jtmoW-Bz_KrmfVcUz-PXlzyevQ_NUwkL4V6-3bbHLr_u_PgwcMgcMVavQRtmvGPSH9JDvWb6IV8viw'
-    },
-    '2': {
-        id: 2,
-        name: 'Luna',
-        type: '英国短毛猫',
-        age: 2,
-        weight: 4.2,
-        avatar: null
-    }
-};
+import { usePets } from '../context/PetContext';
 
 export default function PetEdit() {
     const navigate = useNavigate();
     const { id } = useParams();
-    const petData = demoPets[id] || demoPets['1'];
+    const { getPetById, updatePet, deletePet } = usePets();
 
-    const [photo, setPhoto] = useState(petData.avatar);
+    const petData = getPetById(id);
+
+    const [photo, setPhoto] = useState(petData?.avatar || null);
     const [formData, setFormData] = useState({
-        name: petData.name,
-        type: petData.type,
-        age: petData.age.toString(),
-        weight: petData.weight.toString()
+        name: petData?.name || '',
+        type: petData?.type || '',
+        age: petData?.age?.toString() || '',
+        weight: petData?.weight?.toString() || ''
     });
     const [saving, setSaving] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+    // 如果找不到宠物，返回 profile 页面
+    useEffect(() => {
+        if (!petData) {
+            navigate('/profile');
+        }
+    }, [petData, navigate]);
 
     const handlePhotoChange = async () => {
         try {
@@ -68,17 +58,28 @@ export default function PetEdit() {
 
     const handleSave = async () => {
         setSaving(true);
-        // 模拟保存
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // 更新宠物数据
+        updatePet(id, {
+            name: formData.name,
+            type: formData.type,
+            age: parseInt(formData.age) || 0,
+            weight: parseFloat(formData.weight) || 0,
+            avatar: photo
+        });
+        await new Promise(resolve => setTimeout(resolve, 500));
         setSaving(false);
         navigate('/profile');
     };
 
     const handleDelete = async () => {
-        // 模拟删除
-        await new Promise(resolve => setTimeout(resolve, 500));
+        deletePet(id);
+        await new Promise(resolve => setTimeout(resolve, 300));
         navigate('/profile');
     };
+
+    if (!petData) {
+        return null;
+    }
 
     return (
         <motion.div

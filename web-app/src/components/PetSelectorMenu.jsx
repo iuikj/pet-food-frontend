@@ -1,22 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-
-// 示例宠物数据（后续可从状态管理获取）
-const demoPets = [
-    {
-        id: 1,
-        name: 'Cooper',
-        type: '金毛寻回犬',
-        avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBn9rRCCpDfMxR_3IoYBOVyNDNZADIHVHTErFZ1ecKqEnKJ0vl_NEf61nPEpN-muNBhi2X3_9QzQm9O2BOI0Y1XcNXFmw72fBSTG5SIfIRxxxsBrWfLqP0YcYbeXzX9-qStq9BpTXHo0YiOnjUMUtKIpl9qUKV7iaxqxdvMpKRAPntZHVH9ENBDRsvfy-7C6jtmoW-Bz_KrmfVcUz-PXlzyevQ_NUwkL4V6-3bbHLr_u_PgwcMgcMVavQRtmvGPSH9JDvWb6IV8viw'
-    },
-    {
-        id: 2,
-        name: 'Luna',
-        type: '英国短毛猫',
-        avatar: null
-    }
-];
+import { usePets } from '../context/PetContext';
 
 const overlayVariants = {
     hidden: { opacity: 0 },
@@ -59,7 +44,10 @@ const itemVariants = {
 };
 
 export default function PetSelectorMenu({ isOpen, onClose, onSelectPet }) {
+    const { pets, setCurrentPet } = usePets();
+
     const handlePetClick = (pet) => {
+        setCurrentPet(pet.id);
         if (onSelectPet) {
             onSelectPet(pet);
         }
@@ -103,7 +91,7 @@ export default function PetSelectorMenu({ isOpen, onClose, onSelectPet }) {
 
                         {/* 宠物列表 */}
                         <div className="px-4 py-4 space-y-2 max-h-[40vh] overflow-y-auto">
-                            {demoPets.map((pet, index) => (
+                            {pets.map((pet, index) => (
                                 <motion.button
                                     key={pet.id}
                                     custom={index}
@@ -147,7 +135,7 @@ export default function PetSelectorMenu({ isOpen, onClose, onSelectPet }) {
 
                             {/* 添加宠物选项 */}
                             <motion.div
-                                custom={demoPets.length}
+                                custom={pets.length}
                                 variants={itemVariants}
                                 initial="hidden"
                                 animate="visible"
