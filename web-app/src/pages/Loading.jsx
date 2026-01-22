@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePlanGeneration } from '../context/PlanGenerationContext';
@@ -12,28 +12,45 @@ export default function Loading() {
         currentStepIndex,
         steps,
         startGeneration,
+        resetGeneration,
         isBackgroundRunning
     } = usePlanGeneration();
     const { currentPet, setPetHasPlan } = usePets();
+    const hasStartedRef = useRef(false);
+    const hasCompletedRef = useRef(false);
 
+    // 启动生成 - 只执行一次
     useEffect(() => {
-        if (status === 'idle') {
+        if (status === 'idle' && !hasStartedRef.current) {
+            hasStartedRef.current = true;
             startGeneration();
-        } else if (status === 'completed') {
+        }
+    }, [status, startGeneration]);
+
+    // 完成时跳转 - 单独处理
+    useEffect(() => {
+        if (status === 'completed' && !hasCompletedRef.current) {
+            hasCompletedRef.current = true;
             // 标记当前宠物已有食谱
             if (currentPet) {
                 setPetHasPlan(currentPet.id, true);
             }
             navigate('/plan/summary');
         }
-    }, [status, navigate, startGeneration, currentPet, setPetHasPlan]);
+    }, [status, navigate, currentPet, setPetHasPlan]);
+
+    // 强制返回处理
+    const handleForceBack = () => {
+        resetGeneration();
+        navigate(-1);
+    };
 
     return (
         <div className="bg-background-light dark:bg-background-dark font-display text-text-main-light dark:text-text-main-dark transition-colors duration-300 antialiased selection:bg-primary selection:text-white pb-32 min-h-[max(884px,100dvh)]">
             <header className="px-6 pt-12 pb-2 flex justify-between items-center bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-md sticky top-0 z-50 transition-all duration-300">
                 <div className="flex items-center gap-2">
                     <button
-                        onClick={() => navigate(-1)}
+                        onClick={handleForceBack}
                         className="w-8 h-8 rounded-full flex items-center justify-center text-text-muted-light dark:text-text-muted-dark hover:bg-gray-100 dark:hover:bg-surface-dark transition-colors"
                     >
                         <span className="material-symbols-outlined text-lg">arrow_back</span>
