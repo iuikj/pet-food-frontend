@@ -3,11 +3,75 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { pageTransitions } from '../utils/animations';
 import PetSelectorMenu from '../components/PetSelectorMenu';
+import MealCard from '../components/MealCard';
 import { usePets } from '../context/PetContext';
+
+// 默认餐食数据
+const defaultMealsData = [
+    {
+        id: 'breakfast-1',
+        type: 'breakfast',
+        name: '早晨干粮混合',
+        time: '上午 08:00',
+        description: '鸡肉米饭配方',
+        calories: 350,
+        isCompleted: true,
+        details: {
+            ingredients: [
+                { name: '鸡胸肉', amount: '60g', color: 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-300' },
+                { name: '糙米', amount: '30g', color: 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300' },
+                { name: '胡萝卜', amount: '15g', color: 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-300' }
+            ],
+            nutrition: { fat: '12克脂肪', protein: '28克蛋白质' },
+            aiTip: '早餐提供充足能量，鸡胸肉是优质蛋白来源。'
+        }
+    },
+    {
+        id: 'lunch-1',
+        type: 'lunch',
+        name: '午餐碗',
+        time: '下午 12:30',
+        description: '三文鱼美味与蒸蔬菜',
+        calories: 420,
+        isCompleted: false,
+        details: {
+            ingredients: [
+                { name: '三文鱼', amount: '80g', color: 'bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-300' },
+                { name: '西兰花', amount: '25g', color: 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-300' },
+                { name: '红薯', amount: '30g', color: 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-300' }
+            ],
+            nutrition: { fat: '28克脂肪', protein: '32克蛋白质' },
+            aiTip: '三文鱼富含Omega-3脂肪酸，有助于维护皮肤和毛发健康。'
+        }
+    },
+    {
+        id: 'dinner-1',
+        type: 'dinner',
+        name: '晚间盛宴',
+        time: '下午 06:00',
+        description: '火鸡炖菜',
+        calories: 410,
+        isCompleted: false,
+        details: {
+            ingredients: [
+                { name: '火鸡肉', amount: '90g', color: 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-300' },
+                { name: '南瓜', amount: '30g', color: 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-300' },
+                { name: '青豆', amount: '15g', color: 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-300' }
+            ],
+            nutrition: { fat: '18克脂肪', protein: '35克蛋白质' },
+            aiTip: '火鸡肉是低脂高蛋白的理想选择，适合控制体重。'
+        }
+    }
+];
 
 export default function HomePage() {
     const [isPetMenuOpen, setIsPetMenuOpen] = useState(false);
     const { pets, currentPet, setCurrentPet } = usePets();
+
+    // 餐食数据状态
+    const [mealsData, setMealsData] = useState(defaultMealsData);
+    // 当前展开的卡片ID
+    const [expandedMealId, setExpandedMealId] = useState(null);
 
     // 状态判断
     const hasPets = pets.length > 0;
@@ -15,6 +79,20 @@ export default function HomePage() {
 
     const handlePetSelect = (pet) => {
         setCurrentPet(pet.id);
+    };
+
+    // 切换卡片展开状态
+    const handleToggleExpand = (mealId) => {
+        setExpandedMealId(prev => prev === mealId ? null : mealId);
+    };
+
+    // 切换餐食完成状态
+    const handleToggleMealComplete = (mealId) => {
+        setMealsData(prev => prev.map(meal =>
+            meal.id === mealId
+                ? { ...meal, isCompleted: !meal.isCompleted }
+                : meal
+        ));
     };
 
     // 渲染 Header（根据是否有宠物显示不同内容）
@@ -345,75 +423,28 @@ export default function HomePage() {
         </section>
     );
 
+    // 计算已完成餐食数量
+    const completedMealsCount = mealsData.filter(m => m.isCompleted).length;
+
     // 渲染：今日餐食列表（有食谱时显示）
     const renderMealsList = () => (
         <section>
             <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
                 今日餐食
-                <span className="text-xs bg-gray-200 dark:bg-gray-700 px-2 py-0.5 rounded text-text-muted-light dark:text-text-muted-dark font-normal">已安排3餐</span>
+                <span className="text-xs bg-gray-200 dark:bg-gray-700 px-2 py-0.5 rounded text-text-muted-light dark:text-text-muted-dark font-normal">
+                    已完成 {completedMealsCount}/{mealsData.length} 餐
+                </span>
             </h3>
             <div className="space-y-4">
-                {/* 早餐 - 已完成 */}
-                <div className="bg-white dark:bg-surface-dark p-5 rounded-2xl shadow-soft border border-gray-100 dark:border-gray-800 flex items-center gap-4 opacity-60 transition-all duration-300 hover:opacity-100 hover:shadow-medium">
-                    <div className="w-12 h-12 rounded-full bg-secondary/30 flex items-center justify-center flex-shrink-0 text-yellow-700 dark:text-yellow-200">
-                        <span className="material-icons-round">wb_sunny</span>
-                    </div>
-                    <div className="flex-1">
-                        <div className="flex justify-between items-start">
-                            <h4 className="font-bold text-sm">早晨干粮混合</h4>
-                            <span className="text-xs text-text-muted-light dark:text-text-muted-dark line-through decoration-primary">上午 08:00</span>
-                        </div>
-                        <p className="text-xs text-text-muted-light dark:text-text-muted-dark mt-0.5">鸡肉米饭配方 • 350 大卡</p>
-                    </div>
-                    <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center text-white dark:text-gray-900">
-                        <span className="material-icons-round text-sm">check</span>
-                    </div>
-                </div>
-
-                {/* 午餐 - 当前 */}
-                <div className="bg-white dark:bg-surface-dark p-5 rounded-2xl shadow-medium border-l-4 border-l-primary relative overflow-hidden group hover:shadow-large transition-all duration-300">
-                    <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-white dark:from-surface-dark to-transparent z-10 pointer-events-none"></div>
-                    <div className="flex items-center gap-4 relative z-0">
-                        <div className="w-12 h-12 rounded-full bg-accent-blue flex items-center justify-center flex-shrink-0 text-blue-800">
-                            <span className="material-icons-round">restaurant</span>
-                        </div>
-                        <div className="flex-1 pr-4">
-                            <div className="flex justify-between items-start">
-                                <h4 className="font-bold text-lg text-primary">午餐碗</h4>
-                                <span className="text-xs font-bold bg-primary/20 text-green-800 dark:text-green-200 px-2 py-1 rounded">下午 12:30</span>
-                            </div>
-                            <p className="text-sm text-text-muted-light dark:text-text-muted-dark mt-1">三文鱼美味与蒸蔬菜</p>
-                            <div className="flex items-center gap-3 mt-3">
-                                <span className="text-xs flex items-center gap-1 text-text-muted-light dark:text-text-muted-dark bg-background-light dark:bg-background-dark px-2 py-1 rounded-md">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-yellow-400"></span> 28克脂肪
-                                </span>
-                                <span className="text-xs flex items-center gap-1 text-text-muted-light dark:text-text-muted-dark bg-background-light dark:bg-background-dark px-2 py-1 rounded-md">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span> 420 大卡
-                                </span>
-                            </div>
-                        </div>
-                        <button className="w-10 h-10 rounded-xl bg-gray-50 dark:bg-gray-800 flex items-center justify-center text-text-muted-light dark:text-text-muted-dark hover:bg-primary hover:text-white hover:scale-110 transition-all duration-200 shadow-sm">
-                            <span className="material-icons-round">add</span>
-                        </button>
-                    </div>
-                </div>
-
-                {/* 晚餐 - 待完成 */}
-                <div className="bg-white dark:bg-surface-dark p-5 rounded-2xl shadow-soft border border-gray-100 dark:border-gray-800 flex items-center gap-4 hover:shadow-medium transition-all duration-300">
-                    <div className="w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0 text-purple-600 dark:text-purple-300">
-                        <span className="material-icons-round">nights_stay</span>
-                    </div>
-                    <div className="flex-1">
-                        <div className="flex justify-between items-start">
-                            <h4 className="font-bold text-sm">晚间盛宴</h4>
-                            <span className="text-xs text-text-muted-light dark:text-text-muted-dark">下午 06:00</span>
-                        </div>
-                        <p className="text-xs text-text-muted-light dark:text-text-muted-dark mt-0.5">火鸡炖菜 • 410 大卡</p>
-                    </div>
-                    <button className="w-8 h-8 rounded-full border border-gray-200 dark:border-gray-600 flex items-center justify-center text-gray-400 hover:border-primary hover:text-primary transition-colors">
-                        <span className="material-icons-round text-sm">more_horiz</span>
-                    </button>
-                </div>
+                {mealsData.map(meal => (
+                    <MealCard
+                        key={meal.id}
+                        meal={meal}
+                        isExpanded={expandedMealId === meal.id}
+                        onToggleExpand={handleToggleExpand}
+                        onToggleComplete={handleToggleMealComplete}
+                    />
+                ))}
             </div>
         </section>
     );
