@@ -3,30 +3,53 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { usePets } from '../context/PetContext';
+import { fromMonths, toMonths } from '../utils/petUtils';
 
 export default function PetEdit() {
     const navigate = useNavigate();
     const { id } = useParams();
-    const { getPetById, updatePet, deletePet } = usePets();
+    const { getPetById, updatePet, deletePet, uploadPetAvatar, isLoading } = usePets();
 
     const petData = getPetById(id);
 
-    const [photo, setPhoto] = useState(petData?.avatar || null);
+    const [photo, setPhoto] = useState('');
+    const [photoFile, setPhotoFile] = useState(null);
     const [formData, setFormData] = useState({
-        name: petData?.name || '',
-        type: petData?.type || '',
-        age: petData?.age?.toString() || '',
-        weight: petData?.weight?.toString() || ''
+        name: '',
+        breed: '',
+        ageYears: '',
+        ageMonths: '',
+        weight: '',
+        health_status: '',
+        special_requirements: ''
     });
     const [saving, setSaving] = useState(false);
+    const [error, setError] = useState('');
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+    // 初始化表单数据
+    useEffect(() => {
+        if (petData) {
+            setPhoto(petData.avatar_url || '');
+            const { years, months } = fromMonths(petData.age || 0);
+            setFormData({
+                name: petData.name || '',
+                breed: petData.breed || '',
+                ageYears: years > 0 ? years.toString() : '',
+                ageMonths: months > 0 ? months.toString() : '',
+                weight: petData.weight?.toString() || '',
+                health_status: petData.health_status || '',
+                special_requirements: petData.special_requirements || ''
+            });
+        }
+    }, [petData]);
 
     // 如果找不到宠物，返回 profile 页面
     useEffect(() => {
-        if (!petData) {
+        if (!isLoading && !petData) {
             navigate('/profile');
         }
-    }, [petData, navigate]);
+    }, [petData, isLoading, navigate]);
 
     const handlePhotoChange = async () => {
         try {
@@ -43,6 +66,12 @@ export default function PetEdit() {
                 promptLabelPicture: '拍照'
             });
             setPhoto(image.dataUrl);
+
+            // 转换为 File
+            const response = await fetch(image.dataUrl);
+            const blob = await response.blob();
+            const file = new File([blob], 'pet_avatar.jpg', { type: 'image/jpeg' });
+            setPhotoFile(file);
         } catch (error) {
             console.error('选择照片失败:', error);
         }
@@ -57,28 +86,65 @@ export default function PetEdit() {
     };
 
     const handleSave = async () => {
+        if (!formData.name.trim()) {
+            setError('请输入宠物名字');
+            return;
+        }
+
         setSaving(true);
-        // 更新宠物数据
-        updatePet(id, {
-            name: formData.name,
-            type: formData.type,
-            age: parseInt(formData.age) || 0,
-            weight: parseFloat(formData.weight) || 0,
-            avatar: photo
-        });
-        await new Promise(resolve => setTimeout(resolve, 500));
-        setSaving(false);
-        navigate('/profile');
+        setError('');
+
+        try {
+            // 上传头像
+            if (photoFile) {
+                const avatarResult = await uploadPetAvatar(id, photoFile);
+                if (!avatarResult.success) {
+                    setError(avatarResult.message || '头像上传失败');
+                    setSaving(false);
+                    return;
+                }
+            }
+
+            // 更新宠物信息
+            const ageInMonths = toMonths(formData.ageYears, formData.ageMonths);
+            const updateResult = await updatePet(id, {
+                name: formData.name,
+                breed: formData.breed || undefined,
+                age: ageInMonths > 0 ? ageInMonths : undefined,
+                weight: parseFloat(formData.weight) || undefined,
+                health_status: formData.health_status || undefined,
+                special_requirements: formData.special_requirements || undefined
+            });
+
+            if (updateResult.success) {
+                navigate('/profile');
+            } else {
+                setError(updateResult.message || '保存失败');
+            }
+        } catch (err) {
+            console.error('保存失败:', err);
+            setError('保存失败，请重试');
+        } finally {
+            setSaving(false);
+        }
     };
 
     const handleDelete = async () => {
-        deletePet(id);
-        await new Promise(resolve => setTimeout(resolve, 300));
-        navigate('/profile');
+        const result = await deletePet(id);
+        if (result.success) {
+            navigate('/profile');
+        } else {
+            setError(result.message || '删除失败');
+            setShowDeleteConfirm(false);
+        }
     };
 
-    if (!petData) {
-        return null;
+    if (isLoading || !petData) {
+        return (
+            <div className="h-screen flex items-center justify-center">
+                <span className="material-icons-round text-4xl text-primary animate-spin">refresh</span>
+            </div>
+        );
     }
 
     return (
@@ -107,6 +173,12 @@ export default function PetEdit() {
 
             {/* 主要内容 */}
             <main className="px-6 py-6 flex-1 overflow-y-auto">
+                {error && (
+                    <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl text-sm">
+                        {error}
+                    </div>
+                )}
+
                 {/* 照片编辑 */}
                 <div className="flex flex-col items-center mb-8">
                     <div className="relative group">
@@ -143,7 +215,7 @@ export default function PetEdit() {
                     {/* 名字 */}
                     <div className="space-y-2">
                         <label className="block text-sm font-semibold text-text-main-light dark:text-text-main-dark">
-                            宠物名字
+                            宠物名字 *
                         </label>
                         <div className="relative bg-white dark:bg-surface-dark rounded-2xl shadow-soft transition-all focus-within:ring-2 focus-within:ring-primary/50 focus-within:shadow-glow">
                             <span className="absolute left-4 top-1/2 -translate-y-1/2 material-icons-round text-text-muted-light dark:text-text-muted-dark text-xl">
@@ -171,8 +243,8 @@ export default function PetEdit() {
                             </span>
                             <input
                                 type="text"
-                                name="type"
-                                value={formData.type}
+                                name="breed"
+                                value={formData.breed}
                                 onChange={handleInputChange}
                                 className="w-full bg-transparent border-none py-4 pl-12 pr-4 text-text-main-light dark:text-text-main-dark focus:ring-0 rounded-2xl"
                                 placeholder="请输入宠物品种"
@@ -180,47 +252,98 @@ export default function PetEdit() {
                         </div>
                     </div>
 
-                    {/* 年龄和体重 */}
-                    <div className="grid grid-cols-2 gap-4">
-                        {/* 年龄 */}
-                        <div className="space-y-2">
-                            <label className="block text-sm font-semibold text-text-main-light dark:text-text-main-dark">
-                                年龄
-                            </label>
+                    {/* 年龄 */}
+                    <div className="space-y-2">
+                        <label className="block text-sm font-semibold text-text-main-light dark:text-text-main-dark">
+                            年龄
+                        </label>
+                        <div className="grid grid-cols-2 gap-3">
                             <div className="relative bg-white dark:bg-surface-dark rounded-2xl shadow-soft transition-all focus-within:ring-2 focus-within:ring-primary/50 focus-within:shadow-glow">
                                 <span className="absolute left-4 top-1/2 -translate-y-1/2 material-icons-round text-text-muted-light dark:text-text-muted-dark text-xl">
                                     cake
                                 </span>
                                 <input
                                     type="number"
-                                    name="age"
-                                    value={formData.age}
+                                    min="0"
+                                    name="ageYears"
+                                    value={formData.ageYears}
                                     onChange={handleInputChange}
-                                    className="w-full bg-transparent border-none py-4 pl-12 pr-4 text-text-main-light dark:text-text-main-dark focus:ring-0 rounded-2xl"
-                                    placeholder="岁"
+                                    className="w-full bg-transparent border-none py-4 pl-12 pr-10 text-text-main-light dark:text-text-main-dark focus:ring-0 rounded-2xl"
+                                    placeholder="0"
                                 />
+                                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-text-muted-light dark:text-text-muted-dark">岁</span>
                             </div>
-                        </div>
-
-                        {/* 体重 */}
-                        <div className="space-y-2">
-                            <label className="block text-sm font-semibold text-text-main-light dark:text-text-main-dark">
-                                体重 (kg)
-                            </label>
                             <div className="relative bg-white dark:bg-surface-dark rounded-2xl shadow-soft transition-all focus-within:ring-2 focus-within:ring-primary/50 focus-within:shadow-glow">
-                                <span className="absolute left-4 top-1/2 -translate-y-1/2 material-icons-round text-text-muted-light dark:text-text-muted-dark text-xl">
-                                    monitor_weight
-                                </span>
                                 <input
                                     type="number"
-                                    step="0.1"
-                                    name="weight"
-                                    value={formData.weight}
+                                    min="0"
+                                    max="11"
+                                    name="ageMonths"
+                                    value={formData.ageMonths}
                                     onChange={handleInputChange}
-                                    className="w-full bg-transparent border-none py-4 pl-12 pr-4 text-text-main-light dark:text-text-main-dark focus:ring-0 rounded-2xl"
-                                    placeholder="kg"
+                                    className="w-full bg-transparent border-none py-4 pl-5 pr-14 text-text-main-light dark:text-text-main-dark focus:ring-0 rounded-2xl"
+                                    placeholder="0"
                                 />
+                                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-text-muted-light dark:text-text-muted-dark">个月</span>
                             </div>
+                        </div>
+                    </div>
+
+                    {/* 体重 */}
+                    <div className="space-y-2">
+                        <label className="block text-sm font-semibold text-text-main-light dark:text-text-main-dark">
+                            体重 (kg)
+                        </label>
+                        <div className="relative bg-white dark:bg-surface-dark rounded-2xl shadow-soft transition-all focus-within:ring-2 focus-within:ring-primary/50 focus-within:shadow-glow">
+                            <span className="absolute left-4 top-1/2 -translate-y-1/2 material-icons-round text-text-muted-light dark:text-text-muted-dark text-xl">
+                                monitor_weight
+                            </span>
+                            <input
+                                type="number"
+                                step="0.1"
+                                name="weight"
+                                value={formData.weight}
+                                onChange={handleInputChange}
+                                className="w-full bg-transparent border-none py-4 pl-12 pr-4 text-text-main-light dark:text-text-main-dark focus:ring-0 rounded-2xl"
+                                placeholder="kg"
+                            />
+                        </div>
+                    </div>
+
+                    {/* 健康状态 */}
+                    <div className="space-y-2">
+                        <label className="block text-sm font-semibold text-text-main-light dark:text-text-main-dark">
+                            健康状态
+                        </label>
+                        <div className="relative bg-white dark:bg-surface-dark rounded-2xl shadow-soft transition-all focus-within:ring-2 focus-within:ring-primary/50 focus-within:shadow-glow">
+                            <span className="absolute left-4 top-1/2 -translate-y-1/2 material-icons-round text-text-muted-light dark:text-text-muted-dark text-xl">
+                                favorite
+                            </span>
+                            <input
+                                type="text"
+                                name="health_status"
+                                value={formData.health_status}
+                                onChange={handleInputChange}
+                                className="w-full bg-transparent border-none py-4 pl-12 pr-4 text-text-main-light dark:text-text-main-dark focus:ring-0 rounded-2xl"
+                                placeholder="如：健康、肥胖、过敏..."
+                            />
+                        </div>
+                    </div>
+
+                    {/* 特殊需求 */}
+                    <div className="space-y-2">
+                        <label className="block text-sm font-semibold text-text-main-light dark:text-text-main-dark">
+                            特殊需求
+                        </label>
+                        <div className="relative bg-white dark:bg-surface-dark rounded-2xl shadow-soft transition-all focus-within:ring-2 focus-within:ring-primary/50 focus-within:shadow-glow">
+                            <textarea
+                                name="special_requirements"
+                                value={formData.special_requirements}
+                                onChange={handleInputChange}
+                                rows={3}
+                                className="w-full bg-transparent border-none py-4 px-4 text-text-main-light dark:text-text-main-dark focus:ring-0 rounded-2xl resize-none"
+                                placeholder="如：对谷物过敏、需要低脂食物..."
+                            />
                         </div>
                     </div>
                 </div>

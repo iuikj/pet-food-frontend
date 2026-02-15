@@ -2,8 +2,8 @@ import React, { createContext, useContext, useState, useEffect, useRef, useCallb
 import { App as CapacitorApp } from '@capacitor/app';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { Capacitor } from '@capacitor/core';
-// 使用 BackgroundMode 保持应用后台存活
 import { BackgroundMode } from '@anuradev/capacitor-background-mode';
+import { plansApi } from '../api';
 
 const PlanGenerationContext = createContext();
 
@@ -16,26 +16,32 @@ export const usePlanGeneration = () => {
 };
 
 export const PlanGenerationProvider = ({ children }) => {
-    // Status: 'idle' | 'generating' | 'completed'
+    // Status: 'idle' | 'generating' | 'completed' | 'error'
     const [status, setStatus] = useState('idle');
     const [progress, setProgress] = useState(0);
     const [currentStepIndex, setCurrentStepIndex] = useState(0);
     const [isBackgroundRunning, setIsBackgroundRunning] = useState(false);
     const [taskId, setTaskId] = useState(null);
+    const [error, setError] = useState(null);
+    const [result, setResult] = useState(null);
+    const [currentNode, setCurrentNode] = useState(null);
+    const [logs, setLogs] = useState([]);
 
-    // Total duration in ms (15 seconds)
-    const DURATION = 15000;
-    const STEPS_COUNT = 3;
-
-    const startTimeRef = useRef(null);
-    const timerRef = useRef(null);
+    const abortControllerRef = useRef(null);
 
     // Steps definition
     const steps = [
-        { title: "构建营养模型", description: "正在根据 Cooper 的体重和过敏源，匹配最佳的微量元素配比..." },
+        { title: "构建营养模型", description: "正在根据宠物的体重和健康状况，匹配最佳的微量元素配比..." },
         { title: "分析基因组学", description: "解析潜在代谢特征，调整宏量营养素比例..." },
-        { title: "生成专属食谱", description: "正在计算每日最佳热量，并生成本周食谱..." }
+        { title: "生成专属食谱", description: "正在计算每日最佳热量，并生成饮食计划..." }
     ];
+
+    // 根据 node 名称映射到步骤
+    const nodeToStepIndex = {
+        'main_agent': 0,
+        'sub_agent': 1,
+        'write_agent': 2,
+    };
 
     // Initialize permissions on mount
     useEffect(() => {
@@ -43,7 +49,6 @@ export const PlanGenerationProvider = ({ children }) => {
             if (!Capacitor.isNativePlatform()) return;
 
             try {
-                // 请求通知权限
                 const permStatus = await LocalNotifications.checkPermissions();
                 if (permStatus.display !== 'granted') {
                     await LocalNotifications.requestPermissions();
@@ -77,9 +82,12 @@ export const PlanGenerationProvider = ({ children }) => {
         };
     }, [status]);
 
-    /**
-     * 发送完成通知
-     */
+    // 添加日志
+    const addLog = useCallback((message) => {
+        setLogs(prev => [...prev, { time: new Date().toLocaleTimeString(), message }]);
+    }, []);
+
+    // 发送完成通知
     const sendCompletionNotification = useCallback(async () => {
         if (!Capacitor.isNativePlatform()) return;
 
@@ -89,12 +97,11 @@ export const PlanGenerationProvider = ({ children }) => {
                 notifications: [{
                     id: 1,
                     title: '🎉 专属计划已生成！',
-                    body: '15秒任务完成，点击查看 Cooper 的营养计划',
+                    body: '点击查看您宠物的营养计划',
                     extra: {
                         route: '/plan/summary',
                         type: 'completed'
                     },
-                    // Android specific - 允许在 idle 模式下触发
                     schedule: {
                         allowWhileIdle: true
                     }
@@ -106,14 +113,11 @@ export const PlanGenerationProvider = ({ children }) => {
         }
     }, []);
 
-    /**
-     * 启用后台模式 - 保持应用存活
-     */
+    // 启用后台模式
     const enableBackgroundMode = useCallback(async () => {
         if (!Capacitor.isNativePlatform()) return;
 
         try {
-            // 配置后台模式
             await BackgroundMode.setSettings({
                 title: '正在生成专属计划',
                 text: '任务进行中，请勿关闭应用',
@@ -123,8 +127,6 @@ export const PlanGenerationProvider = ({ children }) => {
                 hidden: false,
                 silent: false
             });
-
-            // 启用后台模式
             await BackgroundMode.enable();
             console.log('✅ Background mode enabled');
         } catch (e) {
@@ -132,9 +134,7 @@ export const PlanGenerationProvider = ({ children }) => {
         }
     }, []);
 
-    /**
-     * 禁用后台模式
-     */
+    // 禁用后台模式
     const disableBackgroundMode = useCallback(async () => {
         if (!Capacitor.isNativePlatform()) return;
 
@@ -146,68 +146,138 @@ export const PlanGenerationProvider = ({ children }) => {
         }
     }, []);
 
-    const startGeneration = useCallback(async () => {
+    // 处理 SSE 事件
+    const handleSSEEvent = useCallback((data) => {
+        console.log('📥 SSE Event:', data);
+
+        switch (data.type) {
+            case 'task_created':
+                setTaskId(data.task_id);
+                addLog('任务创建成功');
+                break;
+
+            case 'resumed':
+                setTaskId(data.task_id);
+                setProgress(data.progress || 0);
+                setCurrentNode(data.current_node);
+                addLog(`恢复任务: ${data.status}`);
+                break;
+
+            case 'node_started':
+                setCurrentNode(data.node);
+                const stepIdx = nodeToStepIndex[data.node] ?? currentStepIndex;
+                setCurrentStepIndex(stepIdx);
+                addLog(`开始: ${data.node}`);
+                break;
+
+            case 'node_completed':
+                if (data.progress) {
+                    setProgress(data.progress);
+                }
+                addLog(`完成: ${data.node}`);
+                break;
+
+            case 'tool_started':
+                addLog(`调用工具: ${data.tool}`);
+                break;
+
+            case 'tool_completed':
+                addLog(`工具完成: ${data.tool}`);
+                break;
+
+            case 'progress_update':
+                if (data.progress) {
+                    setProgress(data.progress);
+                }
+                break;
+
+            case 'task_completed':
+                setStatus('completed');
+                setProgress(100);
+                setCurrentStepIndex(steps.length - 1);
+                setResult(data.result);
+                addLog('🎉 计划生成完成！');
+                sendCompletionNotification();
+                disableBackgroundMode();
+                break;
+
+            case 'error':
+                setStatus('error');
+                setError(data.error || '生成失败');
+                addLog(`❌ 错误: ${data.error}`);
+                disableBackgroundMode();
+                break;
+
+            default:
+                console.log('Unknown event type:', data.type);
+        }
+    }, [currentStepIndex, steps.length, addLog, sendCompletionNotification, disableBackgroundMode]);
+
+    // 开始生成计划
+    const startGeneration = useCallback(async (petData) => {
         if (status === 'generating') return;
 
-        const newTaskId = `task_${Date.now()}`;
-        setTaskId(newTaskId);
+        // 重置状态
         setStatus('generating');
         setProgress(0);
         setCurrentStepIndex(0);
-        startTimeRef.current = Date.now();
+        setError(null);
+        setResult(null);
+        setLogs([]);
+        setTaskId(null);
 
-        // 🔑 启用后台模式保活
+        // 启用后台模式
         await enableBackgroundMode();
 
-        // Clear any existing timer
-        if (timerRef.current) clearInterval(timerRef.current);
+        addLog('开始生成饮食计划...');
 
-        // UI animation timer - 使用后台模式保持运行
-        timerRef.current = setInterval(async () => {
-            const elapsed = Date.now() - startTimeRef.current;
-            const newProgress = Math.min((elapsed / DURATION) * 100, 100);
+        // 创建 AbortController
+        abortControllerRef.current = new AbortController();
 
-            setProgress(newProgress);
+        try {
+            // 使用 fetch 流式请求
+            await plansApi.createPlanStreamFetch(
+                petData,
+                handleSSEEvent,
+                (err) => {
+                    console.error('SSE Error:', err);
+                    setStatus('error');
+                    setError(err.message || '连接失败');
+                    addLog(`❌ 连接错误: ${err.message}`);
+                    disableBackgroundMode();
+                }
+            );
+        } catch (err) {
+            console.error('Failed to start generation:', err);
+            setStatus('error');
+            setError(err.message || '启动失败');
+            addLog(`❌ 启动错误: ${err.message}`);
+            disableBackgroundMode();
+        }
+    }, [status, enableBackgroundMode, handleSSEEvent, addLog, disableBackgroundMode]);
 
-            const step = Math.min(Math.floor((newProgress / 100) * STEPS_COUNT), STEPS_COUNT - 1);
-            setCurrentStepIndex(step);
-
-            if (elapsed >= DURATION) {
-                clearInterval(timerRef.current);
-                timerRef.current = null;
-
-                setStatus('completed');
-                setProgress(100);
-                setCurrentStepIndex(STEPS_COUNT - 1);
-                setIsBackgroundRunning(false);
-
-                // 发送完成通知
-                await sendCompletionNotification();
-
-                // 禁用后台模式
-                await disableBackgroundMode();
-
-                console.log('🎉 Task completed!');
-            }
-        }, 100);
-    }, [status, DURATION, STEPS_COUNT, enableBackgroundMode, disableBackgroundMode, sendCompletionNotification]);
-
+    // 重置生成状态
     const resetGeneration = useCallback(async () => {
         setStatus('idle');
         setProgress(0);
         setCurrentStepIndex(0);
         setIsBackgroundRunning(false);
         setTaskId(null);
+        setError(null);
+        setResult(null);
+        setLogs([]);
+        setCurrentNode(null);
 
-        if (timerRef.current) {
-            clearInterval(timerRef.current);
-            timerRef.current = null;
+        // 取消正在进行的请求
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+            abortControllerRef.current = null;
         }
 
         // 禁用后台模式
         await disableBackgroundMode();
 
-        // Cancel any pending notifications
+        // 取消待处理的通知
         try {
             await LocalNotifications.cancel({ notifications: [{ id: 1 }, { id: 100 }] });
         } catch (e) {
@@ -215,18 +285,41 @@ export const PlanGenerationProvider = ({ children }) => {
         }
     }, [disableBackgroundMode]);
 
-    // 从后台恢复
+    // 恢复 SSE 连接
     const restoreFromBackground = useCallback(async () => {
-        // 简单实现：检查任务是否应该完成
-        if (status === 'generating' && startTimeRef.current) {
-            const elapsed = Date.now() - startTimeRef.current;
-            if (elapsed >= DURATION) {
-                setStatus('completed');
-                setProgress(100);
-                setCurrentStepIndex(STEPS_COUNT - 1);
+        if (!taskId || status !== 'generating') return;
+
+        addLog('正在恢复连接...');
+
+        try {
+            // 先查询任务状态
+            const taskRes = await plansApi.getTask(taskId);
+            if (taskRes.code === 0) {
+                const task = taskRes.data;
+                if (task.status === 'completed') {
+                    setStatus('completed');
+                    setProgress(100);
+                    // 获取结果
+                    const resultRes = await plansApi.getTaskResult(taskId);
+                    if (resultRes.code === 0) {
+                        setResult(resultRes.data);
+                    }
+                    addLog('任务已完成');
+                } else if (task.status === 'failed') {
+                    setStatus('error');
+                    setError(task.error_message || '任务失败');
+                    addLog('任务失败');
+                } else {
+                    // 任务仍在运行，可以尝试重连 SSE
+                    setProgress(task.progress || progress);
+                    addLog('任务仍在运行...');
+                }
             }
+        } catch (err) {
+            console.error('Failed to restore:', err);
+            addLog(`恢复失败: ${err.message}`);
         }
-    }, [status, DURATION, STEPS_COUNT]);
+    }, [taskId, status, progress, addLog]);
 
     return (
         <PlanGenerationContext.Provider value={{
@@ -237,6 +330,10 @@ export const PlanGenerationProvider = ({ children }) => {
             steps,
             isBackgroundRunning,
             taskId,
+            error,
+            result,
+            currentNode,
+            logs,
             startGeneration,
             resetGeneration,
             restoreFromBackground

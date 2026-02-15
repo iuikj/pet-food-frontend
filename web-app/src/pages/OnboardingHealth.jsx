@@ -1,113 +1,216 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { usePets } from '../context/PetContext';
+import OnboardingLayout from '../components/OnboardingLayout';
+import EnhancedTagSelect from '../components/EnhancedTagSelect';
 
 export default function OnboardingHealth() {
+    const navigate = useNavigate();
+    const { addPet, uploadPetAvatar } = usePets();
+
+    const [allergens, setAllergens] = useState([]);
+    const [healthIssues, setHealthIssues] = useState([]);
+    const [allergenInput, setAllergenInput] = useState('');
+    const [issueInput, setIssueInput] = useState('');
+    const [submitting, setSubmitting] = useState(false);
+
+    const handleAddAllergen = (item) => {
+        if (!allergens.includes(item)) {
+            setAllergens([...allergens, item]);
+        }
+    };
+
+    const handleRemoveAllergen = (item) => {
+        setAllergens(allergens.filter(i => i !== item));
+    };
+
+    const handleAddIssue = (item) => {
+        if (!healthIssues.includes(item)) {
+            setHealthIssues([...healthIssues, item]);
+        }
+    };
+
+    const handleRemoveIssue = (item) => {
+        setHealthIssues(healthIssues.filter(i => i !== item));
+    };
+
+    const handleSave = async () => {
+        setSubmitting(true);
+        try {
+            const name = sessionStorage.getItem('onboarding_pet_name');
+            const species = sessionStorage.getItem('onboarding_pet_species');
+            const breed = sessionStorage.getItem('onboarding_pet_breed');
+            const age = parseInt(sessionStorage.getItem('onboarding_pet_age') || '0');
+            const weight = parseFloat(sessionStorage.getItem('onboarding_pet_weight') || '0');
+            const avatarBase64 = sessionStorage.getItem('onboarding_pet_photo');
+
+            if (!name) {
+                alert('缺少必要信息，请返回重新填写');
+                setSubmitting(false);
+                return;
+            }
+
+            const petData = {
+                name,
+                type: species === 'Dog' ? 'dog' : 'cat',
+                breed,
+                age,
+                weight,
+                health_status: healthIssues.join(', ') || '健康',
+                special_requirements: allergens.length > 0 ? `过敏: ${allergens.join(', ')}` : ''
+            };
+
+            const result = await addPet(petData);
+            if (result.success && result.pet) {
+                const petId = result.pet.id;
+
+                if (avatarBase64) {
+                    try {
+                        const response = await fetch(avatarBase64);
+                        const blob = await response.blob();
+                        const file = new File([blob], 'avatar.jpg', { type: 'image/jpeg' });
+                        await uploadPetAvatar(petId, file);
+                    } catch (e) {
+                        console.error('头像处理/上传失败', e);
+                    }
+                }
+
+                // 清除 sessionStorage
+                sessionStorage.removeItem('onboarding_pet_name');
+                sessionStorage.removeItem('onboarding_pet_species');
+                sessionStorage.removeItem('onboarding_pet_breed');
+                sessionStorage.removeItem('onboarding_pet_age');
+                sessionStorage.removeItem('onboarding_pet_age_years');
+                sessionStorage.removeItem('onboarding_pet_age_months');
+                sessionStorage.removeItem('onboarding_pet_weight');
+                sessionStorage.removeItem('onboarding_pet_photo');
+
+                navigate('/');
+            } else {
+                alert(result.message || '创建宠物失败');
+                setSubmitting(false);
+            }
+        } catch (error) {
+            console.error(error);
+            alert('发生错误');
+            setSubmitting(false);
+        }
+    };
+
     return (
-        <motion.div
-            initial={{ opacity: 0, x: 50 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -50 }}
-            className="flex flex-col h-screen bg-background-light dark:bg-background-dark pb-safe"
+        <OnboardingLayout
+            currentStep={3}
+            totalSteps={3}
+            backLink="/onboarding/step2"
+            onNext={handleSave}
+            nextDisabled={false}
+            nextLabel="完成"
+            isSubmitting={submitting}
         >
-            <header className="px-6 pt-12 pb-4 flex items-center justify-between bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-md sticky top-0 z-50">
-                <Link to="/onboarding/step2" className="w-10 h-10 rounded-full bg-white dark:bg-surface-dark shadow-sm flex items-center justify-center text-text-muted-light dark:text-text-muted-dark hover:text-primary transition-colors">
-                    <span className="material-icons-round">arrow_back</span>
-                </Link>
-                <h1 className="text-xl font-bold text-center flex-1">添加宠物</h1>
-                <div className="w-10 h-10 flex items-center justify-center">
-                    <span className="text-xs font-bold text-text-muted-light dark:text-text-muted-dark">3/3</span>
-                </div>
-            </header>
+            <div className="flex flex-col items-center pt-2">
+                <div className="w-full max-w-sm space-y-6">
+                    {/* 标题 */}
+                    <div className="space-y-2 text-center mb-6">
+                        <h2 className="text-2xl font-bold text-text-main-light dark:text-text-main-dark">健康信息</h2>
+                        <p className="text-sm text-text-muted-light dark:text-text-muted-dark">有什么过敏或需要注意的健康问题吗？</p>
+                    </div>
 
-            <main className="px-6 pb-32 flex flex-col h-full overflow-y-auto">
-                <div className="flex gap-2 mb-8 mt-2 px-2">
-                    <div className="h-1.5 flex-1 bg-primary rounded-full"></div>
-                    <div className="h-1.5 flex-1 bg-primary rounded-full"></div>
-                    <div className="h-1.5 flex-1 bg-primary rounded-full"></div>
-                </div>
-
-                <div className="flex-1 flex flex-col items-center pt-2">
-                    <div className="w-full max-w-sm space-y-8">
-                        <div className="space-y-2 text-center mb-6">
-                            <h2 className="text-2xl font-bold text-text-main-light dark:text-text-main-dark">健康信息</h2>
-                            <p className="text-sm text-text-muted-light dark:text-text-muted-dark">Cooper 有什么过敏或需要注意的健康问题吗？</p>
+                    {/* 过敏源 */}
+                    <div className="space-y-3">
+                        <div className="flex items-center justify-between px-1">
+                            <label className="text-sm font-semibold text-text-main-light dark:text-text-main-dark">过敏源</label>
                         </div>
-
-                        <div className="space-y-3">
-                            <div className="flex items-center justify-between px-1">
-                                <label className="text-sm font-semibold text-text-main-light dark:text-text-main-dark" htmlFor="allergens-input">过敏源</label>
-                            </div>
-                            <div className="relative bg-white dark:bg-surface-dark rounded-2xl p-4 shadow-soft">
-                                <div className="flex flex-wrap gap-2 mb-2 items-center min-h-[40px]">
-                                    <span className="inline-flex items-center px-3 py-1 rounded-full bg-primary/20 text-green-900 dark:text-green-100 text-sm font-medium">
-                                        谷物
-                                        <button className="ml-1 -mr-1 h-4 w-4 rounded-full flex items-center justify-center text-green-700 dark:text-green-200 hover:bg-primary/30" type="button">
-                                            <span className="material-icons-round text-xs">close</span>
-                                        </button>
-                                    </span>
-                                    <input
-                                        className="flex-1 min-w-[100px] border-none focus:ring-0 bg-transparent text-sm text-text-main-light dark:text-text-main-dark p-0"
-                                        id="allergens-input" placeholder="输入或选择过敏源..." type="text"
-                                    />
-                                </div>
-                            </div>
-                            <div className="no-scrollbar flex overflow-x-auto gap-2 py-1 -mt-1">
-                                {['无', '鸡肉', '牛肉', '乳制品', '海鲜/鱼', '羊肉'].map((item) => (
-                                    <button key={item} className={`relative px-4 py-2 rounded-full shadow-soft text-sm font-semibold border border-transparent transition-all active:scale-95 whitespace-nowrap ${item === '无' ? 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300' : 'bg-white dark:bg-surface-dark text-text-main-light dark:text-text-main-dark hover:border-primary/50'}`}>
+                        <div className="relative bg-white dark:bg-surface-dark rounded-2xl p-4 shadow-soft">
+                            <div className="flex flex-wrap gap-2 mb-2 items-center min-h-[40px]">
+                                {allergens.map(item => (
+                                    <span key={item} className="inline-flex items-center px-3 py-1 rounded-full bg-primary/20 text-green-900 dark:text-green-100 text-sm font-medium">
                                         {item}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="space-y-3">
-                            <div className="flex items-center justify-between px-1">
-                                <label className="text-sm font-semibold text-text-main-light dark:text-text-main-dark" htmlFor="health-issues-input">近期健康困扰</label>
-                            </div>
-                            <div className="relative bg-white dark:bg-surface-dark rounded-2xl p-4 shadow-soft">
-                                <div className="flex flex-wrap gap-2 mb-2 items-center min-h-[40px]">
-                                    <span className="inline-flex items-center px-3 py-1 rounded-full bg-primary/20 text-green-900 dark:text-green-100 text-sm font-medium">
-                                        <span className="material-icons-round text-sm mr-1">opacity</span>
-                                        泪痕严重
-                                        <button className="ml-1 -mr-1 h-4 w-4 rounded-full flex items-center justify-center text-green-700 dark:text-green-200 hover:bg-primary/30" type="button">
+                                        <button
+                                            onClick={() => handleRemoveAllergen(item)}
+                                            className="ml-1 -mr-1 h-4 w-4 rounded-full flex items-center justify-center text-green-700 dark:text-green-200 hover:bg-primary/30"
+                                            type="button"
+                                        >
                                             <span className="material-icons-round text-xs">close</span>
                                         </button>
                                     </span>
-                                    <input
-                                        className="flex-1 min-w-[100px] border-none focus:ring-0 bg-transparent text-sm text-text-main-light dark:text-text-main-dark p-0"
-                                        id="health-issues-input" placeholder="输入或选择困扰..." type="text"
-                                    />
-                                </div>
-                            </div>
-                            <div className="no-scrollbar flex overflow-x-auto gap-2 py-1 -mt-1">
-                                <button className="flex items-center justify-center gap-1 px-4 py-2 rounded-full bg-gray-200 dark:bg-gray-700 shadow-soft text-sm font-semibold text-gray-700 dark:text-gray-300 border border-transparent transition-all active:scale-95 whitespace-nowrap">
-                                    <span className="material-icons-round text-base">block</span>
-                                    无
-                                </button>
-                                {[
-                                    { icon: 'healing', text: '皮肤瘙痒' },
-                                    { icon: 'monitor_weight', text: '体重超标' },
-                                    { icon: 'sentiment_dissatisfied', text: '软便/拉稀' },
-                                    { icon: 'restaurant', text: '挑食' }
-                                ].map((item) => (
-                                    <button key={item.text} className="flex items-center justify-center gap-1 px-4 py-2 rounded-full bg-white dark:bg-surface-dark shadow-soft text-sm font-semibold text-text-main-light dark:text-text-main-dark border border-transparent hover:border-primary/50 transition-all active:scale-95 whitespace-nowrap">
-                                        <span className="material-icons-round text-base text-text-muted-light">{item.icon}</span>
-                                        {item.text}
-                                    </button>
                                 ))}
+                                <input
+                                    className="flex-1 min-w-[100px] border-none focus:ring-0 bg-transparent text-sm text-text-main-light dark:text-text-main-dark p-0"
+                                    placeholder="如：玉米、小麦、鸡蛋等..."
+                                    type="text"
+                                    value={allergenInput}
+                                    onChange={e => setAllergenInput(e.target.value)}
+                                    onKeyDown={e => {
+                                        if (e.key === 'Enter' && allergenInput.trim()) {
+                                            handleAddAllergen(allergenInput.trim());
+                                            setAllergenInput('');
+                                            e.preventDefault();
+                                        }
+                                    }}
+                                />
                             </div>
                         </div>
+                        <EnhancedTagSelect
+                            options={['鸡肉', '牛肉', '乳制品', '海鲜/鱼', '羊肉']}
+                            selected={allergens}
+                            onChange={setAllergens}
+                            multiple={true}
+                            clearLabel="无"
+                            onClear={() => setAllergens([])}
+                        />
+                    </div>
+
+                    {/* 健康困扰 */}
+                    <div className="space-y-3">
+                        <div className="flex items-center justify-between px-1">
+                            <label className="text-sm font-semibold text-text-main-light dark:text-text-main-dark">近期健康困扰</label>
+                        </div>
+                        <div className="relative bg-white dark:bg-surface-dark rounded-2xl p-4 shadow-soft">
+                            <div className="flex flex-wrap gap-2 mb-2 items-center min-h-[40px]">
+                                {healthIssues.map(item => (
+                                    <span key={item} className="inline-flex items-center px-3 py-1 rounded-full bg-primary/20 text-green-900 dark:text-green-100 text-sm font-medium">
+                                        {item}
+                                        <button
+                                            onClick={() => handleRemoveIssue(item)}
+                                            className="ml-1 -mr-1 h-4 w-4 rounded-full flex items-center justify-center text-green-700 dark:text-green-200 hover:bg-primary/30"
+                                            type="button"
+                                        >
+                                            <span className="material-icons-round text-xs">close</span>
+                                        </button>
+                                    </span>
+                                ))}
+                                <input
+                                    className="flex-1 min-w-[100px] border-none focus:ring-0 bg-transparent text-sm text-text-main-light dark:text-text-main-dark p-0"
+                                    placeholder="如：关节炎、肠胃敏感、肥胖等..."
+                                    type="text"
+                                    value={issueInput}
+                                    onChange={e => setIssueInput(e.target.value)}
+                                    onKeyDown={e => {
+                                        if (e.key === 'Enter' && issueInput.trim()) {
+                                            handleAddIssue(issueInput.trim());
+                                            setIssueInput('');
+                                            e.preventDefault();
+                                        }
+                                    }}
+                                />
+                            </div>
+                        </div>
+                        <EnhancedTagSelect
+                            options={[
+                                { icon: 'healing', text: '皮肤瘙痒' },
+                                { icon: 'monitor_weight', text: '体重超标' },
+                                { icon: 'sentiment_dissatisfied', text: '软便/拉稀' },
+                                { icon: 'restaurant', text: '挑食' }
+                            ]}
+                            selected={healthIssues}
+                            onChange={setHealthIssues}
+                            multiple={true}
+                            clearLabel="无"
+                            onClear={() => setHealthIssues([])}
+                        />
                     </div>
                 </div>
-            </main>
-
-            <div className="px-6 pb-6 bg-background-light dark:bg-background-dark">
-                <Link to="/planning" className="w-full bg-primary hover:bg-green-400 text-white font-bold text-lg py-4 rounded-2xl shadow-glow transform transition-all active:scale-[0.98] flex items-center justify-center gap-2 group">
-                    保存
-                    <span className="material-icons-round group-hover:scale-110 transition-transform">check</span>
-                </Link>
             </div>
-        </motion.div>
+        </OnboardingLayout>
     );
 }

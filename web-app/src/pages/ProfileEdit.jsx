@@ -1,17 +1,32 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
+import { useUser } from '../context/UserContext';
 
 export default function ProfileEdit() {
     const navigate = useNavigate();
-    const [avatar, setAvatar] = useState('https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-1.2.1&auto=format&fit=crop&w=200&q=80');
+    const { user, updateUser, updateAvatar, isLoading } = useUser();
+
+    const [avatar, setAvatar] = useState('');
+    const [avatarFile, setAvatarFile] = useState(null);
     const [formData, setFormData] = useState({
-        name: 'Alex Chen',
-        email: 'alex.chen@example.com',
+        nickname: '',
         phone: ''
     });
     const [saving, setSaving] = useState(false);
+    const [error, setError] = useState('');
+
+    // 初始化表单数据
+    useEffect(() => {
+        if (user) {
+            setAvatar(user.avatar_url || '');
+            setFormData({
+                nickname: user.nickname || user.username || '',
+                phone: user.phone || ''
+            });
+        }
+    }, [user]);
 
     const handleAvatarChange = async () => {
         try {
@@ -28,6 +43,12 @@ export default function ProfileEdit() {
                 promptLabelPicture: '拍照'
             });
             setAvatar(image.dataUrl);
+
+            // 转换 DataUrl 为 File
+            const response = await fetch(image.dataUrl);
+            const blob = await response.blob();
+            const file = new File([blob], 'avatar.jpg', { type: 'image/jpeg' });
+            setAvatarFile(file);
         } catch (error) {
             console.error('选择头像失败:', error);
         }
@@ -43,11 +64,45 @@ export default function ProfileEdit() {
 
     const handleSave = async () => {
         setSaving(true);
-        // 模拟保存
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setSaving(false);
-        navigate('/profile');
+        setError('');
+
+        try {
+            // 上传头像
+            if (avatarFile) {
+                const avatarResult = await updateAvatar(avatarFile);
+                if (!avatarResult.success) {
+                    setError(avatarResult.message || '头像上传失败');
+                    setSaving(false);
+                    return;
+                }
+            }
+
+            // 更新用户信息
+            const updateResult = await updateUser({
+                nickname: formData.nickname,
+                phone: formData.phone
+            });
+
+            if (updateResult.success) {
+                navigate('/profile');
+            } else {
+                setError(updateResult.message || '保存失败');
+            }
+        } catch (err) {
+            console.error('保存失败:', err);
+            setError('保存失败，请重试');
+        } finally {
+            setSaving(false);
+        }
     };
+
+    if (isLoading) {
+        return (
+            <div className="h-screen flex items-center justify-center">
+                <span className="material-icons-round text-4xl text-primary animate-spin">refresh</span>
+            </div>
+        );
+    }
 
     return (
         <motion.div
@@ -70,6 +125,12 @@ export default function ProfileEdit() {
 
             {/* 主要内容 */}
             <main className="px-6 py-6 flex-1 overflow-y-auto">
+                {error && (
+                    <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl text-sm">
+                        {error}
+                    </div>
+                )}
+
                 {/* 头像编辑 */}
                 <div className="flex flex-col items-center mb-8">
                     <div className="relative group">
@@ -78,11 +139,17 @@ export default function ProfileEdit() {
                             onClick={handleAvatarChange}
                             className="relative w-28 h-28 rounded-full bg-gradient-to-br from-primary to-accent-blue p-1 shadow-glow cursor-pointer overflow-hidden"
                         >
-                            <img
-                                src={avatar}
-                                alt="Avatar"
-                                className="w-full h-full rounded-full object-cover border-2 border-white dark:border-background-dark"
-                            />
+                            {avatar ? (
+                                <img
+                                    src={avatar}
+                                    alt="Avatar"
+                                    className="w-full h-full rounded-full object-cover border-2 border-white dark:border-background-dark"
+                                />
+                            ) : (
+                                <div className="w-full h-full rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center border-2 border-white dark:border-background-dark">
+                                    <span className="material-icons-round text-4xl text-gray-400">person</span>
+                                </div>
+                            )}
                             <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center rounded-full">
                                 <span className="material-icons-round text-white text-3xl">camera_alt</span>
                             </div>
@@ -95,10 +162,10 @@ export default function ProfileEdit() {
 
                 {/* 表单 */}
                 <div className="space-y-5">
-                    {/* 姓名 */}
+                    {/* 昵称 */}
                     <div className="space-y-2">
                         <label className="block text-sm font-semibold text-text-main-light dark:text-text-main-dark">
-                            姓名
+                            昵称
                         </label>
                         <div className="relative bg-white dark:bg-surface-dark rounded-2xl shadow-soft transition-all focus-within:ring-2 focus-within:ring-primary/50 focus-within:shadow-glow">
                             <span className="absolute left-4 top-1/2 -translate-y-1/2 material-icons-round text-text-muted-light dark:text-text-muted-dark text-xl">
@@ -106,31 +173,29 @@ export default function ProfileEdit() {
                             </span>
                             <input
                                 type="text"
-                                name="name"
-                                value={formData.name}
+                                name="nickname"
+                                value={formData.nickname}
                                 onChange={handleInputChange}
                                 className="w-full bg-transparent border-none py-4 pl-12 pr-4 text-text-main-light dark:text-text-main-dark focus:ring-0 rounded-2xl"
-                                placeholder="请输入姓名"
+                                placeholder="请输入昵称"
                             />
                         </div>
                     </div>
 
-                    {/* 邮箱 */}
+                    {/* 邮箱（只读） */}
                     <div className="space-y-2">
                         <label className="block text-sm font-semibold text-text-main-light dark:text-text-main-dark">
-                            邮箱
+                            邮箱 <span className="text-text-muted-light dark:text-text-muted-dark font-normal">(不可修改)</span>
                         </label>
-                        <div className="relative bg-white dark:bg-surface-dark rounded-2xl shadow-soft transition-all focus-within:ring-2 focus-within:ring-primary/50 focus-within:shadow-glow">
+                        <div className="relative bg-gray-100 dark:bg-gray-800 rounded-2xl shadow-soft">
                             <span className="absolute left-4 top-1/2 -translate-y-1/2 material-icons-round text-text-muted-light dark:text-text-muted-dark text-xl">
                                 email
                             </span>
                             <input
                                 type="email"
-                                name="email"
-                                value={formData.email}
-                                onChange={handleInputChange}
-                                className="w-full bg-transparent border-none py-4 pl-12 pr-4 text-text-main-light dark:text-text-main-dark focus:ring-0 rounded-2xl"
-                                placeholder="请输入邮箱"
+                                value={user?.email || ''}
+                                disabled
+                                className="w-full bg-transparent border-none py-4 pl-12 pr-4 text-text-muted-light dark:text-text-muted-dark rounded-2xl cursor-not-allowed"
                             />
                         </div>
                     </div>
@@ -157,17 +222,19 @@ export default function ProfileEdit() {
                 </div>
 
                 {/* 会员信息卡片 */}
-                <div className="mt-8 p-5 rounded-2xl bg-gradient-to-br from-yellow-400/20 to-orange-400/20 dark:from-yellow-900/20 dark:to-orange-900/20 border border-yellow-200/50 dark:border-yellow-900/30">
-                    <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-full bg-yellow-400/30 dark:bg-yellow-900/30 flex items-center justify-center">
-                            <span className="material-icons-round text-yellow-600 dark:text-yellow-400 text-2xl">star</span>
-                        </div>
-                        <div>
-                            <h3 className="font-bold text-yellow-800 dark:text-yellow-200">PRO 会员</h3>
-                            <p className="text-sm text-yellow-700/80 dark:text-yellow-300/80">享受所有高级功能</p>
+                {user?.is_pro && (
+                    <div className="mt-8 p-5 rounded-2xl bg-gradient-to-br from-yellow-400/20 to-orange-400/20 dark:from-yellow-900/20 dark:to-orange-900/20 border border-yellow-200/50 dark:border-yellow-900/30">
+                        <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 rounded-full bg-yellow-400/30 dark:bg-yellow-900/30 flex items-center justify-center">
+                                <span className="material-icons-round text-yellow-600 dark:text-yellow-400 text-2xl">star</span>
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-yellow-800 dark:text-yellow-200">PRO 会员</h3>
+                                <p className="text-sm text-yellow-700/80 dark:text-yellow-300/80">享受所有高级功能</p>
+                            </div>
                         </div>
                     </div>
-                </div>
+                )}
             </main>
 
             {/* 底部按钮 */}

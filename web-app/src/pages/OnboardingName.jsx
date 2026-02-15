@@ -1,17 +1,18 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
+import OnboardingLayout from '../components/OnboardingLayout';
 
 export default function OnboardingName() {
-    const [petPhoto, setPetPhoto] = useState(null);
-    const [petName, setPetName] = useState('');
+    const navigate = useNavigate();
+    const [petPhoto, setPetPhoto] = useState(sessionStorage.getItem('onboarding_pet_photo') || null);
+    const [petName, setPetName] = useState(sessionStorage.getItem('onboarding_pet_name') || '');
 
     const takePicture = async () => {
         try {
             const image = await Camera.getPhoto({
                 quality: 90,
-                allowEditing: false,
+                allowEditing: true,
                 resultType: CameraResultType.DataUrl,
                 source: CameraSource.Prompt,
                 width: 500,
@@ -22,91 +23,79 @@ export default function OnboardingName() {
                 promptLabelPicture: '拍照'
             });
 
-            // image.dataUrl 包含base64图片数据
             setPetPhoto(image.dataUrl);
+            sessionStorage.setItem('onboarding_pet_photo', image.dataUrl);
         } catch (error) {
             console.error('选择照片失败:', error);
-            // 用户取消选择，不需要显示错误
+        }
+    };
+
+    const handleNext = () => {
+        if (petName.trim()) {
+            sessionStorage.setItem('onboarding_pet_name', petName);
+            navigate('/onboarding/step2');
         }
     };
 
     return (
-        <motion.div
-            initial={{ opacity: 0, x: 50 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -50 }}
-            className="flex flex-col h-screen bg-background-light dark:bg-background-dark pb-safe"
+        <OnboardingLayout
+            currentStep={1}
+            totalSteps={3}
+            backLink="/"
+            onNext={handleNext}
+            nextDisabled={!petName.trim()}
         >
-            <header className="px-6 pt-12 pb-4 flex items-center justify-between bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-md sticky top-0 z-50">
-                <Link to="/" className="w-10 h-10 rounded-full bg-white dark:bg-surface-dark shadow-sm flex items-center justify-center text-text-muted-light dark:text-text-muted-dark hover:text-primary transition-colors">
-                    <span className="material-icons-round">arrow_back</span>
-                </Link>
-                <h1 className="text-xl font-bold text-center flex-1">添加宠物</h1>
-                <div className="w-10 h-10 flex items-center justify-center">
-                    <span className="text-xs font-bold text-text-muted-light dark:text-text-muted-dark">1/3</span>
-                </div>
-            </header>
+            <div className="flex flex-col items-center pt-8">
+                <div className="w-full max-w-sm space-y-8">
+                    {/* 标题 */}
+                    <div className="space-y-2 text-center">
+                        <h2 className="text-2xl font-bold text-text-main-light dark:text-text-main-dark">
+                            让我们认识你的宠物
+                        </h2>
+                        <p className="text-sm text-text-muted-light dark:text-text-muted-dark">
+                            给你的毛孩子起一个可爱的名字吧
+                        </p>
+                    </div>
 
-            <main className="px-6 pb-8 flex flex-col h-full overflow-y-auto">
-                <div className="flex gap-2 mb-8 mt-2 px-2">
-                    <div className="h-1.5 flex-1 bg-primary rounded-full"></div>
-                    <div className="h-1.5 flex-1 bg-gray-200 dark:bg-surface-dark rounded-full"></div>
-                    <div className="h-1.5 flex-1 bg-gray-200 dark:bg-surface-dark rounded-full"></div>
-                </div>
-
-                <div className="flex-1 flex flex-col items-center pt-8">
-                    <div className="w-full max-w-sm space-y-8">
-                        <div className="space-y-2 text-center">
-                            <h2 className="text-2xl font-bold text-text-main-light dark:text-text-main-dark">它的名字是？</h2>
-                        </div>
-
-                        <div className="relative group">
-                            <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                            <div
-                                onClick={takePicture}
-                                className="relative w-32 h-32 mx-auto bg-gray-100 dark:bg-surface-dark rounded-full flex items-center justify-center border-4 border-white dark:border-surface-light/5 shadow-soft cursor-pointer overflow-hidden hover:scale-105 transition-transform"
-                            >
-                                {petPhoto ? (
-                                    <>
-                                        <img
-                                            src={petPhoto}
-                                            alt="Pet"
-                                            className="w-full h-full object-cover"
-                                        />
-                                        <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
-                                            <span className="material-icons-round text-white text-3xl">edit</span>
-                                        </div>
-                                    </>
-                                ) : (
-                                    <span className="material-icons-round text-4xl text-text-muted-light">add_a_photo</span>
-                                )}
+                    {/* 头像上传 */}
+                    <button
+                        onClick={takePicture}
+                        className="relative w-32 h-32 mx-auto rounded-full bg-gradient-to-br from-primary/20 to-green-300/20 border-4 border-dashed border-primary/40 flex items-center justify-center overflow-hidden group hover:border-primary transition-all duration-300"
+                    >
+                        {petPhoto ? (
+                            <>
+                                <img src={petPhoto} alt="宠物头像" className="w-full h-full object-cover" />
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                    <span className="material-icons-round text-white text-3xl">photo_camera</span>
+                                </div>
+                            </>
+                        ) : (
+                            <div className="flex flex-col items-center gap-2 text-primary">
+                                <span className="material-icons-round text-4xl group-hover:scale-110 transition-transform">add_a_photo</span>
+                                <span className="text-xs font-medium">添加照片</span>
                             </div>
-                            <p className="text-xs text-center mt-3 text-text-muted-light">
-                                {petPhoto ? '点击更换照片' : '点击上传照片'}
-                            </p>
-                        </div>
+                        )}
+                    </button>
 
-                        <div className="space-y-4">
-                            <div className="relative bg-surface-light dark:bg-surface-dark rounded-2xl shadow-soft transition-all focus-within:ring-2 focus-within:ring-primary/50 focus-within:shadow-glow">
-                                <input
-                                    value={petName}
-                                    onChange={(e) => setPetName(e.target.value)}
-                                    className="w-full bg-transparent border-none py-4 px-5 text-xl font-bold text-center text-text-main-light dark:text-text-main-dark focus:ring-0 placeholder-gray-300 dark:placeholder-gray-600 rounded-2xl"
-                                    placeholder="输入名字"
-                                    type="text"
-                                />
-                            </div>
+                    {/* 名字输入 */}
+                    <div className="bg-surface-light dark:bg-surface-dark rounded-2xl p-6 shadow-soft">
+                        <label className="text-sm font-semibold text-text-main-light dark:text-text-main-dark ml-1 mb-4 block">
+                            宠物名字
+                        </label>
+                        <div className="relative bg-background-light dark:bg-background-dark rounded-2xl shadow-inner transition-all focus-within:ring-2 focus-within:ring-primary/50 focus-within:shadow-glow">
+                            <input
+                                value={petName}
+                                onChange={(e) => setPetName(e.target.value)}
+                                className="w-full bg-transparent border-none py-4 pl-5 pr-12 text-lg font-medium text-text-main-light dark:text-text-main-dark focus:ring-0 placeholder-gray-300 dark:placeholder-gray-600 rounded-2xl"
+                                placeholder="例如：Cooper"
+                                type="text"
+                                maxLength={20}
+                            />
+                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-2xl">🐾</span>
                         </div>
                     </div>
                 </div>
-            </main>
-
-            <div className="px-6 pb-6 bg-background-light dark:bg-background-dark">
-                <Link to="/onboarding/step2" className="w-full bg-primary hover:bg-green-400 text-white font-bold text-lg py-4 rounded-2xl shadow-glow transform transition-all active:scale-[0.98] flex items-center justify-center gap-2 group">
-                    下一步
-                    <span className="material-icons-round group-hover:translate-x-1 transition-transform">arrow_forward</span>
-                </Link>
             </div>
-        </motion.div>
+        </OnboardingLayout>
     );
 }

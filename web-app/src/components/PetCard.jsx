@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import DropdownMenu from './DropdownMenu';
+import { formatPetAge } from '../utils/petUtils';
 
 /**
  * 可复用的宠物卡片组件
@@ -36,7 +37,7 @@ export default function PetCard({ pet, onDelete, showActions = true, variant = '
 
     return (
         <>
-            <div className="bg-white dark:bg-surface-dark p-5 rounded-2xl shadow-medium border border-gray-100 dark:border-gray-800 relative overflow-hidden group hover:shadow-large hover:-translate-y-1 transition-all duration-300">
+            <div className="bg-white dark:bg-surface-dark p-5 rounded-2xl shadow-medium border border-gray-100 dark:border-gray-800 relative overflow-hidden group hover:shadow-large hover:-translate-y-1 active:scale-[0.99] active:shadow-soft transition-all duration-300">
                 {/* 装饰背景 */}
                 <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full -mr-8 -mt-8 transition-transform group-hover:scale-110" />
 
@@ -86,7 +87,7 @@ export default function PetCard({ pet, onDelete, showActions = true, variant = '
                         {/* 宠物属性标签 */}
                         <div className="flex flex-wrap gap-2 mt-3">
                             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-gray-800 text-text-muted-light dark:text-text-muted-dark text-xs font-semibold">
-                                <span className="material-icons-round text-xs">cake</span> {pet.age} 岁
+                                <span className="material-icons-round text-xs">cake</span> {formatPetAge(pet.age)}
                             </span>
                             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-gray-800 text-text-muted-light dark:text-text-muted-dark text-xs font-semibold">
                                 <span className="material-icons-round text-xs">monitor_weight</span> {pet.weight} kg
@@ -100,13 +101,13 @@ export default function PetCard({ pet, onDelete, showActions = true, variant = '
                     <div className="mt-5 pt-4 border-t border-gray-100 dark:border-gray-800 flex gap-3">
                         <Link
                             to={`/pet/edit/${pet.id}`}
-                            className="flex-1 py-2.5 rounded-xl bg-background-light dark:bg-background-dark text-text-main-light dark:text-text-main-dark text-sm font-semibold hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-2"
+                            className="flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-text-muted-light dark:text-text-muted-dark text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center justify-center gap-2"
                         >
                             <span className="material-icons-round text-base">edit</span>
                             编辑
                         </Link>
-                        <button className="flex-1 py-2.5 rounded-xl border border-primary text-primary text-sm font-bold hover:bg-primary/5 transition-colors flex items-center justify-center gap-2">
-                            <span className="material-icons-round text-base">assignment</span>
+                        <button className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-primary to-green-400 text-white text-sm font-bold shadow-glow hover:shadow-lg transition-all flex items-center justify-center gap-2 group">
+                            <span className="material-icons-round text-base group-hover:scale-110 transition-transform">auto_awesome</span>
                             AI 档案
                         </button>
                     </div>

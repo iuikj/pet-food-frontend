@@ -1,4 +1,6 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { petsApi } from '../api';
+import { useUser } from './UserContext';
 
 const PetContext = createContext();
 
@@ -11,38 +13,51 @@ export const usePets = () => {
     return context;
 };
 
-// 示例宠物数据
-const initialPets = [
-    {
-        id: '1',
-        name: 'Cooper',
-        type: '金毛寻回犬',
-        avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBn9rRCCpDfMxR_3IoYBOVyNDNZADIHVHTErFZ1ecKqEnKJ0vl_NEf61nPEpN-muNBhi2X3_9QzQm9O2BOI0Y1XcNXFmw72fBSTG5SIfIRxxxsBrWfLqP0YcYbeXzX9-qStq9BpTXHo0YiOnjUMUtKIpl9qUKV7iaxqxdvMpKRAPntZHVH9ENBDRsvfy-7C6jtmoW-Bz_KrmfVcUz-PXlzyevQ_NUwkL4V6-3bbHLr_u_PgwcMgcMVavQRtmvGPSH9JDvWb6IV8viw',
-        age: 3,
-        weight: 32,
-        gender: 'male',
-        createdAt: new Date('2023-01-15'),
-        hasPlan: true  // 已创建食谱
-    },
-    {
-        id: '2',
-        name: 'Luna',
-        type: '英国短毛猫',
-        avatar: null,
-        age: 2,
-        weight: 4.2,
-        gender: 'female',
-        createdAt: new Date('2024-03-20'),
-        hasPlan: false  // 未创建食谱
-    }
-];
-
 export const PetProvider = ({ children }) => {
-    const [pets, setPets] = useState(initialPets);
-    const [currentPetId, setCurrentPetId] = useState(initialPets[0]?.id || null);
+    const { isAuthenticated } = useUser();
+    const [pets, setPets] = useState([]);
+    const [currentPetId, setCurrentPetId] = useState(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState(null);
 
     // 获取当前选中的宠物
     const currentPet = pets.find(p => p.id === currentPetId) || pets[0] || null;
+
+    // 登录后加载宠物列表
+    useEffect(() => {
+        if (isAuthenticated) {
+            fetchPets();
+        } else {
+            setPets([]);
+            setCurrentPetId(null);
+        }
+    }, [isAuthenticated]);
+
+    // 从后端获取宠物列表
+    const fetchPets = useCallback(async () => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const res = await petsApi.getPets();
+            if (res.code === 0) {
+                const petList = res.data.items || [];
+                setPets(petList);
+                // 如果有宠物且没有选中，选中第一个
+                if (petList.length > 0 && !currentPetId) {
+                    setCurrentPetId(petList[0].id);
+                }
+                return { success: true, pets: petList };
+            }
+            setError(res.message);
+            return { success: false, message: res.message };
+        } catch (err) {
+            console.error('Failed to fetch pets:', err);
+            setError('获取宠物列表失败');
+            return { success: false, message: '获取宠物列表失败' };
+        } finally {
+            setIsLoading(false);
+        }
+    }, [currentPetId]);
 
     // 根据 ID 获取宠物
     const getPetById = useCallback((id) => {
@@ -50,34 +65,90 @@ export const PetProvider = ({ children }) => {
     }, [pets]);
 
     // 添加宠物
-    const addPet = useCallback((petData) => {
-        const newPet = {
-            id: `pet_${Date.now()}`,
-            createdAt: new Date(),
-            ...petData
-        };
-        setPets(prev => [...prev, newPet]);
-        return newPet;
+    const addPet = useCallback(async (petData) => {
+        setIsLoading(true);
+        try {
+            const res = await petsApi.createPet(petData);
+            if (res.code === 0) {
+                const newPet = res.data;
+                setPets(prev => [...prev, newPet]);
+                setCurrentPetId(newPet.id);
+                return { success: true, pet: newPet };
+            }
+            return { success: false, message: res.message };
+        } catch (err) {
+            console.error('Failed to create pet:', err);
+            return { success: false, message: '创建宠物失败' };
+        } finally {
+            setIsLoading(false);
+        }
     }, []);
 
     // 更新宠物
-    const updatePet = useCallback((id, updates) => {
-        setPets(prev => prev.map(pet =>
-            pet.id === id ? { ...pet, ...updates } : pet
-        ));
+    const updatePet = useCallback(async (id, updates) => {
+        setIsLoading(true);
+        try {
+            const res = await petsApi.updatePet(id, updates);
+            if (res.code === 0) {
+                const updatedPet = res.data;
+                setPets(prev => prev.map(pet =>
+                    pet.id === id ? updatedPet : pet
+                ));
+                return { success: true, pet: updatedPet };
+            }
+            return { success: false, message: res.message };
+        } catch (err) {
+            console.error('Failed to update pet:', err);
+            return { success: false, message: '更新宠物失败' };
+        } finally {
+            setIsLoading(false);
+        }
     }, []);
 
     // 删除宠物
-    const deletePet = useCallback((id) => {
-        setPets(prev => {
-            const filtered = prev.filter(pet => pet.id !== id);
-            // 如果删除的是当前宠物，切换到第一个
-            if (currentPetId === id && filtered.length > 0) {
-                setCurrentPetId(filtered[0].id);
+    const deletePet = useCallback(async (id) => {
+        setIsLoading(true);
+        try {
+            const res = await petsApi.deletePet(id);
+            if (res.code === 0) {
+                setPets(prev => {
+                    const filtered = prev.filter(pet => pet.id !== id);
+                    // 如果删除的是当前宠物，切换到第一个
+                    if (currentPetId === id && filtered.length > 0) {
+                        setCurrentPetId(filtered[0].id);
+                    } else if (filtered.length === 0) {
+                        setCurrentPetId(null);
+                    }
+                    return filtered;
+                });
+                return { success: true };
             }
-            return filtered;
-        });
+            return { success: false, message: res.message };
+        } catch (err) {
+            console.error('Failed to delete pet:', err);
+            return { success: false, message: '删除宠物失败' };
+        } finally {
+            setIsLoading(false);
+        }
     }, [currentPetId]);
+
+    // 上传宠物头像
+    const uploadPetAvatar = useCallback(async (petId, file) => {
+        try {
+            const res = await petsApi.uploadPetAvatar(petId, file);
+            if (res.code === 0) {
+                // 更新本地宠物头像
+                setPets(prev => prev.map(pet =>
+                    pet.id === petId ? { ...pet, avatar_url: res.data.avatar_url } : pet
+                ));
+                return { success: true, avatar_url: res.data.avatar_url };
+            }
+            return { success: false, message: res.message };
+        } catch (err) {
+            console.error('Failed to upload pet avatar:', err);
+            return { success: false, message: '上传头像失败' };
+        }
+    }, []);
 
     // 设置当前宠物
     const setCurrentPet = useCallback((id) => {
@@ -86,10 +157,10 @@ export const PetProvider = ({ children }) => {
         }
     }, [pets]);
 
-    // 设置宠物食谱状态
+    // 设置宠物食谱状态（本地更新，用于 UI 显示）
     const setPetHasPlan = useCallback((id, hasPlan) => {
         setPets(prev => prev.map(pet =>
-            pet.id === id ? { ...pet, hasPlan } : pet
+            pet.id === id ? { ...pet, has_plan: hasPlan } : pet
         ));
     }, []);
 
@@ -98,10 +169,14 @@ export const PetProvider = ({ children }) => {
             pets,
             currentPet,
             currentPetId,
+            isLoading,
+            error,
+            fetchPets,
             getPetById,
             addPet,
             updatePet,
             deletePet,
+            uploadPetAvatar,
             setCurrentPet,
             setPetHasPlan
         }}>

@@ -1,8 +1,8 @@
-import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { PlanGenerationProvider } from './context/PlanGenerationContext';
 import { PetProvider } from './context/PetContext';
-import { UserProvider } from './context/UserContext';
+import { UserProvider, useUser } from './context/UserContext';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { useEffect } from 'react';
 import Layout from './components/layout/Layout';
@@ -22,6 +22,45 @@ import Profile from './pages/Profile';
 import ProfileEdit from './pages/ProfileEdit';
 import PetEdit from './pages/PetEdit';
 import { useBackButton } from './hooks/useBackButton';
+
+// 路由保护组件
+function ProtectedRoute({ children }) {
+  const { isAuthenticated, isLoading } = useUser();
+
+  if (isLoading) {
+    // 显示加载状态
+    return (
+      <div className="h-screen flex items-center justify-center">
+        <span className="material-icons-round text-4xl text-primary animate-spin">refresh</span>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return children;
+}
+
+// 公开路由（已登录则跳转首页）
+function PublicRoute({ children }) {
+  const { isAuthenticated, isLoading } = useUser();
+
+  if (isLoading) {
+    return (
+      <div className="h-screen flex items-center justify-center">
+        <span className="material-icons-round text-4xl text-primary animate-spin">refresh</span>
+      </div>
+    );
+  }
+
+  if (isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
+}
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -52,7 +91,8 @@ function AnimatedRoutes() {
   return (
     <AnimatePresence mode="wait" initial={false}>
       <Routes location={location} key={location.pathname}>
-        <Route element={<Layout />}>
+        {/* 需要登录的页面（带底部导航） */}
+        <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
           <Route path="/" element={<HomePage />} />
           <Route path="/calendar" element={<CalendarPage />} />
           <Route path="/analysis" element={<AnalysisPage />} />
@@ -61,15 +101,17 @@ function AnimatedRoutes() {
           <Route path="/profile" element={<Profile />} />
         </Route>
 
-        {/* Full screen pages without bottom nav */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/onboarding/step1" element={<OnboardingName />} />
-        <Route path="/onboarding/step2" element={<OnboardingBasic />} />
-        <Route path="/onboarding/step3" element={<OnboardingHealth />} />
-        <Route path="/planning" element={<Loading />} />
-        <Route path="/plan/details" element={<PlanDetails />} />
-        <Route path="/profile/edit" element={<ProfileEdit />} />
-        <Route path="/pet/edit/:id" element={<PetEdit />} />
+        {/* 需要登录的页面（无底部导航） */}
+        <Route path="/onboarding/step1" element={<ProtectedRoute><OnboardingName /></ProtectedRoute>} />
+        <Route path="/onboarding/step2" element={<ProtectedRoute><OnboardingBasic /></ProtectedRoute>} />
+        <Route path="/onboarding/step3" element={<ProtectedRoute><OnboardingHealth /></ProtectedRoute>} />
+        <Route path="/planning" element={<ProtectedRoute><Loading /></ProtectedRoute>} />
+        <Route path="/plan/details" element={<ProtectedRoute><PlanDetails /></ProtectedRoute>} />
+        <Route path="/profile/edit" element={<ProtectedRoute><ProfileEdit /></ProtectedRoute>} />
+        <Route path="/pet/edit/:id" element={<ProtectedRoute><PetEdit /></ProtectedRoute>} />
+
+        {/* 公开页面（未登录可访问） */}
+        <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
       </Routes>
     </AnimatePresence>
   );

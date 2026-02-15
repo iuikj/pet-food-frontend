@@ -70,6 +70,7 @@ export default function MealCard({
             className={`
                 bg-white dark:bg-surface-dark rounded-2xl shadow-soft
                 border-2 transition-all duration-300 cursor-pointer
+                active:scale-[0.99]
                 ${isExpanded
                     ? 'border-primary/40 shadow-medium bg-primary/5 dark:bg-primary/10'
                     : 'border-gray-100 dark:border-gray-800 hover:border-primary/20 hover:shadow-medium'
@@ -91,8 +92,8 @@ export default function MealCard({
                             {meal.name}
                         </h4>
                         <span className={`text-xs font-bold shrink-0 px-2 py-1 rounded ${meal.isCompleted
-                                ? 'bg-gray-100 dark:bg-gray-700 text-text-muted-light dark:text-text-muted-dark line-through'
-                                : 'bg-primary/20 text-green-800 dark:text-green-200'
+                            ? 'bg-gray-100 dark:bg-gray-700 text-text-muted-light dark:text-text-muted-dark line-through'
+                            : 'bg-primary/20 text-green-800 dark:text-green-200'
                             }`}>
                             {meal.time}
                         </span>

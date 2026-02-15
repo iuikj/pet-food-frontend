@@ -1,18 +1,51 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { pageTransitions } from '../utils/animations';
 import { usePets } from '../context/PetContext';
 import { useUser } from '../context/UserContext';
 import PetCard from '../components/PetCard';
+import Modal from '../components/Modal';
 
 export default function Profile() {
-    const { pets, deletePet } = usePets();
-    const { user } = useUser();
+    const navigate = useNavigate();
+    const { pets, deletePet, isLoading: petsLoading } = usePets();
+    const { user, logout, isLoading: userLoading } = useUser();
+
+    // Modal 状态
+    const [showLogoutModal, setShowLogoutModal] = useState(false);
+    const [showDeletePetModal, setShowDeletePetModal] = useState(false);
+    const [petToDelete, setPetToDelete] = useState(null);
 
     const handleDeletePet = (petId) => {
-        deletePet(petId);
+        const pet = pets.find(p => p.id === petId);
+        setPetToDelete(pet);
+        setShowDeletePetModal(true);
     };
+
+    const confirmDeletePet = async () => {
+        if (petToDelete) {
+            await deletePet(petToDelete.id);
+            setPetToDelete(null);
+        }
+    };
+
+    const handleLogout = () => {
+        setShowLogoutModal(true);
+    };
+
+    const confirmLogout = () => {
+        logout();
+        navigate('/login');
+    };
+
+    if (userLoading) {
+        return (
+            <div className="h-screen flex items-center justify-center">
+                <span className="material-icons-round text-4xl text-primary animate-spin">refresh</span>
+            </div>
+        );
+    }
 
     return (
         <motion.div
@@ -21,10 +54,10 @@ export default function Profile() {
         >
             <header className="px-6 pt-12 pb-2 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md sticky top-0 z-50">
                 <div className="flex justify-end gap-3">
-                    <button className="w-10 h-10 rounded-full bg-white dark:bg-surface-dark shadow-sm flex items-center justify-center text-text-muted-light dark:text-text-muted-dark hover:text-primary transition-colors">
+                    <button className="w-10 h-10 rounded-full bg-white dark:bg-surface-dark shadow-sm flex items-center justify-center text-text-muted-light dark:text-text-muted-dark hover:text-primary transition-all active:scale-[0.95]">
                         <span className="material-icons-round">settings</span>
                     </button>
-                    <button className="w-10 h-10 rounded-full bg-white dark:bg-surface-dark shadow-sm flex items-center justify-center text-text-muted-light dark:text-text-muted-dark hover:text-primary transition-colors" title="Toggle Theme">
+                    <button className="w-10 h-10 rounded-full bg-white dark:bg-surface-dark shadow-sm flex items-center justify-center text-text-muted-light dark:text-text-muted-dark hover:text-primary transition-all active:scale-[0.95]" title="Toggle Theme">
                         <span className="material-icons-round">dark_mode</span>
                     </button>
                 </div>
@@ -35,23 +68,29 @@ export default function Profile() {
                 <section className="flex items-center gap-4">
                     <div className="relative">
                         <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary to-accent-blue p-1 shadow-glow">
-                            <img
-                                alt="User Avatar"
-                                className="w-full h-full rounded-full object-cover border-2 border-white dark:border-background-dark"
-                                src={user.avatar}
-                            />
+                            {user?.avatar_url ? (
+                                <img
+                                    alt="User Avatar"
+                                    className="w-full h-full rounded-full object-cover border-2 border-white dark:border-background-dark"
+                                    src={user.avatar_url}
+                                />
+                            ) : (
+                                <div className="w-full h-full rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center border-2 border-white dark:border-background-dark">
+                                    <span className="material-icons-round text-3xl text-gray-400">person</span>
+                                </div>
+                            )}
                         </div>
                         <Link
                             to="/profile/edit"
-                            className="absolute bottom-0 right-0 w-6 h-6 bg-primary rounded-full border-2 border-white dark:border-background-dark flex items-center justify-center text-white hover:bg-green-400 transition-colors"
+                            className="absolute bottom-0 right-0 w-6 h-6 bg-primary rounded-full border-2 border-white dark:border-background-dark flex items-center justify-center text-white hover:bg-green-400 transition-all active:scale-[0.9]"
                         >
                             <span className="material-icons-round text-[14px]">edit</span>
                         </Link>
                     </div>
                     <div>
-                        <h2 className="text-lg font-bold">{user.name}</h2>
-                        <p className="text-sm text-text-muted-light dark:text-text-muted-dark">{user.email}</p>
-                        {user.isPro && (
+                        <h2 className="text-lg font-bold">{user?.nickname || user?.username || '用户'}</h2>
+                        <p className="text-sm text-text-muted-light dark:text-text-muted-dark">{user?.email}</p>
+                        {user?.is_pro && (
                             <div className="flex items-center gap-2 mt-2">
                                 <span className="px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 rounded text-xs font-bold flex items-center gap-1">
                                     <span className="material-icons-round text-[14px]">star</span> PRO 会员
@@ -83,7 +122,7 @@ export default function Profile() {
                         {/* 新增宠物按钮 */}
                         <Link
                             to="/onboarding/step1"
-                            className="w-full p-6 rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700 hover:border-primary/50 dark:hover:border-primary/50 bg-gray-50/50 dark:bg-surface-dark/30 hover:bg-primary/10 hover:shadow-soft transition-all duration-300 group flex flex-col items-center justify-center gap-2"
+                            className="w-full p-6 rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700 hover:border-primary/50 dark:hover:border-primary/50 bg-gray-50/50 dark:bg-surface-dark/30 hover:bg-primary/10 hover:shadow-soft transition-all duration-300 group flex flex-col items-center justify-center gap-2 active:scale-[0.98]"
                         >
                             <div className="w-12 h-12 rounded-full bg-white dark:bg-surface-dark shadow-sm flex items-center justify-center text-text-muted-light group-hover:text-white group-hover:bg-primary transition-all duration-300">
                                 <span className="material-icons-round text-2xl">add</span>
@@ -92,7 +131,45 @@ export default function Profile() {
                         </Link>
                     </div>
                 </section>
+
+                {/* 退出登录按钮 */}
+                <section className="mt-8">
+                    <button
+                        onClick={handleLogout}
+                        className="w-full p-4 rounded-2xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 font-bold flex items-center justify-center gap-2 hover:bg-red-100 dark:hover:bg-red-900/30 transition-all active:scale-[0.98]"
+                    >
+                        <span className="material-icons-round">logout</span>
+                        退出登录
+                    </button>
+                </section>
             </main>
+
+            {/* 退出登录确认弹窗 */}
+            <Modal
+                isOpen={showLogoutModal}
+                onClose={() => setShowLogoutModal(false)}
+                onConfirm={confirmLogout}
+                title="退出登录"
+                message="确定要退出当前账号吗？您可以随时重新登录。"
+                confirmText="退出"
+                cancelText="取消"
+                type="danger"
+            />
+
+            {/* 删除宠物确认弹窗 */}
+            <Modal
+                isOpen={showDeletePetModal}
+                onClose={() => {
+                    setShowDeletePetModal(false);
+                    setPetToDelete(null);
+                }}
+                onConfirm={confirmDeletePet}
+                title="删除宠物"
+                message={`确定要删除 "${petToDelete?.name || '这只宠物'}" 吗？此操作无法撤销。`}
+                confirmText="删除"
+                cancelText="取消"
+                type="danger"
+            />
         </motion.div>
     );
 }

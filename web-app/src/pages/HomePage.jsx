@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { pageTransitions } from '../utils/animations';
 import PetSelectorMenu from '../components/PetSelectorMenu';
 import MealCard from '../components/MealCard';
 import { usePets } from '../context/PetContext';
+import { mealsApi } from '../api';
 
 // 默认餐食数据
 const defaultMealsData = [
@@ -64,18 +65,104 @@ const defaultMealsData = [
     }
 ];
 
+// 辅助函数
+const getMealTypeName = (type) => {
+    const names = { breakfast: '早餐', lunch: '午餐', dinner: '晚餐', snack: '加餐' };
+    return names[type] || type;
+};
+
+const formatMealTime = (time) => {
+    if (!time) return '';
+    try {
+        const date = new Date(time);
+        const hours = date.getHours();
+        const minutes = date.getMinutes().toString().padStart(2, '0');
+        const period = hours < 12 ? '上午' : '下午';
+        const hour12 = hours % 12 || 12;
+        return `${period} ${hour12.toString().padStart(2, '0')}:${minutes}`;
+    } catch {
+        return time;
+    }
+};
+
+const getIngredientColor = (name) => {
+    if (name.includes('肉') || name.includes('鸡') || name.includes('牛') || name.includes('猪')) {
+        return 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-300';
+    }
+    if (name.includes('鱼') || name.includes('虾') || name.includes('三文')) {
+        return 'bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-300';
+    }
+    if (name.includes('菜') || name.includes('豆') || name.includes('花')) {
+        return 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-300';
+    }
+    if (name.includes('萝卜') || name.includes('南瓜') || name.includes('薯')) {
+        return 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-300';
+    }
+    return 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300';
+};
+
 export default function HomePage() {
     const [isPetMenuOpen, setIsPetMenuOpen] = useState(false);
-    const { pets, currentPet, setCurrentPet } = usePets();
+    const { pets, currentPet, setCurrentPet, isLoading: petsLoading } = usePets();
 
     // 餐食数据状态
-    const [mealsData, setMealsData] = useState(defaultMealsData);
+    const [mealsData, setMealsData] = useState([]);
+    const [mealsLoading, setMealsLoading] = useState(false);
     // 当前展开的卡片ID
     const [expandedMealId, setExpandedMealId] = useState(null);
 
     // 状态判断
     const hasPets = pets.length > 0;
-    const hasRecipe = currentPet?.hasPlan ?? false;
+    const hasRecipe = currentPet?.has_plan ?? false;
+
+    // 获取今日餐食
+    const fetchTodayMeals = useCallback(async () => {
+        if (!currentPet?.id || !hasRecipe) return;
+
+        setMealsLoading(true);
+        try {
+            const res = await mealsApi.getTodayMeals(currentPet.id);
+            if (res.code === 0 && res.data?.meals) {
+                const formattedMeals = res.data.meals.map(meal => ({
+                    id: meal.id,
+                    type: meal.meal_type,
+                    name: meal.meal_name || getMealTypeName(meal.meal_type),
+                    time: formatMealTime(meal.scheduled_time),
+                    description: meal.description || '',
+                    calories: meal.total_calories || 0,
+                    isCompleted: meal.is_completed,
+                    details: {
+                        ingredients: meal.foods?.map(food => ({
+                            name: food.food_name,
+                            amount: `${food.amount}${food.unit || 'g'}`,
+                            color: getIngredientColor(food.food_name)
+                        })) || [],
+                        nutrition: {
+                            fat: `${meal.total_fat || 0}克脂肪`,
+                            protein: `${meal.total_protein || 0}克蛋白质`
+                        },
+                        aiTip: meal.ai_tip || ''
+                    }
+                }));
+                setMealsData(formattedMeals);
+            }
+        } catch (error) {
+            console.error('Failed to fetch today meals:', error);
+            // 使用默认数据作为后备
+            setMealsData(defaultMealsData);
+        } finally {
+            setMealsLoading(false);
+        }
+    }, [currentPet?.id, hasRecipe]);
+
+    // 当宠物或食谱状态变化时重新获取
+    useEffect(() => {
+        if (hasRecipe && currentPet?.id) {
+            fetchTodayMeals();
+        } else {
+            setMealsData([]);
+        }
+    }, [currentPet?.id, hasRecipe, fetchTodayMeals]);
 
     const handlePetSelect = (pet) => {
         setCurrentPet(pet.id);
@@ -87,12 +174,28 @@ export default function HomePage() {
     };
 
     // 切换餐食完成状态
-    const handleToggleMealComplete = (mealId) => {
-        setMealsData(prev => prev.map(meal =>
-            meal.id === mealId
-                ? { ...meal, isCompleted: !meal.isCompleted }
-                : meal
+    const handleToggleMealComplete = async (mealId) => {
+        const meal = mealsData.find(m => m.id === mealId);
+        if (!meal) return;
+
+        // 乐观更新
+        setMealsData(prev => prev.map(m =>
+            m.id === mealId ? { ...m, isCompleted: !m.isCompleted } : m
         ));
+
+        try {
+            if (meal.isCompleted) {
+                await mealsApi.uncompleteMeal(mealId);
+            } else {
+                await mealsApi.completeMeal(mealId);
+            }
+        } catch (error) {
+            console.error('Failed to toggle meal complete:', error);
+            // 回滚
+            setMealsData(prev => prev.map(m =>
+                m.id === mealId ? { ...m, isCompleted: meal.isCompleted } : m
+            ));
+        }
     };
 
     // 渲染 Header（根据是否有宠物显示不同内容）
@@ -102,11 +205,11 @@ export default function HomePage() {
                 <div className="relative">
                     {hasPets && currentPet ? (
                         <button onClick={() => setIsPetMenuOpen(true)}>
-                            {currentPet.avatar ? (
+                            {currentPet.avatar_url ? (
                                 <img
                                     alt={currentPet.name}
                                     className="w-12 h-12 rounded-full object-cover border-2 border-white dark:border-surface-dark shadow-sm"
-                                    src={currentPet.avatar}
+                                    src={currentPet.avatar_url}
                                 />
                             ) : (
                                 <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-lg border-2 border-white dark:border-surface-dark shadow-sm">
@@ -325,40 +428,58 @@ export default function HomePage() {
         </section>
     );
 
-    // 渲染：无食谱引导卡片
+    // 渲染：无食谱引导卡片 - 增强视觉吸引力
     const renderNoRecipeCard = () => (
         <section>
             <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
                 今日餐食
             </h3>
-            <div className="bg-white dark:bg-surface-dark p-6 rounded-2xl shadow-soft border-2 border-dashed border-gray-200 dark:border-gray-700 flex flex-col items-center text-center gap-3 py-8 hover:border-primary/30 hover:bg-primary/5 transition-all duration-300">
-                <div className="w-12 h-12 rounded-full bg-secondary/30 flex items-center justify-center text-yellow-700 dark:text-yellow-200 mb-1">
-                    <span className="material-icons-round text-2xl">restaurant_menu</span>
+            <div className="bg-gradient-to-br from-primary/10 via-white to-secondary/10 dark:from-primary/20 dark:via-surface-dark dark:to-secondary/20 p-6 rounded-2xl shadow-soft border border-primary/20 dark:border-primary/30 flex flex-col items-center text-center gap-3 py-10 hover:shadow-medium hover:scale-[1.01] transition-all duration-300 relative overflow-hidden active:scale-[0.99]">
+                {/* 装饰元素 */}
+                <div className="absolute -top-8 -right-8 w-24 h-24 bg-primary/20 rounded-full blur-2xl" />
+                <div className="absolute -bottom-8 -left-8 w-20 h-20 bg-secondary/30 rounded-full blur-xl" />
+
+                {/* 情感化图标组合 */}
+                <div className="relative">
+                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-green-400 flex items-center justify-center text-white shadow-glow rotate-3">
+                        <span className="material-icons-round text-3xl">restaurant</span>
+                    </div>
+                    <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-secondary flex items-center justify-center text-yellow-800 shadow-sm">
+                        <span className="material-icons-round text-sm">auto_awesome</span>
+                    </div>
                 </div>
-                <h4 className="font-bold text-lg">开始智能饮食规划</h4>
-                <p className="text-sm text-text-muted-light dark:text-text-muted-dark px-4 mb-2">
-                    还没有饮食计划？让AI助手帮您生成完美的每日食谱。
+
+                <h4 className="font-bold text-xl mt-2">开始智能饮食规划</h4>
+                <p className="text-sm text-text-muted-light dark:text-text-muted-dark px-4 mb-2 max-w-[260px]">
+                    让 AI 助手为您的爱宠定制科学营养的每日食谱
                 </p>
-                <Link to="/plan/create" className="text-primary font-bold text-sm flex items-center gap-1 hover:underline group">
-                    开启规划 <span className="material-icons-round text-sm group-hover:translate-x-1 transition-transform">arrow_forward</span>
+                <Link to="/plan/create" className="bg-primary text-white dark:text-gray-900 font-bold py-3 px-6 rounded-xl shadow-glow hover:shadow-glow-lg hover:brightness-110 hover:-translate-y-0.5 active:scale-[0.97] transition-all duration-200 flex items-center gap-2 mt-1">
+                    <span className="material-icons-round text-lg">auto_awesome</span>
+                    开启规划
                 </Link>
             </div>
         </section>
     );
 
-    // 渲染：锁定功能卡片（无宠物/无食谱时显示）
+    // 渲染：锁定功能卡片（无宠物/无食谱时显示）- 保留原始图标，增加交互引导
     const renderLockedCards = () => (
         <section className="grid grid-cols-2 gap-4">
-            <div className="bg-accent-blue/20 dark:bg-accent-blue/10 p-5 rounded-2xl flex flex-col justify-center items-center h-36 relative overflow-hidden text-center hover:shadow-soft transition-all duration-300">
-                <span className="material-icons-round text-4xl text-accent-blue/70 mb-2">lock</span>
-                <h4 className="font-bold text-blue-900/60 dark:text-blue-100/60 mb-1">饮水量</h4>
-                <p className="text-xs text-blue-800/50 dark:text-blue-200/50 font-medium px-2">记录宠物数据以解锁更多功能</p>
-            </div>
-            <div className="bg-secondary/20 dark:bg-secondary/10 p-5 rounded-2xl flex flex-col justify-center items-center h-36 relative overflow-hidden text-center hover:shadow-soft transition-all duration-300">
-                <span className="material-icons-round text-4xl text-secondary/70 mb-2">lock</span>
-                <h4 className="font-bold text-yellow-900/60 dark:text-yellow-100/60 mb-1">当前体重</h4>
-                <p className="text-xs text-yellow-800/50 dark:text-yellow-200/50 font-medium px-2">记录宠物数据以解锁更多功能</p>
-            </div>
+            <Link
+                to={hasPets ? "/plan/create" : "/onboarding/step1"}
+                className="bg-accent-blue/20 dark:bg-accent-blue/10 p-5 rounded-2xl flex flex-col justify-center items-center h-36 relative overflow-hidden text-center hover:shadow-soft hover:bg-accent-blue/30 active:scale-[0.98] transition-all duration-300 group"
+            >
+                <span className="material-icons-round text-4xl text-accent-blue/70 mb-2 group-hover:scale-110 transition-transform">water_drop</span>
+                <h4 className="font-bold text-blue-900/80 dark:text-blue-100/80 mb-1">饮水量</h4>
+                <p className="text-xs text-blue-800/60 dark:text-blue-200/60 font-medium px-2">点击开始记录</p>
+            </Link>
+            <Link
+                to={hasPets ? "/plan/create" : "/onboarding/step1"}
+                className="bg-secondary/20 dark:bg-secondary/10 p-5 rounded-2xl flex flex-col justify-center items-center h-36 relative overflow-hidden text-center hover:shadow-soft hover:bg-secondary/30 active:scale-[0.98] transition-all duration-300 group"
+            >
+                <span className="material-icons-round text-4xl text-secondary/70 mb-2 group-hover:scale-110 transition-transform">monitor_weight</span>
+                <h4 className="font-bold text-yellow-900/80 dark:text-yellow-100/80 mb-1">当前体重</h4>
+                <p className="text-xs text-yellow-800/60 dark:text-yellow-200/60 font-medium px-2">点击开始记录</p>
+            </Link>
         </section>
     );
 
