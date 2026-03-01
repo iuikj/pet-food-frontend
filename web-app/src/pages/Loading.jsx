@@ -23,9 +23,9 @@ export default function Loading() {
     useEffect(() => {
         if (status === 'idle' && !hasStartedRef.current) {
             hasStartedRef.current = true;
-            startGeneration();
+            startGeneration(currentPet);
         }
-    }, [status, startGeneration]);
+    }, [status, startGeneration, currentPet]);
 
     // 完成时跳转 - 单独处理
     useEffect(() => {
@@ -70,17 +70,23 @@ export default function Loading() {
             <main className="px-6 pt-6 pb-24 max-w-lg mx-auto">
                 <div className="bg-white dark:bg-surface-dark p-5 rounded-2xl shadow-soft mb-8 flex items-center gap-4 border border-gray-100 dark:border-gray-800">
                     <div className="w-14 h-14 rounded-full p-1 border-2 border-primary/20 relative">
-                        <img
-                            alt="Cooper"
-                            className="w-full h-full object-cover rounded-full"
-                            src="https://lh3.googleusercontent.com/aida-public/AB6AXuBn9rRCCpDfMxR_3IoYBOVyNDNZADIHVHTErFZ1ecKqEnKJ0vl_NEf61nPEpN-muNBhi2X3_9QzQm9O2BOI0Y1XcNXFmw72fBSTG5SIfIRxxxsBrWfLqP0YcYbeXzX9-qStq9BpTXHo0YiOnjUMUtKIpl9qUKV7iaxqxdvMpKRAPntZHVH9ENBDRsvfy-7C6jtmoW-Bz_KrmfVcUz-PXlzyevQ_NUwkL4V6-3bbHLr_u_PgwcMgcMVavQRtmvGPSH9JDvWb6IV8viw"
-                        />
+                        {currentPet?.avatar_url ? (
+                            <img
+                                alt={currentPet.name}
+                                className="w-full h-full object-cover rounded-full"
+                                src={currentPet.avatar_url}
+                            />
+                        ) : (
+                            <div className="w-full h-full rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-lg">
+                                {currentPet?.name?.charAt(0) || '🐾'}
+                            </div>
+                        )}
                         <div className="absolute bottom-0 right-0 w-4 h-4 bg-secondary rounded-full border-2 border-white dark:border-surface-dark flex items-center justify-center">
                             <span className="material-symbols-outlined text-[10px] text-yellow-900 font-bold">bolt</span>
                         </div>
                     </div>
                     <div>
-                        <h2 className="font-bold text-lg">为 Cooper 规划中</h2>
+                        <h2 className="font-bold text-lg">为 {currentPet?.name || '您的爱宠'} 规划中</h2>
                         <p className="text-xs text-text-muted-light dark:text-text-muted-dark">AI Agent 正在处理 48 项营养指标</p>
                     </div>
                 </div>

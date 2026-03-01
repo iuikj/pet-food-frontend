@@ -14,20 +14,18 @@ import type {
  * 获取今日餐食
  */
 export async function getTodayMeals(petId: string): Promise<ApiResponse<TodayMealsResponse>> {
-    const res = await apiClient.get<ApiResponse<TodayMealsResponse>>('/meals/today', {
+    return apiClient.get<any, ApiResponse<TodayMealsResponse>>('/meals/today', {
         params: { pet_id: petId },
     });
-    return res.data;
 }
 
 /**
  * 获取指定日期餐食
  */
 export async function getMealsByDate(petId: string, date: string): Promise<ApiResponse<TodayMealsResponse>> {
-    const res = await apiClient.get<ApiResponse<TodayMealsResponse>>('/meals/date', {
+    return apiClient.get<any, ApiResponse<TodayMealsResponse>>('/meals/date', {
         params: { pet_id: petId, target_date: date },
     });
-    return res.data;
 }
 
 /**
@@ -37,16 +35,14 @@ export async function completeMeal(
     mealId: string,
     data?: CompleteMealRequest
 ): Promise<ApiResponse<MealCompleteResponse>> {
-    const res = await apiClient.post<ApiResponse<MealCompleteResponse>>(`/meals/${mealId}/complete`, data || {});
-    return res.data;
+    return apiClient.post<any, ApiResponse<MealCompleteResponse>>(`/meals/${mealId}/complete`, data || {});
 }
 
 /**
  * 取消餐食完成标记
  */
 export async function uncompleteMeal(mealId: string): Promise<ApiResponse<MealCompleteResponse>> {
-    const res = await apiClient.delete<ApiResponse<MealCompleteResponse>>(`/meals/${mealId}/complete`);
-    return res.data;
+    return apiClient.delete<any, ApiResponse<MealCompleteResponse>>(`/meals/${mealId}/complete`);
 }
 
 /**
@@ -61,10 +57,9 @@ export async function getMealHistory(
         page_size?: number;
     }
 ): Promise<ApiResponse<MealHistoryResponse>> {
-    const res = await apiClient.get<ApiResponse<MealHistoryResponse>>('/meals/history', {
+    return apiClient.get<any, ApiResponse<MealHistoryResponse>>('/meals/history', {
         params: { pet_id: petId, ...params },
     });
-    return res.data;
 }
 
 // 导出所有函数

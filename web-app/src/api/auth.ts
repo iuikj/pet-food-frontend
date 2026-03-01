@@ -19,34 +19,32 @@ import type {
 
 /**
  * 用户登录
+ * 注意：client.ts 的响应拦截器已将 response.data 解包，
+ * 所以 apiClient.post() 直接返回 ApiResponse 对象，无需再取 .data
  */
 export async function login(data: LoginRequest): Promise<ApiResponse<AuthResponse>> {
-    const res = await apiClient.post<ApiResponse<AuthResponse>>('/auth/login', data);
-    return res.data;
+    return apiClient.post<any, ApiResponse<AuthResponse>>('/auth/login', data);
 }
 
 /**
  * 用户注册（直接注册）
  */
 export async function register(data: RegisterRequest): Promise<ApiResponse<AuthResponse>> {
-    const res = await apiClient.post<ApiResponse<AuthResponse>>('/auth/register', data);
-    return res.data;
+    return apiClient.post<any, ApiResponse<AuthResponse>>('/auth/register', data);
 }
 
 /**
  * 发送验证码
  */
 export async function sendCode(data: SendCodeRequest): Promise<ApiResponse<{ message: string }>> {
-    const res = await apiClient.post<ApiResponse<{ message: string }>>('/auth/send-code', data);
-    return res.data;
+    return apiClient.post<any, ApiResponse<{ message: string }>>('/auth/send-code', data);
 }
 
 /**
  * 验证码注册
  */
 export async function verifyRegister(data: VerifyRegisterRequest): Promise<ApiResponse<AuthResponse>> {
-    const res = await apiClient.post<ApiResponse<AuthResponse>>('/auth/verify-register', data);
-    return res.data;
+    return apiClient.post<any, ApiResponse<AuthResponse>>('/auth/verify-register', data);
 }
 
 /**
@@ -54,52 +52,46 @@ export async function verifyRegister(data: VerifyRegisterRequest): Promise<ApiRe
  */
 export async function refreshToken(): Promise<ApiResponse<TokenData>> {
     const refresh_token = localStorage.getItem('refresh_token');
-    const res = await apiClient.post<ApiResponse<TokenData>>('/auth/refresh', null, {
+    return apiClient.post<any, ApiResponse<TokenData>>('/auth/refresh', null, {
         headers: {
             Authorization: `Bearer ${refresh_token}`,
         },
     });
-    return res.data;
 }
 
 /**
  * 获取当前用户信息
  */
 export async function getMe(): Promise<ApiResponse<UserInfo>> {
-    const res = await apiClient.get<ApiResponse<UserInfo>>('/auth/me');
-    return res.data;
+    return apiClient.get<any, ApiResponse<UserInfo>>('/auth/me');
 }
 
 /**
  * 修改密码
  */
 export async function changePassword(data: ChangePasswordRequest): Promise<ApiResponse<{ message: string }>> {
-    const res = await apiClient.put<ApiResponse<{ message: string }>>('/auth/password', data);
-    return res.data;
+    return apiClient.put<any, ApiResponse<{ message: string }>>('/auth/password', data);
 }
 
 /**
  * 找回密码 - 发送验证码
  */
 export async function sendPasswordResetCode(email: string): Promise<ApiResponse<{ message: string }>> {
-    const res = await apiClient.post<ApiResponse<{ message: string }>>('/auth/password/send-code', { email });
-    return res.data;
+    return apiClient.post<any, ApiResponse<{ message: string }>>('/auth/password/send-code', { email });
 }
 
 /**
  * 找回密码 - 重置密码
  */
 export async function resetPassword(data: ResetPasswordRequest): Promise<ApiResponse<{ message: string }>> {
-    const res = await apiClient.post<ApiResponse<{ message: string }>>('/auth/password/reset', data);
-    return res.data;
+    return apiClient.post<any, ApiResponse<{ message: string }>>('/auth/password/reset', data);
 }
 
 /**
  * 更新用户信息
  */
 export async function updateProfile(data: UpdateProfileRequest): Promise<ApiResponse<UserInfo>> {
-    const res = await apiClient.put<ApiResponse<UserInfo>>('/auth/profile', data);
-    return res.data;
+    return apiClient.put<any, ApiResponse<UserInfo>>('/auth/profile', data);
 }
 
 /**
@@ -108,18 +100,16 @@ export async function updateProfile(data: UpdateProfileRequest): Promise<ApiResp
 export async function uploadAvatar(file: File): Promise<ApiResponse<{ avatar_url: string }>> {
     const formData = new FormData();
     formData.append('file', file);
-    const res = await apiClient.post<ApiResponse<{ avatar_url: string }>>('/auth/avatar', formData, {
+    return apiClient.post<any, ApiResponse<{ avatar_url: string }>>('/auth/avatar', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
     });
-    return res.data;
 }
 
 /**
  * 获取订阅状态
  */
 export async function getSubscription(): Promise<ApiResponse<SubscriptionStatusResponse>> {
-    const res = await apiClient.get<ApiResponse<SubscriptionStatusResponse>>('/auth/subscription');
-    return res.data;
+    return apiClient.get<any, ApiResponse<SubscriptionStatusResponse>>('/auth/subscription');
 }
 
 // 导出所有函数

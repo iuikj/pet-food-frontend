@@ -11,10 +11,9 @@ export async function getNutritionAnalysis(
     petId: string,
     period: 'week' | 'month' | 'year' = 'week'
 ): Promise<ApiResponse<NutritionAnalysisResponse>> {
-    const res = await apiClient.get<ApiResponse<NutritionAnalysisResponse>>('/analysis/nutrition', {
+    return apiClient.get<any, ApiResponse<NutritionAnalysisResponse>>('/analysis/nutrition', {
         params: { pet_id: petId, period },
     });
-    return res.data;
 }
 
 // 导出所有函数

@@ -16,8 +16,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000
  * 创建饮食计划（异步）
  */
 export async function createPlan(data: CreatePlanRequest): Promise<ApiResponse<{ task_id: string }>> {
-    const res = await apiClient.post<ApiResponse<{ task_id: string }>>('/plans/', data);
-    return res.data;
+    return apiClient.post<any, ApiResponse<{ task_id: string }>>('/plans/', data);
 }
 
 /**
@@ -130,48 +129,42 @@ export function resumePlanStream(
  * 获取计划列表
  */
 export async function getPlans(): Promise<ApiResponse<PlanListResponse>> {
-    const res = await apiClient.get<ApiResponse<PlanListResponse>>('/plans/');
-    return res.data;
+    return apiClient.get<any, ApiResponse<PlanListResponse>>('/plans/');
 }
 
 /**
  * 获取计划详情
  */
 export async function getPlan(planId: string): Promise<ApiResponse<PlanResponse>> {
-    const res = await apiClient.get<ApiResponse<PlanResponse>>(`/plans/${planId}`);
-    return res.data;
+    return apiClient.get<any, ApiResponse<PlanResponse>>(`/plans/${planId}`);
 }
 
 /**
  * 删除计划
  */
 export async function deletePlan(planId: string): Promise<ApiResponse<{ plan_id: string }>> {
-    const res = await apiClient.delete<ApiResponse<{ plan_id: string }>>(`/plans/${planId}`);
-    return res.data;
+    return apiClient.delete<any, ApiResponse<{ plan_id: string }>>(`/plans/${planId}`);
 }
 
 /**
  * 获取任务详情
  */
 export async function getTask(taskId: string): Promise<ApiResponse<TaskResponse>> {
-    const res = await apiClient.get<ApiResponse<TaskResponse>>(`/tasks/${taskId}`);
-    return res.data;
+    return apiClient.get<any, ApiResponse<TaskResponse>>(`/tasks/${taskId}`);
 }
 
 /**
  * 获取任务结果
  */
 export async function getTaskResult(taskId: string): Promise<ApiResponse<any>> {
-    const res = await apiClient.get<ApiResponse<any>>(`/tasks/${taskId}/result`);
-    return res.data;
+    return apiClient.get<any, ApiResponse<any>>(`/tasks/${taskId}/result`);
 }
 
 /**
  * 取消任务
  */
 export async function cancelTask(taskId: string): Promise<ApiResponse<{ task_id: string }>> {
-    const res = await apiClient.delete<ApiResponse<{ task_id: string }>>(`/tasks/${taskId}`);
-    return res.data;
+    return apiClient.delete<any, ApiResponse<{ task_id: string }>>(`/tasks/${taskId}`);
 }
 
 // 导出所有函数

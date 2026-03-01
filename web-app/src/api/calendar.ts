@@ -16,10 +16,9 @@ export async function getMonthlyCalendar(
     year?: number,
     month?: number
 ): Promise<ApiResponse<MonthlyCalendarResponse>> {
-    const res = await apiClient.get<ApiResponse<MonthlyCalendarResponse>>('/calendar/monthly', {
+    return apiClient.get<any, ApiResponse<MonthlyCalendarResponse>>('/calendar/monthly', {
         params: { pet_id: petId, year, month },
     });
-    return res.data;
 }
 
 /**
@@ -29,10 +28,9 @@ export async function getWeeklyCalendar(
     petId: string,
     startDate?: string
 ): Promise<ApiResponse<WeeklyCalendarResponse>> {
-    const res = await apiClient.get<ApiResponse<WeeklyCalendarResponse>>('/calendar/weekly', {
+    return apiClient.get<any, ApiResponse<WeeklyCalendarResponse>>('/calendar/weekly', {
         params: { pet_id: petId, start_date: startDate },
     });
-    return res.data;
 }
 
 // 导出所有函数

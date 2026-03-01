@@ -149,10 +149,11 @@ export interface PetListResponse {
 // ==================== 饮食计划类型 ====================
 
 export interface CreatePlanRequest {
-  pet_type: PetType;
+  pet_id?: string;
+  pet_type?: PetType;
   pet_breed?: string;
-  pet_age: number;
-  pet_weight: number;
+  pet_age?: number;
+  pet_weight?: number;
   health_status?: string;
   special_requirements?: string;
 }
@@ -205,7 +206,28 @@ export type SSEEventType =
   | 'llm_started'
   | 'llm_token'
   | 'task_completed'
-  | 'error';
+  | 'final_result'
+  | 'done'
+  | 'error'
+  // V1 研究阶段
+  | 'research_starting'
+  | 'research_task_delegating'
+  | 'research_finalizing'
+  | 'plan_created'
+  | 'plan_updated'
+  | 'task_delegating'
+  // V1 分发 + 周计划阶段
+  | 'dispatching'
+  | 'week_planning'
+  | 'week_searching'
+  | 'week_plan_ready'
+  | 'week_writing'
+  | 'week_completed'
+  // V1 汇总阶段
+  | 'gathering'
+  | 'structuring'
+  | 'structured'
+  | 'completed';
 
 export interface SSEEvent {
   type: SSEEventType;
@@ -216,6 +238,10 @@ export interface SSEEvent {
   timestamp?: string;
   result?: any;
   error?: string;
+  message?: string;
+  task_name?: string;
+  detail?: any;
+  data?: any;
 }
 
 // ==================== 饮食记录类型 ====================

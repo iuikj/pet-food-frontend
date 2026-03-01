@@ -30,10 +30,8 @@ async function refreshAccessToken() {
         throw new Error('No refresh token');
     }
 
-    const response = await axios.post(`${API_BASE_URL}/auth/refresh`, null, {
-        headers: {
-            Authorization: `Bearer ${refreshToken}`,
-        },
+    const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
+        refresh_token: refreshToken,
     });
 
     const { access_token, refresh_token } = response.data.data;
@@ -59,7 +57,7 @@ const processQueue = (error, token = null) => {
 };
 
 apiClient.interceptors.response.use(
-    (response) => response,
+    (response) => response.data,
     async (error) => {
         const originalRequest = error.config;
 

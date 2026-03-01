@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react';
 import { authApi } from '../api';
 
 const UserContext = createContext();
@@ -155,21 +155,23 @@ export const UserProvider = ({ children }) => {
         }
     }, []);
 
+    const contextValue = useMemo(() => ({
+        user,
+        isLoading,
+        isAuthenticated,
+        login,
+        register,
+        verifyRegister,
+        sendCode,
+        logout,
+        refreshUser,
+        updateUser,
+        updateAvatar,
+        changePassword,
+    }), [user, isLoading, isAuthenticated, login, register, verifyRegister, sendCode, logout, refreshUser, updateUser, updateAvatar, changePassword]);
+
     return (
-        <UserContext.Provider value={{
-            user,
-            isLoading,
-            isAuthenticated,
-            login,
-            register,
-            verifyRegister,
-            sendCode,
-            logout,
-            refreshUser,
-            updateUser,
-            updateAvatar,
-            changePassword,
-        }}>
+        <UserContext.Provider value={contextValue}>
             {children}
         </UserContext.Provider>
     );
