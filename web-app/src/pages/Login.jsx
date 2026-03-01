@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useUser } from '../context/UserContext';
 import FormField from '../components/FormField';
+import { isMockMode, setMockMode, isManualOverride } from '../mock/mockMode';
 
 export default function Login() {
     const navigate = useNavigate();
@@ -20,6 +21,10 @@ export default function Login() {
 
     // 表单验证错误
     const [fieldErrors, setFieldErrors] = useState({});
+
+    // Mock 模式状态
+    const [mockEnabled, setMockEnabled] = useState(() => isMockMode());
+    const [showMockOverride] = useState(() => isManualOverride());
 
     // 键盘状态和视口高度
     const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
@@ -349,6 +354,47 @@ export default function Login() {
                         {isRegister ? '立即登录' : '立即注册'}
                     </button>
                 </p>
+
+                {/* Mock 模式提示与切换 */}
+                <div className="mt-6 space-y-2">
+                    {/* 自动检测到无后端时的提示 */}
+                    {mockEnabled && !showMockOverride && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="p-3 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 rounded-xl text-xs text-center"
+                        >
+                            <span className="material-icons-round text-sm align-middle mr-1">info</span>
+                            未检测到后端服务，已自动切换为演示模式
+                        </motion.div>
+                    )}
+
+                    {/* Toggle 开关 */}
+                    <div className="flex items-center justify-center gap-3 text-xs text-text-muted-light">
+                        <span className={!mockEnabled ? 'font-bold text-primary' : ''}>真实 API</span>
+                        <button
+                            type="button"
+                            role="switch"
+                            aria-checked={mockEnabled}
+                            onClick={() => {
+                                const next = !mockEnabled;
+                                setMockMode(next);
+                                setMockEnabled(next);
+                                window.location.reload();
+                            }}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary/30 ${
+                                mockEnabled ? 'bg-amber-400' : 'bg-gray-300 dark:bg-gray-600'
+                            }`}
+                        >
+                            <span
+                                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                                    mockEnabled ? 'translate-x-6' : 'translate-x-1'
+                                }`}
+                            />
+                        </button>
+                        <span className={mockEnabled ? 'font-bold text-amber-600 dark:text-amber-400' : ''}>演示模式</span>
+                    </div>
+                </div>
             </div>
         </motion.div>
     );

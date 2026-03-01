@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react';
 import { authApi } from '../api';
+import { initMockMode } from '../mock/mockMode';
 
 const UserContext = createContext();
 
@@ -20,6 +21,9 @@ export const UserProvider = ({ children }) => {
     // 初始化：检查 Token 并获取用户信息
     useEffect(() => {
         const initAuth = async () => {
+            // 初始化 mock 模式（检测后端可达性）
+            await initMockMode();
+
             const token = localStorage.getItem('access_token');
             if (token) {
                 try {
