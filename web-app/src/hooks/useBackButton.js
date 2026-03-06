@@ -59,6 +59,30 @@ export function useBackButton() {
                 return;
             }
 
+            // 计划摘要页返回首页
+            if (currentPath === '/plan/summary') {
+                navigate('/');
+                return;
+            }
+
+            // 创建计划页返回首页
+            if (currentPath === '/plan/create') {
+                navigate('/');
+                return;
+            }
+
+            // 资料编辑页返回资料页
+            if (currentPath === '/profile/edit') {
+                navigate('/profile');
+                return;
+            }
+
+            // 宠物编辑页返回资料页
+            if (currentPath.startsWith('/pet/edit/')) {
+                navigate('/profile');
+                return;
+            }
+
             // 其他页面：使用 React Router 返回
             if (canGoBack) {
                 navigate(-1);

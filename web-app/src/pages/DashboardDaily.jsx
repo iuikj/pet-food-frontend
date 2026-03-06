@@ -6,7 +6,7 @@ export default function DashboardDaily() {
     return (
         <motion.div
             {...pageTransitions}
-            className="pb-24"
+            className="pb-24 overflow-x-hidden"
         >
             <header className="px-6 pt-12 pb-4 flex justify-between items-center bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-md sticky top-0 z-50">
                 <div className="flex items-center gap-3">

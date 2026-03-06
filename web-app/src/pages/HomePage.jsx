@@ -601,7 +601,7 @@ export default function HomePage() {
     return (
         <motion.div
             {...pageTransitions}
-            className="pb-24"
+            className="pb-24 overflow-x-hidden"
         >
             {renderHeader()}
 

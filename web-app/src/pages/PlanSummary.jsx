@@ -9,7 +9,7 @@ export default function PlanSummary() {
     return (
         <motion.div
             {...pageTransitions}
-            className="pb-28"
+            className="pb-28 overflow-x-hidden"
         >
             <header className="px-6 pt-12 pb-4 flex justify-between items-center bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md sticky top-0 z-50">
                 <div className="flex items-center gap-3">

@@ -50,7 +50,7 @@ export default function Profile() {
     return (
         <motion.div
             {...pageTransitions}
-            className="pb-32"
+            className="pb-32 overflow-x-hidden"
         >
             <header className="px-6 pt-12 pb-2 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md sticky top-0 z-50">
                 <div className="flex justify-end gap-3">
