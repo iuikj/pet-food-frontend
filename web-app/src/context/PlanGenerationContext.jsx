@@ -4,6 +4,10 @@ import { LocalNotifications } from '@capacitor/local-notifications';
 import { Capacitor } from '@capacitor/core';
 import { BackgroundMode } from '@anuradev/capacitor-background-mode';
 import { plansApi } from '../api';
+// 直接导入真实/mock API，绕过 Proxy，用于锁定生成期间的调用模式
+import realPlansApi from '../api/plans';
+import { mockPlansApi } from '../mock';
+import { isMockMode } from '../mock/mockMode';
 
 const PlanGenerationContext = createContext();
 
@@ -28,6 +32,10 @@ export const PlanGenerationProvider = ({ children }) => {
     const [logs, setLogs] = useState([]);
 
     const abortControllerRef = useRef(null);
+
+    // 锁定生成期间的 API 模式：生成开始时快照 isMockMode()，
+    // 整个生成+轮询过程中始终使用同一套 API，避免中途被 Proxy 路由到 mock
+    const lockedApiRef = useRef(realPlansApi);
 
     // Refs — 在闭包/事件监听器中稳定访问最新状态（避免 stale closure）
     const statusRef = useRef(status);
@@ -186,7 +194,9 @@ export const PlanGenerationProvider = ({ children }) => {
             }
 
             try {
-                const taskRes = await plansApi.getTask(currentTaskId);
+                // 使用锁定的 API（绕过 Proxy），确保轮询始终命中启动时的同一套 API
+                const api = lockedApiRef.current;
+                const taskRes = await api.getTask(currentTaskId);
                 if (taskRes.code !== 0) return;
 
                 const task = taskRes.data;
@@ -196,7 +206,7 @@ export const PlanGenerationProvider = ({ children }) => {
                     stopPolling();
                     setStatus('completed');
                     setProgress(100);
-                    const resultRes = await plansApi.getTaskResult(currentTaskId);
+                    const resultRes = await api.getTaskResult(currentTaskId);
                     if (resultRes.code === 0) {
                         setResult(resultRes.data);
                     }
@@ -239,6 +249,20 @@ export const PlanGenerationProvider = ({ children }) => {
                 setStatus('completed');
                 setProgress(100);
                 setCurrentStepIndex(steps.length - 1);
+                // 如果事件自带 result，直接设置；否则通过 API 获取
+                if (data.result) {
+                    setResult(data.result);
+                } else if (taskIdRef.current) {
+                    // 异步获取结果
+                    const api = lockedApiRef.current;
+                    api.getTaskResult(taskIdRef.current).then(res => {
+                        if (res.code === 0) {
+                            setResult(res.data);
+                        }
+                    }).catch(err => {
+                        console.error('Failed to fetch task result:', err);
+                    });
+                }
                 addLog('🎉 计划生成完成！');
                 sendCompletionNotification();
                 disableBackgroundMode();
@@ -299,6 +323,12 @@ export const PlanGenerationProvider = ({ children }) => {
     const startGeneration = useCallback(async (petData) => {
         if (status === 'generating') return;
 
+        // 锁定本次生成使用的 API 模式：
+        // 快照当前 isMockMode()，整个生成+轮询过程中始终使用同一套 API
+        const useMock = isMockMode();
+        lockedApiRef.current = useMock ? mockPlansApi : realPlansApi;
+        console.log(`[PlanGeneration] API mode locked: ${useMock ? 'MOCK' : 'REAL'}`);
+
         // 重置状态
         setStatus('generating');
         setProgress(0);
@@ -311,7 +341,7 @@ export const PlanGenerationProvider = ({ children }) => {
         // 启用后台模式
         await enableBackgroundMode();
 
-        addLog('开始生成饮食计划...');
+        addLog(`开始生成饮食计划...${useMock ? '（演示模式）' : ''}`);
 
         // 创建 AbortController
         abortControllerRef.current = new AbortController();
@@ -337,8 +367,9 @@ export const PlanGenerationProvider = ({ children }) => {
         }
 
         try {
-            // 使用 fetch 流式请求
-            await plansApi.createPlanStreamFetch(
+            // 使用锁定的 API 发起流式请求（确保不被 Proxy 中途切换）
+            const api = lockedApiRef.current;
+            await api.createPlanStreamFetch(
                 requestData,
                 handleSSEEvent,
                 // onError: 仅记录日志，不直接设置错误状态
@@ -408,14 +439,16 @@ export const PlanGenerationProvider = ({ children }) => {
         addLog('正在检查任务状态...');
 
         try {
-            const taskRes = await plansApi.getTask(currentTaskId);
+            // 使用锁定的 API（绕过 Proxy）
+            const api = lockedApiRef.current;
+            const taskRes = await api.getTask(currentTaskId);
             if (taskRes.code === 0) {
                 const task = taskRes.data;
                 if (task.status === 'completed') {
                     stopPolling();
                     setStatus('completed');
                     setProgress(100);
-                    const resultRes = await plansApi.getTaskResult(currentTaskId);
+                    const resultRes = await api.getTaskResult(currentTaskId);
                     if (resultRes.code === 0) {
                         setResult(resultRes.data);
                     }

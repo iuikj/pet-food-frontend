@@ -29,7 +29,14 @@ export const mockPlansApi = {
       await delay(event.delayMs);
       // 剥离 delayMs，只传递标准 SSEEvent 字段
       const { delayMs: _, ...sseEvent } = event;
-      onEvent(sseEvent);
+      // 对 task_completed 事件注入 result 数据
+      if (sseEvent.type === 'task_completed') {
+        onEvent({ ...sseEvent, result: mockPlanResult });
+      } else if (sseEvent.type === 'final_result') {
+        onEvent({ ...sseEvent, data: mockPlanResult });
+      } else {
+        onEvent(sseEvent);
+      }
     }
   },
 
@@ -43,7 +50,7 @@ export const mockPlansApi = {
   ): EventSource {
     // 创建一个假的 EventSource-like 对象
     const fakeES = {
-      close: () => {},
+      close: () => { },
       readyState: 1, // OPEN
       CONNECTING: 0,
       OPEN: 1,
@@ -73,7 +80,7 @@ export const mockPlansApi = {
     onMessage: (event: MessageEvent) => void,
     _onError?: (error: Event) => void,
   ): EventSource {
-    const fakeES = { close: () => {} } as unknown as EventSource;
+    const fakeES = { close: () => { } } as unknown as EventSource;
 
     // 立即发送完成事件
     setTimeout(() => {

@@ -61,8 +61,12 @@ export async function createPlanStreamFetch(
             headers: {
                 'Content-Type': 'application/json',
                 Authorization: `Bearer ${token}`,
+                // 保持长连接，避免中间代理/WebView 提前关闭
+                'Connection': 'keep-alive',
             },
             body: JSON.stringify(data),
+            // 禁用 fetch 的默认超时（让流保持打开）
+            keepalive: false,
         });
 
         if (!response.ok) {
@@ -76,10 +80,25 @@ export async function createPlanStreamFetch(
 
         const decoder = new TextDecoder();
         let buffer = '';
+        // 读取超时保护：如果 2 分钟内没有收到任何数据，主动断开
+        // 触发轮询降级恢复，而非无限等待
+        const READ_TIMEOUT_MS = 2 * 60 * 1000;
 
         while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
+            // 使用 Promise.race 实现读取超时
+            const timeoutPromise = new Promise<{ done: true; value: undefined }>((resolve) => {
+                setTimeout(() => resolve({ done: true, value: undefined }), READ_TIMEOUT_MS);
+            });
+
+            const { done, value } = await Promise.race([
+                reader.read(),
+                timeoutPromise,
+            ]);
+
+            if (done) {
+                // 流结束或超时 — 都会触发 PlanGenerationContext 的轮询降级
+                break;
+            }
 
             buffer += decoder.decode(value, { stream: true });
             const lines = buffer.split('\n');
@@ -96,6 +115,9 @@ export async function createPlanStreamFetch(
                 }
             }
         }
+
+        // 确保 reader 被释放
+        try { reader.cancel(); } catch (_) { /* ignore */ }
     } catch (error) {
         if (onError) {
             onError(error as Error);
