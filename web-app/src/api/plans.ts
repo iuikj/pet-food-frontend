@@ -45,8 +45,59 @@ export function createPlanStream(
     return eventSource;
 }
 
+// ── SSE 读取核心逻辑（复用于首次连接和断线重连） ──
+
+/**
+ * 从 ReadableStream 读取 SSE 事件
+ *
+ * 处理三种 SSE 行格式：
+ * - `data: {json}` → 解析为事件对象并回调
+ * - `: comment`    → 心跳/注释，忽略（保持连接活跃）
+ * - 空行          → 事件分隔符
+ *
+ * 不设置读取超时 — 后端通过 15 秒心跳保活，
+ * 客户端只需持续读取直到流结束或网络断开。
+ */
+async function consumeSSEStream(
+    reader: ReadableStreamDefaultReader<Uint8Array>,
+    onEvent: (event: any) => void,
+): Promise<void> {
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    try {
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || '';
+
+            for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                    try {
+                        const data = JSON.parse(line.slice(6));
+                        onEvent(data);
+                    } catch {
+                        // 忽略 JSON 解析错误
+                    }
+                }
+                // `: comment` 行和空行 → 跳过（心跳保活由后端发送）
+            }
+        }
+    } finally {
+        try { reader.cancel(); } catch { /* ignore */ }
+    }
+}
+
 /**
  * 使用 fetch 创建流式计划（支持 POST + SSE）
+ *
+ * 连接保活策略：
+ * - 后端每 15 秒发送 `: heartbeat` SSE 注释
+ * - 客户端不设置读取超时，持续等待
+ * - 断线后由 PlanGenerationContext 处理重连/降级
  */
 export async function createPlanStreamFetch(
     data: CreatePlanRequest,
@@ -61,11 +112,9 @@ export async function createPlanStreamFetch(
             headers: {
                 'Content-Type': 'application/json',
                 Authorization: `Bearer ${token}`,
-                // 保持长连接，避免中间代理/WebView 提前关闭
                 'Connection': 'keep-alive',
             },
             body: JSON.stringify(data),
-            // 禁用 fetch 的默认超时（让流保持打开）
             keepalive: false,
         });
 
@@ -78,46 +127,7 @@ export async function createPlanStreamFetch(
             throw new Error('No reader available');
         }
 
-        const decoder = new TextDecoder();
-        let buffer = '';
-        // 读取超时保护：如果 2 分钟内没有收到任何数据，主动断开
-        // 触发轮询降级恢复，而非无限等待
-        const READ_TIMEOUT_MS = 2 * 60 * 1000;
-
-        while (true) {
-            // 使用 Promise.race 实现读取超时
-            const timeoutPromise = new Promise<{ done: true; value: undefined }>((resolve) => {
-                setTimeout(() => resolve({ done: true, value: undefined }), READ_TIMEOUT_MS);
-            });
-
-            const { done, value } = await Promise.race([
-                reader.read(),
-                timeoutPromise,
-            ]);
-
-            if (done) {
-                // 流结束或超时 — 都会触发 PlanGenerationContext 的轮询降级
-                break;
-            }
-
-            buffer += decoder.decode(value, { stream: true });
-            const lines = buffer.split('\n');
-            buffer = lines.pop() || '';
-
-            for (const line of lines) {
-                if (line.startsWith('data: ')) {
-                    try {
-                        const data = JSON.parse(line.slice(6));
-                        onEvent(data);
-                    } catch (e) {
-                        // 忽略解析错误
-                    }
-                }
-            }
-        }
-
-        // 确保 reader 被释放
-        try { reader.cancel(); } catch (_) { /* ignore */ }
+        await consumeSSEStream(reader, onEvent);
     } catch (error) {
         if (onError) {
             onError(error as Error);
@@ -126,25 +136,49 @@ export async function createPlanStreamFetch(
 }
 
 /**
- * 恢复 SSE 连接（断线重连）
+ * 使用 fetch GET 恢复 SSE 流式连接（断线重连）
+ *
+ * 调用后端 GET /plans/stream?task_id=xxx 端点：
+ * - 任务已完成 → 收到 task_completed 事件（含结果）
+ * - 任务运行中 → 收到 resumed + 持续进度更新
+ * - 任务失败   → 收到 error 事件
+ *
+ * 同样通过心跳保活，无读取超时。
  */
-export function resumePlanStream(
+export async function resumePlanStreamFetch(
     taskId: string,
-    onMessage: (event: MessageEvent) => void,
-    onError?: (error: Event) => void
-): EventSource {
+    onEvent: (event: any) => void,
+    onError?: (error: Error) => void
+): Promise<void> {
     const token = localStorage.getItem('access_token');
-    const eventSource = new EventSource(
-        `${API_BASE_URL}/plans/stream?task_id=${taskId}&token=${token}`,
-        { withCredentials: false }
-    );
 
-    eventSource.onmessage = onMessage;
-    if (onError) {
-        eventSource.onerror = onError;
+    try {
+        const response = await fetch(
+            `${API_BASE_URL}/plans/stream?task_id=${encodeURIComponent(taskId)}`,
+            {
+                method: 'GET',
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Connection': 'keep-alive',
+                },
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        const reader = response.body?.getReader();
+        if (!reader) {
+            throw new Error('No reader available');
+        }
+
+        await consumeSSEStream(reader, onEvent);
+    } catch (error) {
+        if (onError) {
+            onError(error as Error);
+        }
     }
-
-    return eventSource;
 }
 
 /**
@@ -194,7 +228,7 @@ export const plansApi = {
     createPlan,
     createPlanStream,
     createPlanStreamFetch,
-    resumePlanStream,
+    resumePlanStreamFetch,
     getPlans,
     getPlan,
     deletePlan,

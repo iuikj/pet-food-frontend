@@ -29,3 +29,31 @@ export const slideUpTransitions = {
     exit: { opacity: 0, y: 50 },
     transition: { duration: 0.4, ease: [0.16, 1, 0.3, 1] }
 };
+
+// 3D 翻页动画 (用于 Loading 页步骤切换)
+export const flipTransitions = (direction = 1) => ({
+    initial: {
+        rotateY: direction > 0 ? 90 : -90,
+        opacity: 0,
+        scale: 0.95,
+    },
+    animate: {
+        rotateY: 0,
+        opacity: 1,
+        scale: 1,
+        transition: {
+            rotateY: { type: 'spring', stiffness: 200, damping: 30 },
+            opacity: { duration: 0.3 },
+            scale: { duration: 0.3 },
+        },
+    },
+    exit: {
+        rotateY: direction > 0 ? -90 : 90,
+        opacity: 0,
+        scale: 0.95,
+        transition: {
+            duration: 0.3,
+            ease: 'easeInOut',
+        },
+    },
+});

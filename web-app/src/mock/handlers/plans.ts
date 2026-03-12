@@ -19,6 +19,7 @@ export const mockPlansApi = {
   /**
    * 模拟 fetch-based SSE 流
    * 逐个发送 mockSSEEvents，每个事件间有设定的延迟
+   * completed 事件已在 mockSSEEvents 中包含 detail.plans，前端 handleSSEEvent 会处理
    */
   async createPlanStreamFetch(
     _data: CreatePlanRequest,
@@ -29,14 +30,7 @@ export const mockPlansApi = {
       await delay(event.delayMs);
       // 剥离 delayMs，只传递标准 SSEEvent 字段
       const { delayMs: _, ...sseEvent } = event;
-      // 对 task_completed 事件注入 result 数据
-      if (sseEvent.type === 'task_completed') {
-        onEvent({ ...sseEvent, result: mockPlanResult });
-      } else if (sseEvent.type === 'final_result') {
-        onEvent({ ...sseEvent, data: mockPlanResult });
-      } else {
-        onEvent(sseEvent);
-      }
+      onEvent(sseEvent);
     }
   },
 
@@ -48,16 +42,14 @@ export const mockPlansApi = {
     onMessage: (event: MessageEvent) => void,
     _onError?: (error: Event) => void,
   ): EventSource {
-    // 创建一个假的 EventSource-like 对象
     const fakeES = {
       close: () => { },
-      readyState: 1, // OPEN
+      readyState: 1,
       CONNECTING: 0,
       OPEN: 1,
       CLOSED: 2,
     } as unknown as EventSource;
 
-    // 异步推送事件
     (async () => {
       for (const event of mockSSEEvents) {
         await delay(event.delayMs);
@@ -82,12 +74,12 @@ export const mockPlansApi = {
   ): EventSource {
     const fakeES = { close: () => { } } as unknown as EventSource;
 
-    // 立即发送完成事件
     setTimeout(() => {
       const event = new MessageEvent('message', {
         data: JSON.stringify({
           type: 'task_completed',
           task_id: 'mock-task-001',
+          result: mockPlanResult,
           message: '饮食计划生成完成！',
           progress: 100,
         }),
@@ -98,17 +90,35 @@ export const mockPlansApi = {
     return fakeES;
   },
 
+  /**
+   * 模拟 fetch-based 断线重连（直接发送 completed 事件）
+   */
+  async resumePlanStreamFetch(
+    _taskId: string,
+    onEvent: (event: SSEEvent) => void,
+    _onError?: (error: Error) => void,
+  ): Promise<void> {
+    await delay(500);
+    onEvent({
+      type: 'task_completed',
+      task_id: 'mock-task-001',
+      result: mockPlanResult,
+      message: '饮食计划生成完成！',
+      progress: 100,
+    } as SSEEvent);
+  },
+
   async getPlans(): Promise<ApiResponse<PlanListResponse>> {
     await delay();
     return mockResponse({
       total: 1,
-      items: [mockPlanResult as PlanResponse],
+      items: [mockPlanResult as unknown as PlanResponse],
     });
   },
 
   async getPlan(_planId: string): Promise<ApiResponse<PlanResponse>> {
     await delay();
-    return mockResponse(mockPlanResult as PlanResponse);
+    return mockResponse(mockPlanResult as unknown as PlanResponse);
   },
 
   async deletePlan(planId: string): Promise<ApiResponse<{ plan_id: string }>> {

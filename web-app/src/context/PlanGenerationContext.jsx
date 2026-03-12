@@ -8,8 +8,17 @@ import { plansApi } from '../api';
 import realPlansApi from '../api/plans';
 import { mockPlansApi } from '../mock';
 import { isMockMode } from '../mock/mockMode';
+import { transformCompletedEventToResult, transformPetDietPlan } from '../models/dietPlan';
 
 const PlanGenerationContext = createContext();
+
+// 周状态初始值（常量，定义在组件外避免重复创建）
+const INITIAL_WEEK_STATUSES = {
+    1: { status: 'pending', label: '等待中' },
+    2: { status: 'pending', label: '等待中' },
+    3: { status: 'pending', label: '等待中' },
+    4: { status: 'pending', label: '等待中' },
+};
 
 export const usePlanGeneration = () => {
     const context = useContext(PlanGenerationContext);
@@ -30,6 +39,9 @@ export const PlanGenerationProvider = ({ children }) => {
     const [result, setResult] = useState(null);
     const [currentNode, setCurrentNode] = useState(null);
     const [logs, setLogs] = useState([]);
+
+    // 周状态追踪: pending → planning → searching → writing → completed
+    const [weekStatuses, setWeekStatuses] = useState(INITIAL_WEEK_STATUSES);
 
     const abortControllerRef = useRef(null);
 
@@ -109,6 +121,32 @@ export const PlanGenerationProvider = ({ children }) => {
     // 添加日志
     const addLog = useCallback((message) => {
         setLogs(prev => [...prev, { time: new Date().toLocaleTimeString(), message }]);
+    }, []);
+
+    // 从 SSE 事件中提取周号
+    // 优先级: data.node("week_agent_N") → data.task_name("第N周") → data.detail.week
+    const extractWeekNumber = useCallback((data) => {
+        if (data.node) {
+            const match = data.node.match(/week_agent_(\d+)/);
+            if (match) return parseInt(match[1], 10);
+        }
+        if (data.task_name) {
+            const match = data.task_name.match(/第(\d+)周/);
+            if (match) return parseInt(match[1], 10);
+        }
+        if (data.detail?.week) {
+            return data.detail.week;
+        }
+        return null;
+    }, []);
+
+    // 更新指定周的状态
+    const updateWeekStatus = useCallback((weekNum, status, label) => {
+        if (weekNum < 1 || weekNum > 4) return;
+        setWeekStatuses(prev => ({
+            ...prev,
+            [weekNum]: { status, label },
+        }));
     }, []);
 
     // 发送完成通知
@@ -208,7 +246,8 @@ export const PlanGenerationProvider = ({ children }) => {
                     setProgress(100);
                     const resultRes = await api.getTaskResult(currentTaskId);
                     if (resultRes.code === 0) {
-                        setResult(resultRes.data);
+                        const transformed = transformPetDietPlan(resultRes.data);
+                        if (transformed) setResult(transformed);
                     }
                     addLog('🎉 计划生成完成！');
                     sendCompletionNotification();
@@ -249,18 +288,28 @@ export const PlanGenerationProvider = ({ children }) => {
                 setStatus('completed');
                 setProgress(100);
                 setCurrentStepIndex(steps.length - 1);
-                // 如果事件自带 result，直接设置；否则通过 API 获取
+                // 如果 result 已被 completed 事件设置，无需再获取
                 if (data.result) {
-                    setResult(data.result);
-                } else if (taskIdRef.current) {
-                    // 异步获取结果
-                    const api = lockedApiRef.current;
-                    api.getTaskResult(taskIdRef.current).then(res => {
-                        if (res.code === 0) {
-                            setResult(res.data);
+                    // task_completed 自带 result（断线重连场景）
+                    const transformed = transformPetDietPlan(data.result);
+                    if (transformed) setResult(transformed);
+                } else {
+                    // completed 事件已设置 result 时跳过 API 调用
+                    setResult(prev => {
+                        if (prev) return prev; // 已有数据，不覆盖
+                        // 无数据时通过 API 获取
+                        if (taskIdRef.current) {
+                            const api = lockedApiRef.current;
+                            api.getTaskResult(taskIdRef.current).then(res => {
+                                if (res.code === 0) {
+                                    const t = transformPetDietPlan(res.data);
+                                    if (t) setResult(t);
+                                }
+                            }).catch(err => {
+                                console.error('Failed to fetch task result:', err);
+                            });
                         }
-                    }).catch(err => {
-                        console.error('Failed to fetch task result:', err);
+                        return prev;
                     });
                 }
                 addLog('🎉 计划生成完成！');
@@ -268,10 +317,12 @@ export const PlanGenerationProvider = ({ children }) => {
                 disableBackgroundMode();
                 return;
 
-            case 'final_result':
-                setResult(data.data);
+            case 'final_result': {
+                const transformed = transformPetDietPlan(data.data);
+                if (transformed) setResult(transformed);
                 addLog('收到最终报告数据');
                 return;
+            }
 
             case 'done':
                 // 流结束标记
@@ -297,6 +348,36 @@ export const PlanGenerationProvider = ({ children }) => {
         }
 
         // 2. V1 ProgressEvent 事件（由 agent emit_progress 发送）
+
+        // 2a. 特殊处理 completed 事件 — 提取 detail.plans 饮食计划数据
+        if (eventType === 'completed' && data.detail?.plans) {
+            try {
+                const transformed = transformCompletedEventToResult(data.detail, data.message);
+                setResult(transformed);
+                addLog('收到完整饮食计划数据');
+                console.log('📦 Transformed plan result:', transformed);
+            } catch (err) {
+                console.error('Failed to transform completed event:', err);
+                addLog(`数据转换失败: ${err.message}`);
+            }
+        }
+
+        // 2b. 周事件处理 — 更新 weekStatuses
+        const weekEventMap = {
+            'week_planning': { status: 'planning', label: '规划中' },
+            'week_searching': { status: 'searching', label: '搜索中' },
+            'week_plan_ready': { status: 'writing', label: '撰写中' },
+            'week_writing': { status: 'writing', label: '撰写中' },
+            'week_completed': { status: 'completed', label: '已完成' },
+        };
+        const weekAction = weekEventMap[eventType];
+        if (weekAction) {
+            const weekNum = extractWeekNumber(data);
+            if (weekNum) {
+                updateWeekStatus(weekNum, weekAction.status, weekAction.label);
+            }
+        }
+
         // 更新步骤
         const stepIdx = eventTypeToStepIndex[eventType];
         if (stepIdx !== undefined) {
@@ -317,7 +398,7 @@ export const PlanGenerationProvider = ({ children }) => {
         const logMessage = data.message || data.task_name || eventType;
         addLog(logMessage);
 
-    }, [steps.length, addLog, stopPolling, sendCompletionNotification, disableBackgroundMode]);
+    }, [steps.length, addLog, stopPolling, sendCompletionNotification, disableBackgroundMode, extractWeekNumber, updateWeekStatus]);
 
     // 开始生成计划 — 接收宠物对象，优先传 pet_id
     const startGeneration = useCallback(async (petData) => {
@@ -337,6 +418,7 @@ export const PlanGenerationProvider = ({ children }) => {
         setResult(null);
         setLogs([]);
         setTaskId(null);
+        setWeekStatuses(INITIAL_WEEK_STATUSES);
 
         // 启用后台模式
         await enableBackgroundMode();
@@ -386,10 +468,27 @@ export const PlanGenerationProvider = ({ children }) => {
 
         // ── 流式请求已结束（正常完成 / 异常断开），统一检查状态 ──
         if (statusRef.current === 'generating' && taskIdRef.current) {
-            // SSE 流结束但任务未完成 — 切换到轮询恢复
+            // SSE 流结束但任务未完成 — 先尝试 SSE 重连，失败再降级轮询
             // 典型场景：iOS 后台杀连接、网络切换、服务端超时
-            addLog('流式连接结束，启动轮询恢复...');
-            startPolling();
+            addLog('流式连接断开，尝试 SSE 重连...');
+            try {
+                const api = lockedApiRef.current;
+                await api.resumePlanStreamFetch(
+                    taskIdRef.current,
+                    handleSSEEvent,
+                    (err) => {
+                        console.error('SSE resume error:', err);
+                    }
+                );
+            } catch (err) {
+                console.error('SSE resume failed:', err);
+            }
+
+            // 重连结束后再次检查状态 — 仍在 generating 则降级轮询
+            if (statusRef.current === 'generating') {
+                addLog('SSE 重连结束，启动轮询恢复...');
+                startPolling();
+            }
         } else if (statusRef.current === 'generating') {
             // 没有 taskId — 真正的启动失败（HTTP 错误 / 认证失败）
             setStatus('error');
@@ -410,6 +509,7 @@ export const PlanGenerationProvider = ({ children }) => {
         setResult(null);
         setLogs([]);
         setCurrentNode(null);
+        setWeekStatuses(INITIAL_WEEK_STATUSES);
 
         // 停止轮询
         stopPolling();
@@ -450,7 +550,8 @@ export const PlanGenerationProvider = ({ children }) => {
                     setProgress(100);
                     const resultRes = await api.getTaskResult(currentTaskId);
                     if (resultRes.code === 0) {
-                        setResult(resultRes.data);
+                        const transformed = transformPetDietPlan(resultRes.data);
+                        if (transformed) setResult(transformed);
                     }
                     addLog('🎉 任务已完成');
                     sendCompletionNotification();
@@ -462,10 +563,25 @@ export const PlanGenerationProvider = ({ children }) => {
                     addLog('❌ 任务失败');
                     disableBackgroundMode();
                 } else {
-                    // 任务仍在运行（running / pending）— 启动轮询持续监测
+                    // 任务仍在运行（running / pending）— 先尝试 SSE 重连
                     setProgress(task.progress || 0);
-                    addLog('任务仍在运行，启动轮询监测...');
-                    startPolling();
+                    addLog('任务仍在运行，尝试 SSE 重连...');
+                    try {
+                        await api.resumePlanStreamFetch(
+                            currentTaskId,
+                            handleSSEEvent,
+                            (err) => {
+                                console.error('SSE resume error in restore:', err);
+                            }
+                        );
+                    } catch (resumeErr) {
+                        console.error('SSE resume failed in restore:', resumeErr);
+                    }
+                    // 重连结束后仍在 generating 则降级轮询
+                    if (statusRef.current === 'generating') {
+                        addLog('SSE 重连结束，启动轮询监测...');
+                        startPolling();
+                    }
                 }
             }
         } catch (err) {
@@ -474,7 +590,7 @@ export const PlanGenerationProvider = ({ children }) => {
             // 即使恢复请求失败，也尝试启动轮询
             startPolling();
         }
-    }, [addLog, startPolling, stopPolling, sendCompletionNotification, disableBackgroundMode]);
+    }, [addLog, handleSSEEvent, startPolling, stopPolling, sendCompletionNotification, disableBackgroundMode]);
 
     // 监听应用状态变化 — 前台恢复时触发任务状态检查（必须在 restoreFromBackground 定义之后）
     useEffect(() => {
@@ -520,6 +636,7 @@ export const PlanGenerationProvider = ({ children }) => {
             result,
             currentNode,
             logs,
+            weekStatuses,
             startGeneration,
             resetGeneration,
             restoreFromBackground
