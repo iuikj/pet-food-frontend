@@ -414,7 +414,7 @@ export const mockSSEEvents: MockSSEEvent[] = [
     progress: 100,
     delayMs: 300,
   },
-  { type: 'task_completed', task_id: 'mock-task-001', message: '饮食计划生成完成！', progress: 100, delayMs: 500 },
+  { type: 'task_completed', task_id: 'mock-task-001', plan_id: 'mock-plan-001', message: '饮食计划生成完成！', progress: 100, delayMs: 500 },
 ];
 
 /** 计划生成完成后的任务状态 */
@@ -432,20 +432,37 @@ export const mockCompletedTask: TaskResponse = {
 };
 
 /** 完整的 PetDietPlan 结果（与后端结构对齐，用于轮询降级和 REST 获取场景） */
+/**
+ * Mock 计划结果 — 对齐后端 DietPlanDetailResponse 结构
+ *
+ * 后端 GET /plans/{id} 返回:
+ *   { id, task_id, user_id, pet_id, pet_type, pet_breed, pet_age, pet_weight,
+ *     health_status, plan_data: PetDietPlan, created_at, updated_at }
+ */
 export const mockPlanResult = {
   id: 'mock-plan-001',
+  task_id: 'mock-task-001',
   user_id: 'mock-user-001',
-  // PetDietPlan 结构
-  pet_information: {
-    pet_type: 'dog',
-    pet_breed: '金毛寻回犬',
-    pet_age: 36,
-    pet_weight: 28.5,
-    health_status: '对鸡肉过敏，关节需要保养',
-  },
-  ai_suggestions: '针对金毛犬的个性化月度饮食计划，重点关注鸡肉过敏替代方案和关节保养营养补充。四周食谱已根据营养均衡原则差异化设计。',
-  pet_diet_plan: {
-    monthly_diet_plan: mockWeeklyPlans,
+  pet_id: 'mock-pet-001',
+  pet_type: 'dog',
+  pet_breed: '金毛寻回犬',
+  pet_age: 36,
+  pet_weight: 28.5,
+  health_status: '对鸡肉过敏，关节需要保养',
+  // plan_data 对齐后端 PetDietPlan 结构
+  plan_data: {
+    pet_information: {
+      pet_type: 'dog',
+      pet_breed: '金毛寻回犬',
+      pet_age: 36,
+      pet_weight: 28.5,
+      health_status: '对鸡肉过敏，关节需要保养',
+    },
+    ai_suggestions: '针对金毛犬的个性化月度饮食计划，重点关注鸡肉过敏替代方案和关节保养营养补充。四周食谱已根据营养均衡原则差异化设计。',
+    pet_diet_plan: {
+      monthly_diet_plan: mockWeeklyPlans,
+    },
   },
   created_at: new Date().toISOString(),
+  updated_at: null,
 };

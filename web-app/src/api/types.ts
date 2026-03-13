@@ -161,18 +161,36 @@ export interface CreatePlanRequest {
 export interface PlanResponse {
   id: string;
   user_id: string;
+  task_id?: string;
+  pet_id?: string;
   pet_type: PetType;
   pet_breed?: string;
   pet_age: number;
   pet_weight: number;
   health_status?: string;
-  content: any;
+  plan_data: any;
   created_at: string;
+  updated_at?: string;
+}
+
+export interface PlanSummaryResponse {
+  id: string;
+  task_id?: string;
+  pet_id?: string;
+  pet_type: PetType;
+  pet_breed?: string;
+  pet_age: number;
+  pet_weight: number;
+  health_status?: string;
+  created_at: string;
+  updated_at?: string;
 }
 
 export interface PlanListResponse {
   total: number;
-  items: PlanResponse[];
+  page?: number;
+  page_size?: number;
+  items: PlanSummaryResponse[];
 }
 
 // ==================== 任务类型 ====================
@@ -232,6 +250,7 @@ export type SSEEventType =
 export interface SSEEvent {
   type: SSEEventType;
   task_id?: string;
+  plan_id?: string;
   node?: string;
   tool?: string;
   progress?: number;

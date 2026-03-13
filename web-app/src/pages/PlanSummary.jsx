@@ -1,21 +1,68 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Toast } from '@capacitor/toast';
 import { pageTransitions } from '../utils/animations';
 import { usePlanGeneration } from '../context/PlanGenerationContext';
 import { usePets } from '../context/PetContext';
+import { plansApi } from '../api';
+import { transformPetDietPlan } from '../models/dietPlan';
 
 export default function PlanSummary() {
     const navigate = useNavigate();
-    const { result, status, resetGeneration } = usePlanGeneration();
-    const { currentPet } = usePets();
+    const location = useLocation();
+    const { result, status, resetGeneration, planId: generatedPlanId } = usePlanGeneration();
+    const { currentPet, activePlanId, setActivePlan } = usePets();
     const [activeWeek, setActiveWeek] = useState(1);
 
+    // 饮食原则/建议默认折叠
+    const [isPrincipleExpanded, setIsPrincipleExpanded] = useState(false);
+    const [isSuggestionsExpanded, setIsSuggestionsExpanded] = useState(false);
+
+    // 保存状态
+    const [isSaved, setIsSaved] = useState(false);
+
+    // 支持从食谱列表页通过 planId 路由跳转查看
+    const routePlanId = location.state?.planId;
+    const [routeResult, setRouteResult] = useState(null);
+    const [routeLoading, setRouteLoading] = useState(false);
+
+    // 确定展示用的 planId — 优先路由传入，其次生成产出
+    const effectivePlanId = routePlanId || generatedPlanId;
+
+    // 通过路由 planId 加载计划详情
+    useEffect(() => {
+        if (!routePlanId) return;
+        let cancelled = false;
+        setRouteLoading(true);
+        plansApi.getPlan(routePlanId).then(res => {
+            if (cancelled) return;
+            if (res.code === 0 && res.data) {
+                // 后端返回 { plan_data: PetDietPlan, ... }
+                // transformPetDietPlan 期望接收 PetDietPlan 结构
+                const planData = res.data.plan_data || res.data;
+                const transformed = transformPetDietPlan(planData);
+                if (transformed) setRouteResult(transformed);
+            }
+        }).catch(err => {
+            console.error('Failed to load plan by id:', err);
+        }).finally(() => {
+            if (!cancelled) setRouteLoading(false);
+        });
+        return () => { cancelled = true; };
+    }, [routePlanId]);
+
+    // 使用路由加载的结果或生成的结果
+    const displayResult = routePlanId ? routeResult : result;
+
     // 从转换后的 result 提取数据（统一格式：{ ai_suggestions, weeks[] }）
-    const aiSuggestions = result?.ai_suggestions || '';
-    const weeks = result?.weeks || [];
+    const aiSuggestions = displayResult?.ai_suggestions || '';
+    const weeks = displayResult?.weeks || [];
     const petName = currentPet?.name || '您的爱宠';
     const healthStatus = currentPet?.health_status || '';
+
+    // 判断当前计划是否已保存为活跃计划
+    const isCurrentPlanActive = effectivePlanId && activePlanId === effectivePlanId;
 
     // 当前选中的周数据
     const currentWeek = weeks.find(w => w.week === activeWeek) || weeks[0];
@@ -30,7 +77,25 @@ export default function PlanSummary() {
     ];
 
     // 没有 result 且不是 completed 状态 → 空状态引导
-    if (!result && status !== 'completed') {
+    if (routeLoading) {
+        return (
+            <motion.div {...pageTransitions} className="pb-28 overflow-x-hidden">
+                <header className="px-6 pt-12 pb-4 flex justify-between items-center bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md sticky top-0 z-50">
+                    <div className="flex items-center gap-3">
+                        <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full flex items-center justify-center text-text-muted-light dark:text-text-muted-dark hover:bg-gray-100 dark:hover:bg-surface-dark transition-colors">
+                            <span className="material-symbols-outlined text-lg">arrow_back</span>
+                        </button>
+                        <h1 className="text-xl font-bold">加载中...</h1>
+                    </div>
+                </header>
+                <main className="px-6 flex flex-col items-center justify-center min-h-[60vh]">
+                    <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+                </main>
+            </motion.div>
+        );
+    }
+
+    if (!displayResult && status !== 'completed') {
         return (
             <motion.div {...pageTransitions} className="pb-28 overflow-x-hidden">
                 <header className="px-6 pt-12 pb-4 flex justify-between items-center bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md sticky top-0 z-50">
@@ -166,24 +231,50 @@ export default function PlanSummary() {
                             ))}
                         </div>
 
-                        {/* 当前周信息 — 饮食调整原则 */}
-                        {currentWeek && (
-                            <div className="bg-white dark:bg-surface-dark p-5 rounded-2xl shadow-soft border border-gray-100 dark:border-gray-800 mb-4">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <span className="material-symbols-outlined text-primary text-lg">event_note</span>
-                                    <h4 className="font-bold text-base">第 {currentWeek.week} 周 饮食原则</h4>
-                                </div>
-                                <p className="text-sm text-text-muted-light dark:text-text-muted-dark leading-relaxed">
-                                    {currentWeek.principle || ''}
-                                </p>
-                                {currentWeek.dailyCalories > 0 && (
-                                    <div className="mt-3 flex items-center gap-2">
-                                        <span className="material-symbols-outlined text-yellow-500 text-sm">local_fire_department</span>
-                                        <span className="text-xs font-semibold text-text-muted-light">
-                                            每日目标: {currentWeek.dailyCalories} kcal
-                                        </span>
+                        {/* 当前周信息 — 饮食调整原则（可折叠） */}
+                        {currentWeek && currentWeek.principle && (
+                            <div className="bg-white dark:bg-surface-dark rounded-2xl shadow-soft border border-gray-100 dark:border-gray-800 mb-4 overflow-hidden">
+                                <button
+                                    onClick={() => setIsPrincipleExpanded(!isPrincipleExpanded)}
+                                    className="w-full flex items-center justify-between p-5"
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <span className="material-symbols-outlined text-primary text-lg">event_note</span>
+                                        <h4 className="font-bold text-base">第 {currentWeek.week} 周 饮食原则</h4>
                                     </div>
-                                )}
+                                    <motion.span
+                                        className="material-symbols-outlined text-text-muted-light dark:text-text-muted-dark text-lg"
+                                        animate={{ rotate: isPrincipleExpanded ? 180 : 0 }}
+                                        transition={{ duration: 0.2 }}
+                                    >
+                                        expand_more
+                                    </motion.span>
+                                </button>
+                                <AnimatePresence initial={false}>
+                                    {isPrincipleExpanded && (
+                                        <motion.div
+                                            initial={{ height: 0, opacity: 0 }}
+                                            animate={{ height: 'auto', opacity: 1 }}
+                                            exit={{ height: 0, opacity: 0 }}
+                                            transition={{ duration: 0.25, ease: 'easeInOut' }}
+                                            className="overflow-hidden"
+                                        >
+                                            <div className="px-5 pb-5 pt-0">
+                                                <p className="text-sm text-text-muted-light dark:text-text-muted-dark leading-relaxed">
+                                                    {currentWeek.principle}
+                                                </p>
+                                                {currentWeek.dailyCalories > 0 && (
+                                                    <div className="mt-3 flex items-center gap-2">
+                                                        <span className="material-symbols-outlined text-yellow-500 text-sm">local_fire_department</span>
+                                                        <span className="text-xs font-semibold text-text-muted-light">
+                                                            每日目标: {currentWeek.dailyCalories} kcal
+                                                        </span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
                             </div>
                         )}
 
@@ -260,43 +351,99 @@ export default function PlanSummary() {
                     </section>
                 )}
 
-                {/* 每周建议 + 特别调整说明 */}
+                {/* 每周建议 + 特别调整说明（可折叠） */}
                 {currentWeek && (currentWeek.suggestions?.length > 0 || currentWeek.specialNote) && (
                     <section>
-                        <div className="bg-primary/5 dark:bg-primary/10 rounded-3xl p-5 border border-primary/10 dark:border-primary/20 hover:shadow-soft transition-all duration-300">
-                            <div className="flex items-center gap-2 mb-3">
-                                <span className="material-symbols-outlined text-primary">verified</span>
-                                <h3 className="font-bold text-text-main-light dark:text-text-main-dark">第 {currentWeek.week} 周建议</h3>
-                            </div>
-                            {currentWeek.suggestions?.length > 0 && (
-                                <ul className="space-y-2 text-sm text-text-muted-light dark:text-text-muted-dark list-disc list-inside mb-3">
-                                    {currentWeek.suggestions.map((s, i) => (
-                                        <li key={i}>{typeof s === 'string' ? s : JSON.stringify(s)}</li>
-                                    ))}
-                                </ul>
-                            )}
-                            {currentWeek.specialNote && (
-                                <div className="flex items-start gap-2 text-sm text-text-muted-light dark:text-text-muted-dark bg-white/50 dark:bg-white/5 p-3 rounded-xl">
-                                    <span className="material-symbols-outlined text-sm mt-0.5 text-yellow-500">warning</span>
-                                    <p>{currentWeek.specialNote}</p>
+                        <div className="bg-primary/5 dark:bg-primary/10 rounded-3xl border border-primary/10 dark:border-primary/20 hover:shadow-soft transition-all duration-300 overflow-hidden">
+                            <button
+                                onClick={() => setIsSuggestionsExpanded(!isSuggestionsExpanded)}
+                                className="w-full flex items-center justify-between p-5"
+                            >
+                                <div className="flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-primary">verified</span>
+                                    <h3 className="font-bold text-text-main-light dark:text-text-main-dark">第 {currentWeek.week} 周建议</h3>
                                 </div>
-                            )}
+                                <motion.span
+                                    className="material-symbols-outlined text-text-muted-light dark:text-text-muted-dark text-lg"
+                                    animate={{ rotate: isSuggestionsExpanded ? 180 : 0 }}
+                                    transition={{ duration: 0.2 }}
+                                >
+                                    expand_more
+                                </motion.span>
+                            </button>
+                            <AnimatePresence initial={false}>
+                                {isSuggestionsExpanded && (
+                                    <motion.div
+                                        initial={{ height: 0, opacity: 0 }}
+                                        animate={{ height: 'auto', opacity: 1 }}
+                                        exit={{ height: 0, opacity: 0 }}
+                                        transition={{ duration: 0.25, ease: 'easeInOut' }}
+                                        className="overflow-hidden"
+                                    >
+                                        <div className="px-5 pb-5 pt-0">
+                                            {currentWeek.suggestions?.length > 0 && (
+                                                <ul className="space-y-2 text-sm text-text-muted-light dark:text-text-muted-dark list-disc list-inside mb-3">
+                                                    {currentWeek.suggestions.map((s, i) => (
+                                                        <li key={i}>{typeof s === 'string' ? s : JSON.stringify(s)}</li>
+                                                    ))}
+                                                </ul>
+                                            )}
+                                            {currentWeek.specialNote && (
+                                                <div className="flex items-start gap-2 text-sm text-text-muted-light dark:text-text-muted-dark bg-white/50 dark:bg-white/5 p-3 rounded-xl">
+                                                    <span className="material-symbols-outlined text-sm mt-0.5 text-yellow-500">warning</span>
+                                                    <p>{currentWeek.specialNote}</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
                         </div>
                     </section>
                 )}
 
-                {/* 重新生成按钮 */}
-                <section className="pb-6">
-                    <button
-                        onClick={() => {
-                            resetGeneration();
-                            navigate('/plan/create');
-                        }}
-                        className="w-full py-3 rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700 text-text-muted-light dark:text-text-muted-dark font-medium hover:border-primary/50 hover:text-primary transition-all flex items-center justify-center gap-2"
-                    >
-                        <span className="material-symbols-outlined text-lg">refresh</span>
-                        重新生成计划
-                    </button>
+                {/* 保存食谱 + 重新生成 */}
+                <section className="pb-6 space-y-3">
+                    {/* 保存食谱按钮 — 仅当有 planId 时显示 */}
+                    {effectivePlanId && currentPet?.id && (
+                        <button
+                            onClick={async () => {
+                                if (isCurrentPlanActive || isSaved) return;
+                                setActivePlan(currentPet.id, effectivePlanId);
+                                setIsSaved(true);
+                                try {
+                                    await Toast.show({ text: '食谱已保存并应用', duration: 'short' });
+                                } catch {
+                                    // Capacitor Toast 在 web 环境可能不可用
+                                }
+                            }}
+                            disabled={isCurrentPlanActive || isSaved}
+                            className={`w-full py-3.5 rounded-2xl font-bold text-base transition-all flex items-center justify-center gap-2 ${
+                                isCurrentPlanActive || isSaved
+                                    ? 'bg-green-100 dark:bg-green-900/20 text-green-600 dark:text-green-400 cursor-default'
+                                    : 'bg-primary text-white dark:text-gray-900 shadow-glow hover:brightness-110 hover:-translate-y-0.5 active:scale-[0.98]'
+                            }`}
+                        >
+                            <span className="material-symbols-outlined text-lg">
+                                {isCurrentPlanActive || isSaved ? 'check_circle' : 'bookmark_add'}
+                            </span>
+                            {isCurrentPlanActive || isSaved ? '已保存为当前食谱' : '保存食谱'}
+                        </button>
+                    )}
+
+                    {/* 重新生成按钮 — 仅在非路由查看模式时显示 */}
+                    {!routePlanId && (
+                        <button
+                            onClick={() => {
+                                resetGeneration();
+                                navigate('/plan/create');
+                            }}
+                            className="w-full py-3 rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700 text-text-muted-light dark:text-text-muted-dark font-medium hover:border-primary/50 hover:text-primary transition-all flex items-center justify-center gap-2"
+                        >
+                            <span className="material-symbols-outlined text-lg">refresh</span>
+                            重新生成计划
+                        </button>
+                    )}
                 </section>
             </main>
         </motion.div>

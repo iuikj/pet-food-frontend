@@ -5,10 +5,29 @@
  */
 import type {
   ApiResponse, CreatePlanRequest, PlanResponse, PlanListResponse,
-  TaskResponse, SSEEvent,
+  PlanSummaryResponse, TaskResponse, SSEEvent,
 } from '../../api/types';
 import { mockSSEEvents, mockCompletedTask, mockPlanResult } from '../data/plans';
+import { mockState } from '../mockState';
 import { delay, mockResponse } from '../utils';
+
+/**
+ * 从完整 plan 中提取 Summary（不含 plan_data）
+ */
+function toSummary(plan: any): PlanSummaryResponse {
+  return {
+    id: plan.id,
+    task_id: plan.task_id,
+    pet_id: plan.pet_id,
+    pet_type: plan.pet_type,
+    pet_breed: plan.pet_breed,
+    pet_age: plan.pet_age,
+    pet_weight: plan.pet_weight,
+    health_status: plan.health_status,
+    created_at: plan.created_at,
+    updated_at: plan.updated_at,
+  };
+}
 
 export const mockPlansApi = {
   async createPlan(_data: CreatePlanRequest): Promise<ApiResponse<{ task_id: string }>> {
@@ -20,6 +39,7 @@ export const mockPlansApi = {
    * 模拟 fetch-based SSE 流
    * 逐个发送 mockSSEEvents，每个事件间有设定的延迟
    * completed 事件已在 mockSSEEvents 中包含 detail.plans，前端 handleSSEEvent 会处理
+   * SSE 完成后自动保存计划到 mockState（模拟后端自动保存行为）
    */
   async createPlanStreamFetch(
     _data: CreatePlanRequest,
@@ -32,6 +52,13 @@ export const mockPlansApi = {
       const { delayMs: _, ...sseEvent } = event;
       onEvent(sseEvent);
     }
+    // SSE 完成后自动保存计划到 mockState（模拟后端自动保存行为）
+    const newPlan = {
+      ...JSON.parse(JSON.stringify(mockPlanResult)),
+      id: `mock-plan-${Date.now()}`,
+      created_at: new Date().toISOString(),
+    };
+    mockState.addPlan(newPlan);
   },
 
   /**
@@ -65,7 +92,7 @@ export const mockPlansApi = {
   },
 
   /**
-   * 模拟断线重连（直接返回 completed 状态）
+   * 模拟断线重连（直接返回 completed 状态 + plan_id）
    */
   resumePlanStream(
     _taskId: string,
@@ -79,6 +106,7 @@ export const mockPlansApi = {
         data: JSON.stringify({
           type: 'task_completed',
           task_id: 'mock-task-001',
+          plan_id: 'mock-plan-001',
           result: mockPlanResult,
           message: '饮食计划生成完成！',
           progress: 100,
@@ -91,7 +119,7 @@ export const mockPlansApi = {
   },
 
   /**
-   * 模拟 fetch-based 断线重连（直接发送 completed 事件）
+   * 模拟 fetch-based 断线重连（直接发送 completed 事件 + plan_id）
    */
   async resumePlanStreamFetch(
     _taskId: string,
@@ -102,27 +130,37 @@ export const mockPlansApi = {
     onEvent({
       type: 'task_completed',
       task_id: 'mock-task-001',
+      plan_id: 'mock-plan-001',
       result: mockPlanResult,
       message: '饮食计划生成完成！',
       progress: 100,
     } as SSEEvent);
   },
 
+  // ===== 状态感知的计划管理 =====
+
   async getPlans(): Promise<ApiResponse<PlanListResponse>> {
     await delay();
     return mockResponse({
-      total: 1,
-      items: [mockPlanResult as unknown as PlanResponse],
+      total: mockState.plans.length,
+      page: 1,
+      page_size: 10,
+      items: mockState.plans.map(toSummary),
     });
   },
 
-  async getPlan(_planId: string): Promise<ApiResponse<PlanResponse>> {
+  async getPlan(planId: string): Promise<ApiResponse<PlanResponse>> {
     await delay();
-    return mockResponse(mockPlanResult as unknown as PlanResponse);
+    const plan = mockState.getPlan(planId);
+    if (!plan) {
+      return { code: 404, message: '计划不存在', data: null as any };
+    }
+    return mockResponse(plan as unknown as PlanResponse);
   },
 
   async deletePlan(planId: string): Promise<ApiResponse<{ plan_id: string }>> {
     await delay();
+    mockState.deletePlan(planId);
     return mockResponse({ plan_id: planId });
   },
 

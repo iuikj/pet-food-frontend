@@ -20,6 +20,16 @@ export const PetProvider = ({ children }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
 
+    // 活跃计划映射: { petId: planId } — localStorage 持久化
+    const [activePlanMap, setActivePlanMap] = useState(
+        () => JSON.parse(localStorage.getItem('activePlanMap') || '{}')
+    );
+
+    // 持久化 activePlanMap
+    useEffect(() => {
+        localStorage.setItem('activePlanMap', JSON.stringify(activePlanMap));
+    }, [activePlanMap]);
+
     // 获取当前选中的宠物
     const currentPet = pets.find(p => p.id === currentPetId) || pets[0] || null;
 
@@ -164,6 +174,29 @@ export const PetProvider = ({ children }) => {
         ));
     }, []);
 
+    // 设置活跃计划 — 绑定宠物与计划，同时更新 has_plan
+    const setActivePlan = useCallback((petId, planId) => {
+        setActivePlanMap(prev => ({ ...prev, [petId]: planId }));
+        setPets(prev => prev.map(pet =>
+            pet.id === petId ? { ...pet, has_plan: true } : pet
+        ));
+    }, []);
+
+    // 清除活跃计划
+    const clearActivePlan = useCallback((petId) => {
+        setActivePlanMap(prev => {
+            const next = { ...prev };
+            delete next[petId];
+            return next;
+        });
+        setPets(prev => prev.map(pet =>
+            pet.id === petId ? { ...pet, has_plan: false } : pet
+        ));
+    }, []);
+
+    // 当前宠物的活跃计划 ID
+    const activePlanId = currentPet?.id ? activePlanMap[currentPet.id] || null : null;
+
     return (
         <PetContext.Provider value={{
             pets,
@@ -178,7 +211,11 @@ export const PetProvider = ({ children }) => {
             deletePet,
             uploadPetAvatar,
             setCurrentPet,
-            setPetHasPlan
+            setPetHasPlan,
+            activePlanMap,
+            activePlanId,
+            setActivePlan,
+            clearActivePlan,
         }}>
             {children}
         </PetContext.Provider>

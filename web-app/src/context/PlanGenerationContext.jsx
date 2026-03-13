@@ -39,6 +39,8 @@ export const PlanGenerationProvider = ({ children }) => {
     const [result, setResult] = useState(null);
     const [currentNode, setCurrentNode] = useState(null);
     const [logs, setLogs] = useState([]);
+    // 生成完成后由后端返回的 plan_id，用于保存/应用
+    const [planId, setPlanId] = useState(null);
 
     // 周状态追踪: pending → planning → searching → writing → completed
     const [weekStatuses, setWeekStatuses] = useState(INITIAL_WEEK_STATUSES);
@@ -284,25 +286,49 @@ export const PlanGenerationProvider = ({ children }) => {
                 return;
 
             case 'task_completed':
+                // task_completed 有三种来源：
+                // 1. Agent 子任务完成（带 node/task_name，无 plan_id）— 仅日志
+                // 2. API 层最终确认（plan_service 发出，带 plan_id）— 提取 plan_id + 标记完成
+                // 3. 断线重连恢复（带 result 完整数据）— 提取数据
+                //
+                // 注意：真正的计划数据由 type='completed'（Agent gather 节点）携带，
+                //       此处主要处理 plan_id 提取和状态确认。
+
+                if (!data.plan_id && (data.node || data.task_name)) {
+                    // Agent 子任务完成 — 仅记录日志，不改变整体状态
+                    addLog(`子任务完成: ${data.task_name || data.node}`);
+                    return;
+                }
+
+                // API 层最终确认 或 断线重连
                 stopPolling();
                 setStatus('completed');
                 setProgress(100);
                 setCurrentStepIndex(steps.length - 1);
-                // 如果 result 已被 completed 事件设置，无需再获取
+
+                // 提取 plan_id
+                if (data.plan_id) {
+                    setPlanId(data.plan_id);
+                } else if (data.result?.id) {
+                    setPlanId(data.result.id);
+                }
+
+                // 断线重连场景：task_completed 自带 result
                 if (data.result) {
-                    // task_completed 自带 result（断线重连场景）
-                    const transformed = transformPetDietPlan(data.result);
+                    const planData = data.result.plan_data || data.result;
+                    const transformed = transformPetDietPlan(planData);
                     if (transformed) setResult(transformed);
                 } else {
-                    // completed 事件已设置 result 时跳过 API 调用
+                    // 正常 SSE 流：result 已由 type='completed' 事件设置
+                    // 仅在无数据时兜底通过 API 获取
                     setResult(prev => {
                         if (prev) return prev; // 已有数据，不覆盖
-                        // 无数据时通过 API 获取
                         if (taskIdRef.current) {
                             const api = lockedApiRef.current;
                             api.getTaskResult(taskIdRef.current).then(res => {
                                 if (res.code === 0) {
-                                    const t = transformPetDietPlan(res.data);
+                                    const planData = res.data?.plan_data || res.data;
+                                    const t = transformPetDietPlan(planData);
                                     if (t) setResult(t);
                                 }
                             }).catch(err => {
@@ -349,13 +375,19 @@ export const PlanGenerationProvider = ({ children }) => {
 
         // 2. V1 ProgressEvent 事件（由 agent emit_progress 发送）
 
-        // 2a. 特殊处理 completed 事件 — 提取 detail.plans 饮食计划数据
+        // 2a. 特殊处理 completed 事件 — Agent gather 节点发出，带 detail.plans 饮食计划数据
+        // 这是真正的"计划生成完成"信号（早于 task_completed）
         if (eventType === 'completed' && data.detail?.plans) {
             try {
                 const transformed = transformCompletedEventToResult(data.detail, data.message);
                 setResult(transformed);
+                setStatus('completed');
+                setProgress(100);
+                setCurrentStepIndex(steps.length - 1);
                 addLog('收到完整饮食计划数据');
                 console.log('📦 Transformed plan result:', transformed);
+                sendCompletionNotification();
+                disableBackgroundMode();
             } catch (err) {
                 console.error('Failed to transform completed event:', err);
                 addLog(`数据转换失败: ${err.message}`);
@@ -418,6 +450,7 @@ export const PlanGenerationProvider = ({ children }) => {
         setResult(null);
         setLogs([]);
         setTaskId(null);
+        setPlanId(null);
         setWeekStatuses(INITIAL_WEEK_STATUSES);
 
         // 启用后台模式
@@ -509,6 +542,7 @@ export const PlanGenerationProvider = ({ children }) => {
         setResult(null);
         setLogs([]);
         setCurrentNode(null);
+        setPlanId(null);
         setWeekStatuses(INITIAL_WEEK_STATUSES);
 
         // 停止轮询
@@ -632,6 +666,7 @@ export const PlanGenerationProvider = ({ children }) => {
             steps,
             isBackgroundRunning,
             taskId,
+            planId,
             error,
             result,
             currentNode,

@@ -43,7 +43,7 @@ export default function BottomNav() {
         { name: '主页', icon: 'home', path: '/' },
         { name: '日历', icon: 'calendar_today', path: '/calendar' },
         { name: '规划', icon: 'menu_book', path: '/plan/create', isFab: true },
-        { name: '分析', icon: 'pie_chart', path: '/analysis' },
+        { name: '食谱', icon: 'menu_book', path: '/analysis' },
         { name: '我的', icon: 'person', path: '/profile' },
     ];
 

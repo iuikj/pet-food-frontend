@@ -71,7 +71,9 @@ function AnimatedRoutes() {
 
   // 处理通知点击 - 跳转到计划页面
   useEffect(() => {
-    const notificationListener = LocalNotifications.addListener(
+    let listenerHandle = null;
+
+    LocalNotifications.addListener(
       'localNotificationActionPerformed',
       (notification) => {
         console.log('Notification action performed:', notification);
@@ -81,10 +83,16 @@ function AnimatedRoutes() {
           navigate(route);
         }
       }
-    );
+    ).then(handle => {
+      listenerHandle = handle;
+    }).catch(() => {
+      // Web 环境下 Capacitor 插件不可用
+    });
 
     return () => {
-      notificationListener.remove();
+      if (listenerHandle && typeof listenerHandle.remove === 'function') {
+        listenerHandle.remove();
+      }
     };
   }, [navigate]);
 
