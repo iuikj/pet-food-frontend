@@ -1,17 +1,8 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { petsApi } from '../api';
-import { useUser } from './UserContext';
-
-const PetContext = createContext();
-
-// 宠物数据 hook
-export const usePets = () => {
-    const context = useContext(PetContext);
-    if (!context) {
-        throw new Error('usePets must be used within a PetProvider');
-    }
-    return context;
-};
+import PetContext from './PetContextValue';
+import { useUser } from '../hooks/useUser';
+import { readJSON, STORAGE_KEYS, writeJSON } from '../utils/storage';
 
 export const PetProvider = ({ children }) => {
     const { isAuthenticated } = useUser();
@@ -19,55 +10,41 @@ export const PetProvider = ({ children }) => {
     const [currentPetId, setCurrentPetId] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
-
-    // 活跃计划映射: { petId: planId } — localStorage 持久化
     const [activePlanMap, setActivePlanMap] = useState(
-        () => JSON.parse(localStorage.getItem('activePlanMap') || '{}')
+        () => readJSON(STORAGE_KEYS.activePlanMap, {})
     );
-
-    // 活跃计划数据映射: { petId: { ai_suggestions, weeks[] } } — localStorage 持久化
     const [activePlanDataMap, setActivePlanDataMap] = useState(
-        () => JSON.parse(localStorage.getItem('activePlanDataMap') || '{}')
+        () => readJSON(STORAGE_KEYS.activePlanDataMap, {})
     );
 
-    // 持久化 activePlanMap
     useEffect(() => {
-        localStorage.setItem('activePlanMap', JSON.stringify(activePlanMap));
+        writeJSON(STORAGE_KEYS.activePlanMap, activePlanMap);
     }, [activePlanMap]);
 
-    // 持久化 activePlanDataMap
     useEffect(() => {
-        localStorage.setItem('activePlanDataMap', JSON.stringify(activePlanDataMap));
+        writeJSON(STORAGE_KEYS.activePlanDataMap, activePlanDataMap);
     }, [activePlanDataMap]);
 
-    // 获取当前选中的宠物
-    const currentPet = pets.find(p => p.id === currentPetId) || pets[0] || null;
-
-    // 登录后加载宠物列表
-    useEffect(() => {
-        if (isAuthenticated) {
-            fetchPets();
-        } else {
-            setPets([]);
-            setCurrentPetId(null);
-        }
-    }, [isAuthenticated]);
-
-    // 从后端获取宠物列表
     const fetchPets = useCallback(async () => {
         setIsLoading(true);
         setError(null);
+
         try {
             const res = await petsApi.getPets();
             if (res.code === 0) {
                 const petList = res.data.items || [];
                 setPets(petList);
-                // 如果有宠物且没有选中，选中第一个
-                if (petList.length > 0 && !currentPetId) {
-                    setCurrentPetId(petList[0].id);
-                }
+                setCurrentPetId((prev) => {
+                    if (petList.length === 0) {
+                        return null;
+                    }
+
+                    const hasExistingPet = prev && petList.some((pet) => pet.id === prev);
+                    return hasExistingPet ? prev : petList[0].id;
+                });
                 return { success: true, pets: petList };
             }
+
             setError(res.message);
             return { success: false, message: res.message };
         } catch (err) {
@@ -77,21 +54,31 @@ export const PetProvider = ({ children }) => {
         } finally {
             setIsLoading(false);
         }
-    }, [currentPetId]);
+    }, []);
 
-    // 根据 ID 获取宠物
+    useEffect(() => {
+        if (isAuthenticated) {
+            fetchPets();
+            return;
+        }
+
+        setPets([]);
+        setCurrentPetId(null);
+    }, [fetchPets, isAuthenticated]);
+
+    const currentPet = pets.find((pet) => pet.id === currentPetId) || pets[0] || null;
+
     const getPetById = useCallback((id) => {
-        return pets.find(p => p.id === id) || null;
+        return pets.find((pet) => pet.id === id) || null;
     }, [pets]);
 
-    // 添加宠物
     const addPet = useCallback(async (petData) => {
         setIsLoading(true);
         try {
             const res = await petsApi.createPet(petData);
             if (res.code === 0) {
                 const newPet = res.data;
-                setPets(prev => [...prev, newPet]);
+                setPets((prev) => [...prev, newPet]);
                 setCurrentPetId(newPet.id);
                 return { success: true, pet: newPet };
             }
@@ -104,16 +91,15 @@ export const PetProvider = ({ children }) => {
         }
     }, []);
 
-    // 更新宠物
     const updatePet = useCallback(async (id, updates) => {
         setIsLoading(true);
         try {
             const res = await petsApi.updatePet(id, updates);
             if (res.code === 0) {
                 const updatedPet = res.data;
-                setPets(prev => prev.map(pet =>
+                setPets((prev) => prev.map((pet) => (
                     pet.id === id ? updatedPet : pet
-                ));
+                )));
                 return { success: true, pet: updatedPet };
             }
             return { success: false, message: res.message };
@@ -125,20 +111,21 @@ export const PetProvider = ({ children }) => {
         }
     }, []);
 
-    // 删除宠物
     const deletePet = useCallback(async (id) => {
         setIsLoading(true);
         try {
             const res = await petsApi.deletePet(id);
             if (res.code === 0) {
-                setPets(prev => {
-                    const filtered = prev.filter(pet => pet.id !== id);
-                    // 如果删除的是当前宠物，切换到第一个
-                    if (currentPetId === id && filtered.length > 0) {
-                        setCurrentPetId(filtered[0].id);
-                    } else if (filtered.length === 0) {
+                setPets((prev) => {
+                    const filtered = prev.filter((pet) => pet.id !== id);
+                    if (filtered.length === 0) {
                         setCurrentPetId(null);
+                        return filtered;
                     }
+
+                    setCurrentPetId((currentId) => (
+                        currentId === id ? filtered[0].id : currentId
+                    ));
                     return filtered;
                 });
                 return { success: true };
@@ -150,17 +137,15 @@ export const PetProvider = ({ children }) => {
         } finally {
             setIsLoading(false);
         }
-    }, [currentPetId]);
+    }, []);
 
-    // 上传宠物头像
     const uploadPetAvatar = useCallback(async (petId, file) => {
         try {
             const res = await petsApi.uploadPetAvatar(petId, file);
             if (res.code === 0) {
-                // 更新本地宠物头像
-                setPets(prev => prev.map(pet =>
+                setPets((prev) => prev.map((pet) => (
                     pet.id === petId ? { ...pet, avatar_url: res.data.avatar_url } : pet
-                ));
+                )));
                 return { success: true, avatar_url: res.data.avatar_url };
             }
             return { success: false, message: res.message };
@@ -170,54 +155,46 @@ export const PetProvider = ({ children }) => {
         }
     }, []);
 
-    // 设置当前宠物
     const setCurrentPet = useCallback((id) => {
-        if (pets.some(p => p.id === id)) {
+        if (pets.some((pet) => pet.id === id)) {
             setCurrentPetId(id);
         }
     }, [pets]);
 
-    // 设置宠物食谱状态（本地更新，用于 UI 显示）
     const setPetHasPlan = useCallback((id, hasPlan) => {
-        setPets(prev => prev.map(pet =>
+        setPets((prev) => prev.map((pet) => (
             pet.id === id ? { ...pet, has_plan: hasPlan } : pet
-        ));
+        )));
     }, []);
 
-    // 设置活跃计划 — 绑定宠物与计划，同时更新 has_plan
     const setActivePlan = useCallback((petId, planId) => {
-        setActivePlanMap(prev => ({ ...prev, [petId]: planId }));
-        setPets(prev => prev.map(pet =>
+        setActivePlanMap((prev) => ({ ...prev, [petId]: planId }));
+        setPets((prev) => prev.map((pet) => (
             pet.id === petId ? { ...pet, has_plan: true } : pet
-        ));
+        )));
     }, []);
 
-    // 清除活跃计划
     const clearActivePlan = useCallback((petId) => {
-        setActivePlanMap(prev => {
+        setActivePlanMap((prev) => {
             const next = { ...prev };
             delete next[petId];
             return next;
         });
-        setActivePlanDataMap(prev => {
+        setActivePlanDataMap((prev) => {
             const next = { ...prev };
             delete next[petId];
             return next;
         });
-        setPets(prev => prev.map(pet =>
+        setPets((prev) => prev.map((pet) => (
             pet.id === petId ? { ...pet, has_plan: false } : pet
-        ));
+        )));
     }, []);
 
-    // 存储活跃计划的完整数据（weeks 等），用于首页推导餐食
-    const setActivePlanData = useCallback((petId, result) => {
-        setActivePlanDataMap(prev => ({ ...prev, [petId]: result }));
+    const setActivePlanData = useCallback((petId, planResult) => {
+        setActivePlanDataMap((prev) => ({ ...prev, [petId]: planResult }));
     }, []);
 
-    // 当前宠物的活跃计划 ID
     const activePlanId = currentPet?.id ? activePlanMap[currentPet.id] || null : null;
-
-    // 当前宠物的活跃计划数据
     const activePlanData = currentPet?.id ? activePlanDataMap[currentPet.id] || null : null;
 
     return (

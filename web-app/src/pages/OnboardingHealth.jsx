@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { usePets } from '../context/PetContext';
+import { usePets } from '../hooks/usePets';
 import OnboardingLayout from '../components/OnboardingLayout';
 import EnhancedTagSelect from '../components/EnhancedTagSelect';
 

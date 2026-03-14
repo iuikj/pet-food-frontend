@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
-import { useUser } from '../context/UserContext';
+import { useUser } from '../hooks/useUser';
 
 export default function ProfileEdit() {
     const navigate = useNavigate();

@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { pageTransitions } from '../utils/animations';
-import { usePets } from '../context/PetContext';
-import { useUser } from '../context/UserContext';
+import { usePets } from '../hooks/usePets';
+import { useUser } from '../hooks/useUser';
 import PetCard from '../components/PetCard';
 import Modal from '../components/Modal';
 

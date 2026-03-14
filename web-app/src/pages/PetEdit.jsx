@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
-import { usePets } from '../context/PetContext';
+import { usePets } from '../hooks/usePets';
 import { fromMonths, toMonths } from '../utils/petUtils';
 
 export default function PetEdit() {

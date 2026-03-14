@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Toast } from '@capacitor/toast';
 import { pageTransitions } from '../utils/animations';
-import { usePets } from '../context/PetContext';
+import { usePets } from '../hooks/usePets';
 import { plansApi } from '../api';
 import { transformPetDietPlan } from '../models/dietPlan';
 

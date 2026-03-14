@@ -1,8 +1,8 @@
 import React, { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion'; // eslint-disable-line no-unused-vars -- motion used via JSX <motion.div>
-import { usePlanGeneration } from '../context/PlanGenerationContext';
-import { usePets } from '../context/PetContext';
+import { usePlanGeneration } from '../hooks/usePlanGeneration';
+import { usePets } from '../hooks/usePets';
 import { flipTransitions } from '../utils/animations';
 
 // ── 周状态配置 ──

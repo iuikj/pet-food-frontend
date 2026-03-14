@@ -5,7 +5,7 @@ import { pageTransitions } from '../utils/animations';
 import { Geolocation } from '@capacitor/geolocation';
 import { Capacitor } from '@capacitor/core';
 import { Toast } from '@capacitor/toast';
-import { usePets } from '../context/PetContext';
+import { usePets } from '../hooks/usePets';
 import { formatPetAge } from '../utils/petUtils';
 import { mockPets } from '../mock/data/pets';
 

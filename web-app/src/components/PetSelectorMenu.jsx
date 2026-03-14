@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { usePets } from '../context/PetContext';
+import { usePets } from '../hooks/usePets';
 
 const overlayVariants = {
     hidden: { opacity: 0 },

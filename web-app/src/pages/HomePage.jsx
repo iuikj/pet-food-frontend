@@ -5,7 +5,7 @@ import { pageTransitions } from '../utils/animations';
 import PetSelectorMenu from '../components/PetSelectorMenu';
 import MealCard from '../components/MealCard';
 import PlanDetails from './PlanDetails';
-import { usePets } from '../context/PetContext';
+import { usePets } from '../hooks/usePets';
 import { mealsApi } from '../api';
 import { deriveTodayMealsFromPlan } from '../models/dietPlan';
 

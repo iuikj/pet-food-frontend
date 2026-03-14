@@ -1,6 +1,6 @@
 import React from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
-import { usePlanGeneration } from '../../context/PlanGenerationContext';
+import { usePlanGeneration } from '../../hooks/usePlanGeneration';
 
 export default function BottomNav() {
     const location = useLocation();
