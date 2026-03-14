@@ -25,10 +25,20 @@ export const PetProvider = ({ children }) => {
         () => JSON.parse(localStorage.getItem('activePlanMap') || '{}')
     );
 
+    // 活跃计划数据映射: { petId: { ai_suggestions, weeks[] } } — localStorage 持久化
+    const [activePlanDataMap, setActivePlanDataMap] = useState(
+        () => JSON.parse(localStorage.getItem('activePlanDataMap') || '{}')
+    );
+
     // 持久化 activePlanMap
     useEffect(() => {
         localStorage.setItem('activePlanMap', JSON.stringify(activePlanMap));
     }, [activePlanMap]);
+
+    // 持久化 activePlanDataMap
+    useEffect(() => {
+        localStorage.setItem('activePlanDataMap', JSON.stringify(activePlanDataMap));
+    }, [activePlanDataMap]);
 
     // 获取当前选中的宠物
     const currentPet = pets.find(p => p.id === currentPetId) || pets[0] || null;
@@ -189,13 +199,26 @@ export const PetProvider = ({ children }) => {
             delete next[petId];
             return next;
         });
+        setActivePlanDataMap(prev => {
+            const next = { ...prev };
+            delete next[petId];
+            return next;
+        });
         setPets(prev => prev.map(pet =>
             pet.id === petId ? { ...pet, has_plan: false } : pet
         ));
     }, []);
 
+    // 存储活跃计划的完整数据（weeks 等），用于首页推导餐食
+    const setActivePlanData = useCallback((petId, result) => {
+        setActivePlanDataMap(prev => ({ ...prev, [petId]: result }));
+    }, []);
+
     // 当前宠物的活跃计划 ID
     const activePlanId = currentPet?.id ? activePlanMap[currentPet.id] || null : null;
+
+    // 当前宠物的活跃计划数据
+    const activePlanData = currentPet?.id ? activePlanDataMap[currentPet.id] || null : null;
 
     return (
         <PetContext.Provider value={{
@@ -214,7 +237,9 @@ export const PetProvider = ({ children }) => {
             setPetHasPlan,
             activePlanMap,
             activePlanId,
+            activePlanData,
             setActivePlan,
+            setActivePlanData,
             clearActivePlan,
         }}>
             {children}

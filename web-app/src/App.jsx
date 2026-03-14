@@ -13,11 +13,10 @@ import OnboardingBasic from './pages/OnboardingBasic';
 import OnboardingHealth from './pages/OnboardingHealth';
 import Loading from './pages/Loading';
 import PlanSummary from './pages/PlanSummary';
-import PlanDetails from './pages/PlanDetails';
 import HomePage from './pages/HomePage';
 import DashboardDaily from './pages/DashboardDaily';
 import CalendarPage from './pages/CalendarPage';
-import AnalysisPage from './pages/AnalysisPage';
+import RecipesPage from './pages/RecipesPage';
 import Profile from './pages/Profile';
 import ProfileEdit from './pages/ProfileEdit';
 import PetEdit from './pages/PetEdit';
@@ -103,7 +102,7 @@ function AnimatedRoutes() {
         <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
           <Route path="/" element={<HomePage />} />
           <Route path="/calendar" element={<CalendarPage />} />
-          <Route path="/analysis" element={<AnalysisPage />} />
+          <Route path="/recipes" element={<RecipesPage />} />
           <Route path="/plan/create" element={<CreatePlan />} />
           <Route path="/plan/summary" element={<PlanSummary />} />
           <Route path="/profile" element={<Profile />} />
@@ -114,12 +113,14 @@ function AnimatedRoutes() {
         <Route path="/onboarding/step2" element={<ProtectedRoute><OnboardingBasic /></ProtectedRoute>} />
         <Route path="/onboarding/step3" element={<ProtectedRoute><OnboardingHealth /></ProtectedRoute>} />
         <Route path="/planning" element={<ProtectedRoute><Loading /></ProtectedRoute>} />
-        <Route path="/plan/details" element={<ProtectedRoute><PlanDetails /></ProtectedRoute>} />
         <Route path="/profile/edit" element={<ProtectedRoute><ProfileEdit /></ProtectedRoute>} />
         <Route path="/pet/edit/:id" element={<ProtectedRoute><PetEdit /></ProtectedRoute>} />
 
         {/* 公开页面（未登录可访问） */}
         <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+
+        {/* 未匹配路由 → 回首页 */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AnimatePresence>
   );

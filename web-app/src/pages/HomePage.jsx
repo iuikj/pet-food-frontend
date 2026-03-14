@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { Link, useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { pageTransitions } from '../utils/animations';
 import PetSelectorMenu from '../components/PetSelectorMenu';
 import MealCard from '../components/MealCard';
+import PlanDetails from './PlanDetails';
 import { usePets } from '../context/PetContext';
 import { mealsApi } from '../api';
+import { deriveTodayMealsFromPlan } from '../models/dietPlan';
 
 // 默认餐食数据
 const defaultMealsData = [
@@ -102,27 +104,45 @@ const getIngredientColor = (name) => {
 };
 
 export default function HomePage() {
+    const navigate = useNavigate();
     const [isPetMenuOpen, setIsPetMenuOpen] = useState(false);
-    const { pets, currentPet, setCurrentPet, isLoading: petsLoading } = usePets();
+    const { pets, currentPet, setCurrentPet, activePlanData, isLoading: petsLoading } = usePets();
 
     // 餐食数据状态
     const [mealsData, setMealsData] = useState([]);
     const [mealsLoading, setMealsLoading] = useState(false);
+    // 原始 plan meal 数据（用于点击导航到 PlanDetails 悬浮详情）
+    const [planMealsRaw, setPlanMealsRaw] = useState([]);
     // 当前展开的卡片ID
     const [expandedMealId, setExpandedMealId] = useState(null);
+    // 餐食详情弹窗状态
+    const [selectedMeal, setSelectedMeal] = useState(null);
 
     // 状态判断
     const hasPets = pets.length > 0;
     const hasRecipe = currentPet?.has_plan ?? false;
 
-    // 获取今日餐食
+    // 获取今日餐食：活跃计划优先，fallback 到 API
     const fetchTodayMeals = useCallback(async () => {
         if (!currentPet?.id || !hasRecipe) return;
 
         setMealsLoading(true);
+
+        // 优先：有活跃计划数据 → 直接从计划推导（计划定义了"应该吃什么"）
+        if (activePlanData?.weeks?.length > 0) {
+            const { cardMeals, rawMeals } = deriveTodayMealsFromPlan(activePlanData);
+            if (cardMeals.length > 0) {
+                setMealsData(cardMeals);
+                setPlanMealsRaw(rawMeals);
+                setMealsLoading(false);
+                return;
+            }
+        }
+
+        // 次选：API 餐食记录（后端维护的实际进食记录）
         try {
             const res = await mealsApi.getTodayMeals(currentPet.id);
-            if (res.code === 0 && res.data?.meals) {
+            if (res.code === 0 && res.data?.meals?.length > 0) {
                 const formattedMeals = res.data.meals.map(meal => ({
                     id: meal.id,
                     type: meal.meal_type,
@@ -145,15 +165,19 @@ export default function HomePage() {
                     }
                 }));
                 setMealsData(formattedMeals);
+                setPlanMealsRaw([]);
+                setMealsLoading(false);
+                return;
             }
-        } catch (error) {
-            console.error('Failed to fetch today meals:', error);
-            // 使用默认数据作为后备
-            setMealsData(defaultMealsData);
-        } finally {
-            setMealsLoading(false);
+        } catch (e) {
+            // API 不可用，继续 fallback
         }
-    }, [currentPet?.id, hasRecipe]);
+
+        // 兜底：默认数据
+        setMealsData(defaultMealsData);
+        setPlanMealsRaw([]);
+        setMealsLoading(false);
+    }, [currentPet?.id, hasRecipe, activePlanData]);
 
     // 当宠物或食谱状态变化时重新获取
     useEffect(() => {
@@ -168,9 +192,16 @@ export default function HomePage() {
         setCurrentPet(pet.id);
     };
 
-    // 切换卡片展开状态
+    // 切换卡片展开 / 导航到悬浮详情
     const handleToggleExpand = (mealId) => {
-        setExpandedMealId(prev => prev === mealId ? null : mealId);
+        // 如果有对应的 plan 原始数据，导航到 PlanDetails 悬浮卡片
+        const rawMeal = planMealsRaw.find(m => m._cardId === mealId);
+        if (rawMeal) {
+            setSelectedMeal({ meal: rawMeal, weekNumber: rawMeal._weekNumber });
+        } else {
+            // 来自 API 的数据，保持原有展开/折叠
+            setExpandedMealId(prev => prev === mealId ? null : mealId);
+        }
     };
 
     // 切换餐食完成状态
@@ -638,6 +669,17 @@ export default function HomePage() {
                 onClose={() => setIsPetMenuOpen(false)}
                 onSelectPet={handlePetSelect}
             />
+
+            {/* 餐食详情弹窗 */}
+            <AnimatePresence>
+                {selectedMeal && (
+                    <PlanDetails
+                        meal={selectedMeal.meal}
+                        weekNumber={selectedMeal.weekNumber}
+                        onClose={() => setSelectedMeal(null)}
+                    />
+                )}
+            </AnimatePresence>
         </motion.div>
     );
 }

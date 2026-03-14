@@ -203,6 +203,13 @@ export async function deletePlan(planId: string): Promise<ApiResponse<{ plan_id:
 }
 
 /**
+ * 确认保存饮食计划（从 Redis 临时存储转正到 PostgreSQL）
+ */
+export async function confirmPlan(planId: string): Promise<ApiResponse<{ plan_id: string }>> {
+    return apiClient.post<any, ApiResponse<{ plan_id: string }>>(`/plans/${planId}/confirm`);
+}
+
+/**
  * 获取任务详情
  */
 export async function getTask(taskId: string): Promise<ApiResponse<TaskResponse>> {
@@ -232,6 +239,7 @@ export const plansApi = {
     getPlans,
     getPlan,
     deletePlan,
+    confirmPlan,
     getTask,
     getTaskResult,
     cancelTask,

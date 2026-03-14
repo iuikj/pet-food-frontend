@@ -53,12 +53,6 @@ export function useBackButton() {
                 return;
             }
 
-            // 计划详情页返回到摘要页
-            if (currentPath === '/plan/details') {
-                navigate('/plan/summary');
-                return;
-            }
-
             // 计划摘要页返回首页
             if (currentPath === '/plan/summary') {
                 navigate('/');

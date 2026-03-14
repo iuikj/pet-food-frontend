@@ -1,5 +1,4 @@
 import React from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { extractMicronutrients } from '../models/dietPlan';
 
@@ -33,6 +32,17 @@ function getFoodEmoji(name) {
     return '🥘';
 }
 
+// 餐食类型图标映射（按 meal.order）
+function getMealIcon(order) {
+    const map = {
+        1: { icon: 'wb_sunny', color: 'text-secondary-600 dark:text-secondary' },
+        2: { icon: 'restaurant', color: 'text-text-muted-light' },
+        3: { icon: 'dark_mode', color: 'text-slate-600 dark:text-slate-300' },
+        4: { icon: 'brunch_dining', color: 'text-primary' },
+    };
+    return map[order] || map[1];
+}
+
 // 食材标签背景颜色循环
 const ITEM_BG_COLORS = [
     'bg-blue-50 dark:bg-blue-900/20 text-blue-500',
@@ -42,14 +52,7 @@ const ITEM_BG_COLORS = [
     'bg-purple-50 dark:bg-purple-900/20 text-purple-500',
 ];
 
-export default function PlanDetails() {
-    const navigate = useNavigate();
-    const location = useLocation();
-
-    // 从路由 state 获取餐食数据
-    const meal = location.state?.meal;
-    const weekNumber = location.state?.weekNumber;
-
+export default function PlanDetails({ meal, weekNumber, onClose }) {
     // 无数据 fallback
     if (!meal) {
         return (
@@ -57,8 +60,8 @@ export default function PlanDetails() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="min-h-screen bg-black/40 dark:bg-black/60 backdrop-blur-[2px] flex items-center justify-center px-5 py-safe relative z-[100]"
-                onClick={() => navigate(-1)}
+                className="fixed inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-[2px] flex items-center justify-center px-5 py-safe z-[100]"
+                onClick={onClose}
             >
                 <motion.div
                     initial={{ y: 50, opacity: 0 }}
@@ -74,7 +77,7 @@ export default function PlanDetails() {
                         请从计划概览页面选择一餐查看详情
                     </p>
                     <button
-                        onClick={() => navigate(-1)}
+                        onClick={onClose}
                         className="px-6 py-2 bg-primary text-white rounded-xl font-bold"
                     >
                         返回
@@ -102,8 +105,8 @@ export default function PlanDetails() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="min-h-screen bg-black/40 dark:bg-black/60 backdrop-blur-[2px] flex items-center justify-center px-5 py-safe relative z-[100]"
-            onClick={() => navigate(-1)}
+            className="fixed inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-[2px] flex items-center justify-center px-5 py-safe z-[100]"
+            onClick={onClose}
         >
             <motion.div
                 initial={{ y: 50, opacity: 0 }}
@@ -116,15 +119,17 @@ export default function PlanDetails() {
                 {/* 头部 */}
                 <div className="relative bg-gradient-to-br from-primary/20 to-accent-blue/10 dark:from-primary/10 dark:to-accent-blue/5 p-6 pb-8 shrink-0">
                     <button
-                        onClick={() => navigate(-1)}
+                        onClick={onClose}
                         aria-label="关闭"
                         className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-white/50 dark:bg-black/20 text-text-muted-light hover:bg-white dark:hover:bg-surface-dark transition-all z-10"
                     >
-                        <span className="material-icons-round text-lg">close</span>
+                        <span className="material-symbols-outlined text-lg">close</span>
                     </button>
                     <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 rounded-2xl bg-white dark:bg-surface-dark shadow-sm flex items-center justify-center text-2xl shrink-0">
-                            {getFoodEmoji(foodItems[0]?.name || '')}
+                        <div className="w-14 h-14 rounded-2xl bg-white dark:bg-surface-dark shadow-sm flex items-center justify-center shrink-0">
+                            <span className={`material-symbols-outlined text-2xl ${getMealIcon(meal.order).color}`}>
+                                {getMealIcon(meal.order).icon}
+                            </span>
                         </div>
                         <div>
                             <h2 className="text-xl font-bold text-text-main-light dark:text-text-main-dark leading-tight">
@@ -133,13 +138,13 @@ export default function PlanDetails() {
                             <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                                 {cookMethod && (
                                     <span className="px-2 py-0.5 rounded-lg bg-white/60 dark:bg-white/10 text-xs font-semibold text-text-muted-light backdrop-blur-sm border border-white/20">
-                                        <span className="material-icons-round align-middle text-[14px] mr-0.5">soup_kitchen</span>
+                                        <span className="material-symbols-outlined align-middle text-[14px] mr-0.5">soup_kitchen</span>
                                         {cookMethod}
                                     </span>
                                 )}
                                 {time && (
                                     <span className="px-2 py-0.5 rounded-lg bg-white/60 dark:bg-white/10 text-xs font-semibold text-text-muted-light backdrop-blur-sm border border-white/20">
-                                        <span className="material-icons-round align-middle text-[14px] mr-0.5">schedule</span>
+                                        <span className="material-symbols-outlined align-middle text-[14px] mr-0.5">schedule</span>
                                         {time}
                                     </span>
                                 )}
@@ -158,7 +163,7 @@ export default function PlanDetails() {
                     {/* 食材明细 */}
                     <section>
                         <h3 className="flex items-center gap-2 text-xs font-bold text-text-muted-light uppercase tracking-wider mb-4">
-                            <span className="material-icons-round text-sm">kitchen</span>
+                            <span className="material-symbols-outlined text-sm">kitchen</span>
                             食材明细 & 推荐理由
                         </h3>
                         <div className="space-y-3">
@@ -186,14 +191,9 @@ export default function PlanDetails() {
                     {/* 宏量营养素 */}
                     <section>
                         <h3 className="flex items-center gap-2 text-xs font-bold text-text-muted-light uppercase tracking-wider mb-4">
-                            <span className="material-icons-round text-sm">pie_chart</span>
+                            <span className="material-symbols-outlined text-sm">pie_chart</span>
                             宏观营养 (Macronutrients)
                         </h3>
-                        {totalCalories > 0 && (
-                            <div className="text-center mb-3 text-sm font-semibold text-text-muted-light">
-                                总热量 <span className="text-yellow-500 text-lg">{totalCalories}</span> kcal
-                            </div>
-                        )}
                         <div className="grid grid-cols-3 gap-3">
                             <div className="bg-surface-light dark:bg-surface-dark border border-gray-100 dark:border-gray-800 p-3 rounded-2xl text-center shadow-sm">
                                 <div className="text-[10px] text-text-muted-light uppercase tracking-wide mb-1">蛋白质</div>
@@ -223,18 +223,13 @@ export default function PlanDetails() {
                                 </div>
                             </div>
                         </div>
-                        {totalFiber > 0 && (
-                            <div className="mt-2 text-center text-xs text-text-muted-light">
-                                膳食纤维: <span className="font-semibold">{totalFiber}g</span>
-                            </div>
-                        )}
                     </section>
 
                     {/* 微量元素亮点 */}
                     {micronutrients.length > 0 && (
                         <section className="pb-2">
                             <h3 className="flex items-center gap-2 text-xs font-bold text-text-muted-light uppercase tracking-wider mb-4">
-                                <span className="material-icons-round text-sm">science</span>
+                                <span className="material-symbols-outlined text-sm">science</span>
                                 微量元素亮点
                             </h3>
                             <div className="flex flex-wrap gap-2">

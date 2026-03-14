@@ -3,7 +3,6 @@ import { App as CapacitorApp } from '@capacitor/app';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { Capacitor } from '@capacitor/core';
 import { BackgroundMode } from '@anuradev/capacitor-background-mode';
-import { plansApi } from '../api';
 // 直接导入真实/mock API，绕过 Proxy，用于锁定生成期间的调用模式
 import realPlansApi from '../api/plans';
 import { mockPlansApi } from '../mock';
@@ -19,6 +18,11 @@ const INITIAL_WEEK_STATUSES = {
     3: { status: 'pending', label: '等待中' },
     4: { status: 'pending', label: '等待中' },
 };
+
+function extractTaskResultPayload(taskResult) {
+    if (!taskResult) return null;
+    return taskResult.output?.plan_data || taskResult.output || taskResult.plan_data || taskResult;
+}
 
 export const usePlanGeneration = () => {
     const context = useContext(PlanGenerationContext);
@@ -248,7 +252,7 @@ export const PlanGenerationProvider = ({ children }) => {
                     setProgress(100);
                     const resultRes = await api.getTaskResult(currentTaskId);
                     if (resultRes.code === 0) {
-                        const transformed = transformPetDietPlan(resultRes.data);
+                        const transformed = transformPetDietPlan(extractTaskResultPayload(resultRes.data));
                         if (transformed) setResult(transformed);
                     }
                     addLog('🎉 计划生成完成！');
@@ -327,7 +331,7 @@ export const PlanGenerationProvider = ({ children }) => {
                             const api = lockedApiRef.current;
                             api.getTaskResult(taskIdRef.current).then(res => {
                                 if (res.code === 0) {
-                                    const planData = res.data?.plan_data || res.data;
+                                    const planData = extractTaskResultPayload(res.data);
                                     const t = transformPetDietPlan(planData);
                                     if (t) setResult(t);
                                 }
@@ -584,7 +588,7 @@ export const PlanGenerationProvider = ({ children }) => {
                     setProgress(100);
                     const resultRes = await api.getTaskResult(currentTaskId);
                     if (resultRes.code === 0) {
-                        const transformed = transformPetDietPlan(resultRes.data);
+                        const transformed = transformPetDietPlan(extractTaskResultPayload(resultRes.data));
                         if (transformed) setResult(transformed);
                     }
                     addLog('🎉 任务已完成');

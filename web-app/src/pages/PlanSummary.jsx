@@ -7,12 +7,13 @@ import { usePlanGeneration } from '../context/PlanGenerationContext';
 import { usePets } from '../context/PetContext';
 import { plansApi } from '../api';
 import { transformPetDietPlan } from '../models/dietPlan';
+import PlanDetails from './PlanDetails';
 
 export default function PlanSummary() {
     const navigate = useNavigate();
     const location = useLocation();
     const { result, status, resetGeneration, planId: generatedPlanId } = usePlanGeneration();
-    const { currentPet, activePlanId, setActivePlan } = usePets();
+    const { currentPet, activePlanId, setActivePlan, setActivePlanData } = usePets();
     const [activeWeek, setActiveWeek] = useState(1);
 
     // 饮食原则/建议默认折叠
@@ -21,6 +22,9 @@ export default function PlanSummary() {
 
     // 保存状态
     const [isSaved, setIsSaved] = useState(false);
+
+    // 餐食详情弹窗状态
+    const [selectedMeal, setSelectedMeal] = useState(null);
 
     // 支持从食谱列表页通过 planId 路由跳转查看
     const routePlanId = location.state?.planId;
@@ -294,7 +298,7 @@ export default function PlanSummary() {
                                         <div
                                             key={idx}
                                             className="flex gap-4 group cursor-pointer"
-                                            onClick={() => navigate('/plan/details', { state: { meal, weekNumber: currentWeek.week } })}
+                                            onClick={() => setSelectedMeal({ meal, weekNumber: currentWeek.week })}
                                         >
                                             <div className={`w-10 h-10 rounded-full ${mealColors[idx % 4]} flex items-center justify-center shadow-sm shrink-0 z-10 ring-4 ring-background-light dark:ring-background-dark`}>
                                                 <span className="material-symbols-outlined text-lg">{mealIcons[idx % 4]}</span>
@@ -409,12 +413,33 @@ export default function PlanSummary() {
                         <button
                             onClick={async () => {
                                 if (isCurrentPlanActive || isSaved) return;
-                                setActivePlan(currentPet.id, effectivePlanId);
-                                setIsSaved(true);
                                 try {
-                                    await Toast.show({ text: '食谱已保存并应用', duration: 'short' });
-                                } catch {
-                                    // Capacitor Toast 在 web 环境可能不可用
+                                    // 调用 confirm API 将 Redis 临时数据转正到 PostgreSQL
+                                    const res = await plansApi.confirmPlan(effectivePlanId);
+                                    const confirmedId = res.data?.plan_id || effectivePlanId;
+                                    setActivePlan(currentPet.id, confirmedId);
+                                    if (displayResult) {
+                                        setActivePlanData(currentPet.id, displayResult);
+                                    }
+                                    setIsSaved(true);
+                                    try {
+                                        await Toast.show({ text: '食谱已保存并应用', duration: 'short' });
+                                    } catch {
+                                        // Capacitor Toast 在 web 环境可能不可用
+                                    }
+                                } catch (err) {
+                                    console.error('Confirm plan failed, fallback to local:', err);
+                                    // 降级：confirm 失败时仍本地应用（计划数据已在前端）
+                                    setActivePlan(currentPet.id, effectivePlanId);
+                                    if (displayResult) {
+                                        setActivePlanData(currentPet.id, displayResult);
+                                    }
+                                    setIsSaved(true);
+                                    try {
+                                        await Toast.show({ text: '食谱已本地应用（云端保存失败）', duration: 'short' });
+                                    } catch {
+                                        // ignore
+                                    }
                                 }
                             }}
                             disabled={isCurrentPlanActive || isSaved}
@@ -446,6 +471,17 @@ export default function PlanSummary() {
                     )}
                 </section>
             </main>
+
+            {/* 餐食详情弹窗 */}
+            <AnimatePresence>
+                {selectedMeal && (
+                    <PlanDetails
+                        meal={selectedMeal.meal}
+                        weekNumber={selectedMeal.weekNumber}
+                        onClose={() => setSelectedMeal(null)}
+                    />
+                )}
+            </AnimatePresence>
         </motion.div>
     );
 }

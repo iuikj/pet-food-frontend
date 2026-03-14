@@ -184,3 +184,109 @@ export function transformPetDietPlan(petDietPlan) {
 function round2(num) {
   return Math.round(num * 100) / 100;
 }
+
+// ── 首页餐食推导 ──
+
+/**
+ * 食材名称 → 标签颜色（与 HomePage getIngredientColor 一致）
+ */
+function getIngredientColor(name) {
+  if (name.includes('肉') || name.includes('鸡') || name.includes('牛') || name.includes('猪') || name.includes('火鸡') || name.includes('鸭') || name.includes('羊'))
+    return 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-300';
+  if (name.includes('鱼') || name.includes('虾') || name.includes('三文') || name.includes('鳕'))
+    return 'bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-300';
+  if (name.includes('菜') || name.includes('豆') || name.includes('花') || name.includes('菠'))
+    return 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-300';
+  if (name.includes('萝卜') || name.includes('南瓜') || name.includes('薯') || name.includes('蛋'))
+    return 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-300';
+  return 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300';
+}
+
+/**
+ * 根据 meal order 映射餐食类型
+ */
+function getMealType(order) {
+  const map = { 1: 'breakfast', 2: 'lunch', 3: 'dinner' };
+  return map[order] || 'snack';
+}
+
+/**
+ * 根据 meal order 映射默认时间
+ */
+function getDefaultMealTime(order) {
+  const map = { 1: '上午 08:00', 2: '下午 12:30', 3: '下午 06:00', 4: '下午 03:00' };
+  return map[order] || '';
+}
+
+/**
+ * 从活跃计划数据推导当前周的餐食，转换为 HomePage MealCard 格式
+ *
+ * @param {Object} planResult - { ai_suggestions, weeks: [{ week, meals, ... }] }
+ * @param {string} [planCreatedAt] - 计划创建时间（ISO 字符串），用于计算当前是第几周
+ * @returns {{ cardMeals: Array, rawMeals: Array }}
+ *   cardMeals: MealCard 格式数组
+ *   rawMeals: 原始 meal 对象（附加 _cardId, _weekNumber），用于点击导航到 PlanDetails
+ */
+export function deriveTodayMealsFromPlan(planResult, planCreatedAt) {
+  const weeks = planResult?.weeks || [];
+  if (weeks.length === 0) return { cardMeals: [], rawMeals: [] };
+
+  // 计算当前应该展示第几周
+  let currentWeekNumber = 1;
+  if (planCreatedAt) {
+    const created = new Date(planCreatedAt);
+    const now = new Date();
+    const diffDays = Math.floor((now - created) / (1000 * 60 * 60 * 24));
+    currentWeekNumber = Math.min(Math.floor(diffDays / 7) + 1, weeks.length);
+  }
+
+  // 找到对应周（优先按 week 字段匹配，否则取第一周）
+  const targetWeek = weeks.find(w => w.week === currentWeekNumber) || weeks[0];
+  const meals = targetWeek?.meals || [];
+
+  const cardMeals = [];
+  const rawMeals = [];
+
+  for (const meal of meals) {
+    const foodItems = meal.foodItems || [];
+    const cardId = `plan-meal-${targetWeek.week}-${meal.order}`;
+    const type = getMealType(meal.order);
+
+    // MealCard 格式
+    cardMeals.push({
+      id: cardId,
+      type,
+      name: foodItems.length > 0
+        ? foodItems.map(f => f.name).join(' + ')
+        : `第 ${meal.order} 餐`,
+      time: meal.time || getDefaultMealTime(meal.order),
+      description: meal.cookMethod || '',
+      calories: meal.totalCalories || 0,
+      isCompleted: false,
+      details: {
+        ingredients: foodItems.map(fi => ({
+          name: fi.name,
+          amount: `${fi.weight}g`,
+          color: getIngredientColor(fi.name),
+        })),
+        nutrition: {
+          fat: `${meal.totalFat || 0}克脂肪`,
+          protein: `${meal.totalProtein || 0}克蛋白质`,
+        },
+        aiTip: foodItems
+          .filter(fi => fi.recommend_reason)
+          .map(fi => `${fi.name}: ${fi.recommend_reason}`)
+          .join('；') || '',
+      },
+    });
+
+    // 保留原始 meal 数据（附加元信息），用于导航到 PlanDetails
+    rawMeals.push({
+      ...meal,
+      _cardId: cardId,
+      _weekNumber: targetWeek.week,
+    });
+  }
+
+  return { cardMeals, rawMeals };
+}

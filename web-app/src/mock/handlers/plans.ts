@@ -39,7 +39,7 @@ export const mockPlansApi = {
    * 模拟 fetch-based SSE 流
    * 逐个发送 mockSSEEvents，每个事件间有设定的延迟
    * completed 事件已在 mockSSEEvents 中包含 detail.plans，前端 handleSSEEvent 会处理
-   * SSE 完成后自动保存计划到 mockState（模拟后端自动保存行为）
+   * 计划数据暂不自动保存，需用户通过 confirmPlan 确认后保存
    */
   async createPlanStreamFetch(
     _data: CreatePlanRequest,
@@ -52,13 +52,6 @@ export const mockPlansApi = {
       const { delayMs: _, ...sseEvent } = event;
       onEvent(sseEvent);
     }
-    // SSE 完成后自动保存计划到 mockState（模拟后端自动保存行为）
-    const newPlan = {
-      ...JSON.parse(JSON.stringify(mockPlanResult)),
-      id: `mock-plan-${Date.now()}`,
-      created_at: new Date().toISOString(),
-    };
-    mockState.addPlan(newPlan);
   },
 
   /**
@@ -177,5 +170,21 @@ export const mockPlansApi = {
   async cancelTask(taskId: string): Promise<ApiResponse<{ task_id: string }>> {
     await delay();
     return mockResponse({ task_id: taskId });
+  },
+
+  /**
+   * 模拟确认保存饮食计划（从临时存储转正）
+   * Mock 模式下直接保存到 mockState 并返回 plan_id
+   */
+  async confirmPlan(planId: string): Promise<ApiResponse<{ plan_id: string }>> {
+    await delay();
+    // 将 mockPlanResult 保存到 mockState（模拟 Redis → PostgreSQL 转正）
+    const newPlan = {
+      ...JSON.parse(JSON.stringify(mockPlanResult)),
+      id: planId || `mock-plan-${Date.now()}`,
+      created_at: new Date().toISOString(),
+    };
+    mockState.addPlan(newPlan);
+    return mockResponse({ plan_id: newPlan.id });
   },
 };

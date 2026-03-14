@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion'; // eslint-disable-line no-unused-vars -- motion used via JSX <motion.div>
 import { usePlanGeneration } from '../context/PlanGenerationContext';
@@ -180,12 +180,7 @@ export default function Loading() {
     const hasCompletedRef = useRef(false);
 
     // 追踪翻页方向（渲染期间调整 state — React 推荐模式）
-    const [flipDirection, setFlipDirection] = useState(1);
-    const [prevStep, setPrevStep] = useState(currentStepIndex);
-    if (currentStepIndex !== prevStep) {
-        setFlipDirection(currentStepIndex > prevStep ? 1 : -1);
-        setPrevStep(currentStepIndex);
-    }
+    const flipDirection = 1;
 
     // 启动生成 - 只执行一次
     useEffect(() => {
@@ -407,7 +402,7 @@ export default function Loading() {
                         <span className="material-symbols-outlined text-2xl">menu_book</span>
                     </button>
                     <button
-                        onClick={() => navigate('/analysis')}
+                        onClick={() => navigate('/recipes')}
                         className="flex flex-col items-center gap-1 w-12 text-text-muted-light dark:text-text-muted-dark hover:text-primary transition-colors"
                     >
                         <span className="material-symbols-outlined">pie_chart</span>
