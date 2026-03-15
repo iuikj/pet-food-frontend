@@ -2,9 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { pageTransitions } from '../utils/animations';
-import { Geolocation } from '@capacitor/geolocation';
-import { Capacitor } from '@capacitor/core';
-import { Toast } from '@capacitor/toast';
 import { usePets } from '../hooks/usePets';
 import { formatPetAge } from '../utils/petUtils';
 import { mockPets } from '../mock/data/pets';
@@ -43,35 +40,6 @@ export default function Home() {
         // 设置当前宠物到 context
         if (selectedPetId) {
             setCurrentPet(selectedPetId);
-        }
-
-        // 请求地理位置
-        if (Capacitor.isNativePlatform()) {
-            try {
-                const permission = await Geolocation.requestPermissions();
-
-                if (permission.location === 'granted') {
-                    const position = await Geolocation.getCurrentPosition();
-                    console.log('用户位置:', position.coords);
-                    await Toast.show({
-                        text: `已获取位置: ${position.coords.latitude.toFixed(2)}, ${position.coords.longitude.toFixed(2)}`,
-                        duration: 'short'
-                    });
-                } else {
-                    await Toast.show({
-                        text: '需要位置权限以提供更精准的饮食建议',
-                        duration: 'long'
-                    });
-                }
-            } catch (error) {
-                console.error('获取位置失败:', error);
-                await Toast.show({
-                    text: '获取位置失败，请检查定位服务',
-                    duration: 'short'
-                });
-            }
-        } else {
-            console.log('[Web模式] 跳过地理位置请求');
         }
 
         // 导航到loading页面
@@ -335,16 +303,7 @@ export default function Home() {
                     </div>
                 </section>
 
-                {/* AI 营养助手提示 */}
-                <div className="flex items-start gap-3 p-4 bg-primary/10 rounded-2xl">
-                    <span className="material-icons-round text-primary mt-0.5">auto_awesome</span>
-                    <div>
-                        <h4 className="text-sm font-bold text-primary mb-1">AI 营养助手</h4>
-                        <p className="text-xs text-text-muted-light dark:text-text-muted-dark leading-relaxed">
-                            我们将分析数千种营养组合，为 {selectedPet?.name || '您的爱宠'} 生成一份科学且美味的专属饮食计划。
-                        </p>
-                    </div>
-                </div>
+                {/* AI 营养助手提示 - 已移除 */}
             </main>
 
             <div className="px-6 pb-24 bg-background-light dark:bg-background-dark">

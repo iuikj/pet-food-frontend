@@ -152,30 +152,6 @@ export default function PlanSummary() {
             </header>
 
             <main className="px-6 space-y-6">
-                {/* Agent 总结卡片 */}
-                {aiSuggestions && (
-                    <section>
-                        <div className="bg-white dark:bg-surface-dark p-5 rounded-3xl shadow-soft border border-primary/20 hover:shadow-medium transition-all duration-300">
-                            <div className="flex items-start gap-4">
-                                <div className="w-12 h-12 rounded-2xl bg-primary/20 flex items-center justify-center text-primary shrink-0 relative">
-                                    <span className="material-symbols-outlined text-2xl animate-pulse">smart_toy</span>
-                                    <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white dark:border-surface-dark flex items-center justify-center">
-                                        <span className="material-symbols-outlined text-[10px] text-white">check</span>
-                                    </div>
-                                </div>
-                                <div className="flex-1">
-                                    <h2 className="text-base font-bold text-text-main-light dark:text-text-main-dark mb-1">
-                                        Agent 已为您生成专属计划
-                                    </h2>
-                                    <p className="text-sm text-text-muted-light dark:text-text-muted-dark leading-relaxed">
-                                        {aiSuggestions}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    </section>
-                )}
-
                 {/* 每日营养目标 */}
                 {currentWeek && (
                     <section>

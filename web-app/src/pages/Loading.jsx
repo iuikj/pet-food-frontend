@@ -256,32 +256,6 @@ export default function Loading() {
                     </div>
                 </div>
 
-                {/* 后台运行提示卡片 */}
-                <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="bg-gradient-to-r from-primary/10 to-secondary/10 p-4 rounded-2xl mb-6 border border-primary/20"
-                >
-                    <div className="flex items-start gap-3">
-                        <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                            <span className="material-symbols-outlined text-primary text-lg">
-                                {isBackgroundRunning ? 'cloud_sync' : 'notifications_active'}
-                            </span>
-                        </div>
-                        <div className="flex-1">
-                            <h4 className="font-semibold text-sm text-text-main-light dark:text-text-main-dark mb-1">
-                                {isBackgroundRunning ? '后台运行中' : '支持后台运行'}
-                            </h4>
-                            <p className="text-xs text-text-muted-light dark:text-text-muted-dark leading-relaxed">
-                                {isBackgroundRunning
-                                    ? '任务正在后台继续运行，完成后会通过通知提醒您。'
-                                    : '您可以退出此页面或最小化应用，任务将在后台继续运行，完成后会通过通知提醒您。'
-                                }
-                            </p>
-                        </div>
-                    </div>
-                </motion.div>
-
                 {/* 3D 翻页卡片区域 */}
                 <div className="relative w-full mb-8" style={{ perspective: '1200px' }}>
                     <AnimatePresence mode="wait" initial={false}>
