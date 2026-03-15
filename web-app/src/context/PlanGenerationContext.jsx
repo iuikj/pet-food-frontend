@@ -57,6 +57,26 @@ function extractTaskResultPayload(taskResult) {
     return taskResult.output?.plan_data || taskResult.output || taskResult.plan_data || taskResult;
 }
 
+function transformTaskResultPayload(taskResult) {
+    const payload = extractTaskResultPayload(taskResult);
+
+    if (payload?.detail?.plans) {
+        return transformCompletedEventToResult(
+            payload.detail,
+            payload.message || payload.detail?.ai_suggestions || ''
+        );
+    }
+
+    if (payload?.plans) {
+        return transformCompletedEventToResult(
+            payload,
+            payload.ai_suggestions || payload.message || ''
+        );
+    }
+
+    return transformPetDietPlan(payload);
+}
+
 function extractWeekNumber(data) {
     if (data.node) {
         const nodeMatch = data.node.match(/week_agent_(\d+)/);
@@ -242,7 +262,7 @@ export const PlanGenerationProvider = ({ children }) => {
                 return null;
             }
 
-            return transformPetDietPlan(extractTaskResultPayload(response.data));
+            return transformTaskResultPayload(response.data);
         } catch (taskResultError) {
             console.error('Failed to fetch task result:', taskResultError);
             return null;
@@ -268,7 +288,7 @@ export const PlanGenerationProvider = ({ children }) => {
 
         let nextResult = null;
         if (resultData) {
-            nextResult = transformPetDietPlan(extractTaskResultPayload(resultData));
+            nextResult = transformTaskResultPayload(resultData);
         }
 
         if (!nextResult && !resultRef.current) {
@@ -365,6 +385,10 @@ export const PlanGenerationProvider = ({ children }) => {
                     return;
                 }
                 case 'done':
+                    // 流正常结束 — 如果已有 result 数据，触发完成流程
+                    if (resultRef.current) {
+                        await completeGeneration({ logMessage: '流式传输完成' });
+                    }
                     return;
                 case 'error':
                     await failGeneration(data.error || '生成失败');
