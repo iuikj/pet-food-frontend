@@ -158,6 +158,40 @@ export interface CreatePlanRequest {
   special_requirements?: string;
 }
 
+export interface NutrientAmount {
+  value: number;
+  unit: string;
+}
+
+export type NutrientAmountLike = number | NutrientAmount;
+
+export interface Micronutrients {
+  vitamin_a: NutrientAmountLike;
+  vitamin_c: NutrientAmountLike;
+  vitamin_d: NutrientAmountLike;
+  calcium: NutrientAmountLike;
+  iron: NutrientAmountLike;
+  sodium: NutrientAmountLike;
+  potassium: NutrientAmountLike;
+  cholesterol: NutrientAmountLike;
+  additional_nutrients: Record<string, NutrientAmountLike>;
+}
+
+export interface Macronutrients {
+  protein: number;
+  fat: number;
+  carbohydrates: number;
+  dietary_fiber: number;
+}
+
+export interface FoodItem {
+  name: string;
+  weight: number;
+  macro_nutrients: Macronutrients;
+  micro_nutrients: Micronutrients;
+  recommend_reason: string;
+}
+
 export interface PlanResponse {
   id: string;
   user_id: string;
