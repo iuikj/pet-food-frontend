@@ -1,71 +1,12 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { pageTransitions } from '../utils/animations';
 import PetSelectorMenu from '../components/PetSelectorMenu';
 import MealCard from '../components/MealCard';
 import PlanDetails from './PlanDetails';
 import { usePets } from '../hooks/usePets';
-import { mealsApi } from '../api';
-import { deriveTodayMealsFromPlan } from '../models/dietPlan';
-
-// 默认餐食数据
-const defaultMealsData = [
-    {
-        id: 'breakfast-1',
-        type: 'breakfast',
-        name: '早晨干粮混合',
-        time: '上午 08:00',
-        description: '鸡肉米饭配方',
-        calories: 350,
-        isCompleted: true,
-        details: {
-            ingredients: [
-                { name: '鸡胸肉', amount: '60g', color: 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-300' },
-                { name: '糙米', amount: '30g', color: 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300' },
-                { name: '胡萝卜', amount: '15g', color: 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-300' }
-            ],
-            nutrition: { fat: '12克脂肪', protein: '28克蛋白质' },
-            aiTip: '早餐提供充足能量，鸡胸肉是优质蛋白来源。'
-        }
-    },
-    {
-        id: 'lunch-1',
-        type: 'lunch',
-        name: '午餐碗',
-        time: '下午 12:30',
-        description: '三文鱼美味与蒸蔬菜',
-        calories: 420,
-        isCompleted: false,
-        details: {
-            ingredients: [
-                { name: '三文鱼', amount: '80g', color: 'bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-300' },
-                { name: '西兰花', amount: '25g', color: 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-300' },
-                { name: '红薯', amount: '30g', color: 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-300' }
-            ],
-            nutrition: { fat: '28克脂肪', protein: '32克蛋白质' },
-            aiTip: '三文鱼富含Omega-3脂肪酸，有助于维护皮肤和毛发健康。'
-        }
-    },
-    {
-        id: 'dinner-1',
-        type: 'dinner',
-        name: '晚间盛宴',
-        time: '下午 06:00',
-        description: '火鸡炖菜',
-        calories: 410,
-        isCompleted: false,
-        details: {
-            ingredients: [
-                { name: '火鸡肉', amount: '90g', color: 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-300' },
-                { name: '南瓜', amount: '30g', color: 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-300' },
-                { name: '青豆', amount: '15g', color: 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-300' }
-            ],
-            nutrition: { fat: '18克脂肪', protein: '35克蛋白质' },
-            aiTip: '火鸡肉是低脂高蛋白的理想选择，适合控制体重。'
-        }
-    }
-];
+import { useMeals } from '../hooks/useMeals';
 
 // 辅助函数
 const getMealTypeName = (type) => {
@@ -73,48 +14,11 @@ const getMealTypeName = (type) => {
     return names[type] || type;
 };
 
-const formatMealTime = (time) => {
-    if (!time) return '';
-    try {
-        const date = new Date(time);
-        const hours = date.getHours();
-        const minutes = date.getMinutes().toString().padStart(2, '0');
-        const period = hours < 12 ? '上午' : '下午';
-        const hour12 = hours % 12 || 12;
-        return `${period} ${hour12.toString().padStart(2, '0')}:${minutes}`;
-    } catch {
-        return time;
-    }
-};
-
-const getIngredientColor = (name) => {
-    if (name.includes('肉') || name.includes('鸡') || name.includes('牛') || name.includes('猪')) {
-        return 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-300';
-    }
-    if (name.includes('鱼') || name.includes('虾') || name.includes('三文')) {
-        return 'bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-300';
-    }
-    if (name.includes('菜') || name.includes('豆') || name.includes('花')) {
-        return 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-300';
-    }
-    if (name.includes('萝卜') || name.includes('南瓜') || name.includes('薯')) {
-        return 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-300';
-    }
-    return 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300';
-};
-
 export default function HomePage() {
-    const navigate = useNavigate();
     const [isPetMenuOpen, setIsPetMenuOpen] = useState(false);
     const { pets, currentPet, setCurrentPet, activePlanData, isLoading: petsLoading } = usePets();
+    const { meals, nutritionSummary, isLoading: mealsLoading, toggleMealComplete } = useMeals();
 
-    // 餐食数据状态
-    const [mealsData, setMealsData] = useState([]);
-    const [mealsLoading, setMealsLoading] = useState(false);
-    // 原始 plan meal 数据（用于点击导航到 PlanDetails 悬浮详情）
-    const [planMealsRaw, setPlanMealsRaw] = useState([]);
-    // 当前展开的卡片ID
-    const [expandedMealId, setExpandedMealId] = useState(null);
     // 餐食详情弹窗状态
     const [selectedMeal, setSelectedMeal] = useState(null);
 
@@ -122,114 +26,18 @@ export default function HomePage() {
     const hasPets = pets.length > 0;
     const hasRecipe = currentPet?.has_plan ?? false;
 
-    // 获取今日餐食：活跃计划优先，fallback 到 API
-    const fetchTodayMeals = useCallback(async () => {
-        if (!currentPet?.id || !hasRecipe) return;
-
-        setMealsLoading(true);
-
-        // 优先：有活跃计划数据 → 直接从计划推导（计划定义了"应该吃什么"）
-        if (activePlanData?.weeks?.length > 0) {
-            const { cardMeals, rawMeals } = deriveTodayMealsFromPlan(activePlanData);
-            if (cardMeals.length > 0) {
-                setMealsData(cardMeals);
-                setPlanMealsRaw(rawMeals);
-                setMealsLoading(false);
-                return;
-            }
-        }
-
-        // 次选：API 餐食记录（后端维护的实际进食记录）
-        try {
-            const res = await mealsApi.getTodayMeals(currentPet.id);
-            if (res.code === 0 && res.data?.meals?.length > 0) {
-                const formattedMeals = res.data.meals.map(meal => ({
-                    id: meal.id,
-                    type: meal.meal_type,
-                    name: meal.meal_name || getMealTypeName(meal.meal_type),
-                    time: formatMealTime(meal.scheduled_time),
-                    description: meal.description || '',
-                    calories: meal.total_calories || 0,
-                    isCompleted: meal.is_completed,
-                    details: {
-                        ingredients: meal.foods?.map(food => ({
-                            name: food.food_name,
-                            amount: `${food.amount}${food.unit || 'g'}`,
-                            color: getIngredientColor(food.food_name)
-                        })) || [],
-                        nutrition: {
-                            fat: `${meal.total_fat || 0}克脂肪`,
-                            protein: `${meal.total_protein || 0}克蛋白质`
-                        },
-                        aiTip: meal.ai_tip || ''
-                    }
-                }));
-                setMealsData(formattedMeals);
-                setPlanMealsRaw([]);
-                setMealsLoading(false);
-                return;
-            }
-        } catch (e) {
-            // API 不可用，继续 fallback
-        }
-
-        // 兜底：默认数据
-        setMealsData(defaultMealsData);
-        setPlanMealsRaw([]);
-        setMealsLoading(false);
-    }, [currentPet?.id, hasRecipe, activePlanData]);
-
-    // 当宠物或食谱状态变化时重新获取
-    useEffect(() => {
-        if (hasRecipe && currentPet?.id) {
-            fetchTodayMeals();
-        } else {
-            setMealsData([]);
-        }
-    }, [currentPet?.id, hasRecipe, fetchTodayMeals]);
-
     const handlePetSelect = (pet) => {
         setCurrentPet(pet.id);
     };
 
-    // 切换卡片展开 / 导航到悬浮详情
-    const handleToggleExpand = (mealId) => {
-        // 如果有对应的 plan 原始数据，导航到 PlanDetails 悬浮卡片
-        const rawMeal = planMealsRaw.find(m => m._cardId === mealId);
-        if (rawMeal) {
-            setSelectedMeal({ meal: rawMeal, weekNumber: rawMeal._weekNumber });
-        } else {
-            // 来自 API 的数据，保持原有展开/折叠
-            setExpandedMealId(prev => prev === mealId ? null : mealId);
-        }
+    // 点击餐食卡片 → 弹出 PlanDetails 悬浮卡片
+    const handleMealCardClick = (mealId) => {
+        const meal = meals.find(m => m.id === mealId);
+        if (!meal?._raw) return;
+        setSelectedMeal({ meal: meal._raw });
     };
 
-    // 切换餐食完成状态
-    const handleToggleMealComplete = async (mealId) => {
-        const meal = mealsData.find(m => m.id === mealId);
-        if (!meal) return;
-
-        // 乐观更新
-        setMealsData(prev => prev.map(m =>
-            m.id === mealId ? { ...m, isCompleted: !m.isCompleted } : m
-        ));
-
-        try {
-            if (meal.isCompleted) {
-                await mealsApi.uncompleteMeal(mealId);
-            } else {
-                await mealsApi.completeMeal(mealId);
-            }
-        } catch (error) {
-            console.error('Failed to toggle meal complete:', error);
-            // 回滚
-            setMealsData(prev => prev.map(m =>
-                m.id === mealId ? { ...m, isCompleted: meal.isCompleted } : m
-            ));
-        }
-    };
-
-    // 渲染 Header（根据是否有宠物显示不同内容）
+    // 渲染 Header
     const renderHeader = () => (
         <header className="px-6 pt-12 pb-4 flex justify-between items-center bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-md sticky top-0 z-50">
             <div className="flex items-center gap-3">
@@ -287,10 +95,10 @@ export default function HomePage() {
     // 日历展开状态
     const [isCalendarExpanded, setIsCalendarExpanded] = useState(false);
 
-    // 获取四周的日期数据（以当前周为第一周）
+    // 获取四周的日期数据
     const getWeeksData = () => {
         const today = new Date();
-        const currentDay = today.getDay(); // 0=周日, 1=周一...
+        const currentDay = today.getDay();
         const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay;
         const thisMonday = new Date(today);
         thisMonday.setDate(today.getDate() + mondayOffset);
@@ -356,7 +164,6 @@ export default function HomePage() {
                 </button>
             </div>
 
-            {/* 简略周视图（默认显示） */}
             {!isCalendarExpanded && (
                 <div className="flex justify-between items-center bg-white dark:bg-surface-dark p-4 rounded-2xl shadow-soft">
                     {weeksData[0].days.slice(0, 5).map((day, idx) => (
@@ -376,7 +183,6 @@ export default function HomePage() {
                 </div>
             )}
 
-            {/* 展开的四周日历视图 */}
             <motion.div
                 initial={false}
                 animate={{
@@ -387,7 +193,6 @@ export default function HomePage() {
                 className="overflow-hidden"
             >
                 <div className="bg-white dark:bg-surface-dark rounded-2xl shadow-soft p-4 space-y-3">
-                    {/* 星期标题行 */}
                     <div className="grid grid-cols-8 gap-1 mb-2">
                         <div className="text-xs font-medium text-text-muted-light dark:text-text-muted-dark text-center"></div>
                         {weekDayLabels.map((label, idx) => (
@@ -397,19 +202,15 @@ export default function HomePage() {
                         ))}
                     </div>
 
-                    {/* 四周日期 */}
                     {weeksData.map((week, weekIdx) => (
                         <div
                             key={weekIdx}
                             className={`grid grid-cols-8 gap-1 p-2 rounded-xl ${week.bg} ${week.border} border transition-all duration-200 hover:shadow-soft`}
                         >
-                            {/* 周标签 */}
                             <div className={`flex flex-col justify-center items-center text-center ${week.text}`}>
                                 <span className="text-[10px] font-bold leading-tight">{week.label}</span>
                                 <span className="text-[8px] opacity-70">{week.startDate}</span>
                             </div>
-
-                            {/* 日期格子 */}
                             {week.days.map((day, dayIdx) => (
                                 <div
                                     key={dayIdx}
@@ -424,7 +225,6 @@ export default function HomePage() {
                         </div>
                     ))}
 
-                    {/* 图例说明 */}
                     <div className="flex flex-wrap gap-3 pt-2 border-t border-gray-100 dark:border-gray-800">
                         {weeksData.map((week, idx) => (
                             <div key={idx} className="flex items-center gap-1.5">
@@ -459,18 +259,15 @@ export default function HomePage() {
         </section>
     );
 
-    // 渲染：无食谱引导卡片 - 增强视觉吸引力
+    // 渲染：无食谱引导卡片
     const renderNoRecipeCard = () => (
         <section>
             <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
                 今日餐食
             </h3>
             <div className="bg-gradient-to-br from-primary/10 via-white to-secondary/10 dark:from-primary/20 dark:via-surface-dark dark:to-secondary/20 p-6 rounded-2xl shadow-soft border border-primary/20 dark:border-primary/30 flex flex-col items-center text-center gap-3 py-10 hover:shadow-medium hover:scale-[1.01] transition-all duration-300 relative overflow-hidden active:scale-[0.99]">
-                {/* 装饰元素 */}
                 <div className="absolute -top-8 -right-8 w-24 h-24 bg-primary/20 rounded-full blur-2xl" />
                 <div className="absolute -bottom-8 -left-8 w-20 h-20 bg-secondary/30 rounded-full blur-xl" />
-
-                {/* 情感化图标组合 */}
                 <div className="relative">
                     <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-green-400 flex items-center justify-center text-white shadow-glow rotate-3">
                         <span className="material-icons-round text-3xl">restaurant</span>
@@ -479,7 +276,6 @@ export default function HomePage() {
                         <span className="material-icons-round text-sm">auto_awesome</span>
                     </div>
                 </div>
-
                 <h4 className="font-bold text-xl mt-2">开始智能饮食规划</h4>
                 <p className="text-sm text-text-muted-light dark:text-text-muted-dark px-4 mb-2 max-w-[260px]">
                     让 AI 助手为您的爱宠定制科学营养的每日食谱
@@ -492,7 +288,7 @@ export default function HomePage() {
         </section>
     );
 
-    // 渲染：锁定功能卡片（无宠物/无食谱时显示）- 保留原始图标，增加交互引导
+    // 渲染：锁定功能卡片
     const renderLockedCards = () => (
         <section className="grid grid-cols-2 gap-4">
             <Link
@@ -514,94 +310,149 @@ export default function HomePage() {
         </section>
     );
 
-    // 渲染：每日营养进度（有食谱时显示）
-    const renderNutritionProgress = () => (
-        <section className="bg-primary/20 dark:bg-primary/10 rounded-3xl p-6 relative overflow-hidden shadow-soft hover:shadow-medium transition-all duration-300">
-            <div className="absolute -top-10 -right-10 w-40 h-40 bg-primary/20 rounded-full blur-3xl"></div>
-            <div className="absolute bottom-0 left-0 w-32 h-32 bg-secondary/30 rounded-full blur-2xl"></div>
-            <div className="relative z-10">
-                <div className="flex justify-between items-start mb-6">
-                    <div>
-                        <h3 className="font-bold text-lg">每日营养</h3>
-                        <p className="text-sm opacity-70">已完成每日目标的85%</p>
+    // 渲染：每日营养进度（真实数据）
+    const renderNutritionProgress = () => {
+        if (!nutritionSummary) return null;
+
+        const { total_calories, consumed_calories, protein, fat, carbs } = nutritionSummary;
+        const remainingCalories = Math.max(0, (total_calories || 0) - (consumed_calories || 0));
+        const caloriePercent = total_calories > 0
+            ? Math.min(100, Math.round((consumed_calories / total_calories) * 100))
+            : 0;
+        // SVG 圆形进度: circumference = 2 * PI * r = 2 * 3.14159 * 40 ≈ 251.2
+        const circumference = 251.2;
+        const strokeDashoffset = circumference * (1 - caloriePercent / 100);
+
+        const proteinTarget = protein?.target || 0;
+        const proteinConsumed = protein?.consumed || 0;
+        const proteinPercent = proteinTarget > 0 ? Math.min(100, Math.round((proteinConsumed / proteinTarget) * 100)) : 0;
+
+        const fatTarget = fat?.target || 0;
+        const fatConsumed = fat?.consumed || 0;
+        const fatPercent = fatTarget > 0 ? Math.min(100, Math.round((fatConsumed / fatTarget) * 100)) : 0;
+
+        const carbsTarget = carbs?.target || 0;
+        const carbsConsumed = carbs?.consumed || 0;
+        const carbsPercent = carbsTarget > 0 ? Math.min(100, Math.round((carbsConsumed / carbsTarget) * 100)) : 0;
+
+        return (
+            <section className="bg-primary/20 dark:bg-primary/10 rounded-3xl p-6 relative overflow-hidden shadow-soft hover:shadow-medium transition-all duration-300">
+                <div className="absolute -top-10 -right-10 w-40 h-40 bg-primary/20 rounded-full blur-3xl"></div>
+                <div className="absolute bottom-0 left-0 w-32 h-32 bg-secondary/30 rounded-full blur-2xl"></div>
+                <div className="relative z-10">
+                    <div className="flex justify-between items-start mb-6">
+                        <div>
+                            <h3 className="font-bold text-lg">每日营养</h3>
+                            <p className="text-sm opacity-70">
+                                {caloriePercent > 0 ? `已完成每日目标的${caloriePercent}%` : '今日尚未开始打卡'}
+                            </p>
+                        </div>
+                        <div className="bg-white/50 dark:bg-white/10 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
+                            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                            AI优化中
+                        </div>
                     </div>
-                    <div className="bg-white/50 dark:bg-white/10 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
-                        <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                        AI优化中
+                    <div className="flex items-center gap-6">
+                        <div className="relative w-32 h-32 flex-shrink-0">
+                            <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                                <circle className="text-white/40 dark:text-white/10" cx="50" cy="50" fill="transparent" r="40" stroke="currentColor" strokeWidth="8"></circle>
+                                <circle
+                                    cx="50" cy="50" fill="transparent" r="40"
+                                    stroke="#A3D9A5"
+                                    strokeDasharray={circumference}
+                                    strokeDashoffset={strokeDashoffset}
+                                    strokeLinecap="round"
+                                    strokeWidth="8"
+                                    style={{ transition: 'stroke-dashoffset 0.5s ease' }}
+                                ></circle>
+                            </svg>
+                            <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                                <span className="text-3xl font-bold leading-none">{Math.round(remainingCalories)}</span>
+                                <span className="text-[10px] uppercase font-medium tracking-wide opacity-70">剩余卡路里</span>
+                            </div>
+                        </div>
+                        <div className="flex-1 space-y-4">
+                            <div>
+                                <div className="flex justify-between text-xs mb-1 font-medium">
+                                    <span>蛋白质</span>
+                                    <span>{Math.round(proteinConsumed)}g / {Math.round(proteinTarget)}g</span>
+                                </div>
+                                <div className="h-2 w-full bg-white/40 dark:bg-white/10 rounded-full overflow-hidden">
+                                    <div
+                                        className="h-full bg-green-600 rounded-full"
+                                        style={{ width: `${proteinPercent}%`, transition: 'width 0.5s ease' }}
+                                    ></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div className="flex justify-between text-xs mb-1 font-medium">
+                                    <span>脂肪</span>
+                                    <span>{Math.round(fatConsumed)}g / {Math.round(fatTarget)}g</span>
+                                </div>
+                                <div className="h-2 w-full bg-white/40 dark:bg-white/10 rounded-full overflow-hidden">
+                                    <div
+                                        className="h-full bg-yellow-500 rounded-full"
+                                        style={{ width: `${fatPercent}%`, transition: 'width 0.5s ease' }}
+                                    ></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div className="flex justify-between text-xs mb-1 font-medium">
+                                    <span>碳水化合物</span>
+                                    <span>{Math.round(carbsConsumed)}g / {Math.round(carbsTarget)}g</span>
+                                </div>
+                                <div className="h-2 w-full bg-white/40 dark:bg-white/10 rounded-full overflow-hidden">
+                                    <div
+                                        className="h-full bg-blue-400 rounded-full"
+                                        style={{ width: `${carbsPercent}%`, transition: 'width 0.5s ease' }}
+                                    ></div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div className="flex items-center gap-6">
-                    <div className="relative w-32 h-32 flex-shrink-0">
-                        <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                            <circle className="text-white/40 dark:text-white/10" cx="50" cy="50" fill="transparent" r="40" stroke="currentColor" strokeWidth="8"></circle>
-                            <circle cx="50" cy="50" fill="transparent" r="40" stroke="#A3D9A5" strokeDasharray="251.2" strokeDashoffset="37" strokeLinecap="round" strokeWidth="8"></circle>
-                        </svg>
-                        <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                            <span className="text-3xl font-bold leading-none">850</span>
-                            <span className="text-[10px] uppercase font-medium tracking-wide opacity-70">剩余卡路里</span>
-                        </div>
-                    </div>
-                    <div className="flex-1 space-y-4">
-                        <div>
-                            <div className="flex justify-between text-xs mb-1 font-medium">
-                                <span>蛋白质</span>
-                                <span>32g / 45g</span>
-                            </div>
-                            <div className="h-2 w-full bg-white/40 dark:bg-white/10 rounded-full overflow-hidden">
-                                <div className="h-full bg-green-600 w-[70%] rounded-full"></div>
-                            </div>
-                        </div>
-                        <div>
-                            <div className="flex justify-between text-xs mb-1 font-medium">
-                                <span>脂肪</span>
-                                <span>12g / 18g</span>
-                            </div>
-                            <div className="h-2 w-full bg-white/40 dark:bg-white/10 rounded-full overflow-hidden">
-                                <div className="h-full bg-yellow-500 w-[65%] rounded-full"></div>
-                            </div>
-                        </div>
-                        <div>
-                            <div className="flex justify-between text-xs mb-1 font-medium">
-                                <span>碳水化合物</span>
-                                <span>40g / 50g</span>
-                            </div>
-                            <div className="h-2 w-full bg-white/40 dark:bg-white/10 rounded-full overflow-hidden">
-                                <div className="h-full bg-blue-400 w-[80%] rounded-full"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-    );
+            </section>
+        );
+    };
 
     // 计算已完成餐食数量
-    const completedMealsCount = mealsData.filter(m => m.isCompleted).length;
+    const completedMealsCount = meals.filter(m => m.isCompleted).length;
 
-    // 渲染：今日餐食列表（有食谱时显示）
+    // 渲染：今日餐食列表
     const renderMealsList = () => (
         <section>
             <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
                 今日餐食
                 <span className="text-xs bg-gray-200 dark:bg-gray-700 px-2 py-0.5 rounded text-text-muted-light dark:text-text-muted-dark font-normal">
-                    已完成 {completedMealsCount}/{mealsData.length} 餐
+                    已完成 {completedMealsCount}/{meals.length} 餐
                 </span>
             </h3>
-            <div className="space-y-4">
-                {mealsData.map(meal => (
-                    <MealCard
-                        key={meal.id}
-                        meal={meal}
-                        isExpanded={expandedMealId === meal.id}
-                        onToggleExpand={handleToggleExpand}
-                        onToggleComplete={handleToggleMealComplete}
-                    />
-                ))}
-            </div>
+            {mealsLoading ? (
+                <div className="flex justify-center py-8">
+                    <span className="material-icons-round text-3xl text-primary animate-spin">refresh</span>
+                </div>
+            ) : meals.length === 0 ? (
+                <div className="text-center py-8 text-text-muted-light dark:text-text-muted-dark">
+                    <span className="material-icons-round text-4xl mb-2 block opacity-40">restaurant</span>
+                    <p className="text-sm">今日暂无餐食记录</p>
+                </div>
+            ) : (
+                <div className="space-y-4">
+                    {meals.map(meal => (
+                        <MealCard
+                            key={meal.id}
+                            meal={meal}
+                            isExpanded={false}
+                            onToggleExpand={handleMealCardClick}
+                            onToggleComplete={toggleMealComplete}
+                        />
+                    ))}
+                </div>
+            )}
         </section>
     );
 
-    // 渲染：已解锁功能卡片（有食谱时显示）
+    // 渲染：已解锁功能卡片
     const renderUnlockedCards = () => (
         <section className="grid grid-cols-2 gap-4">
             <div className="bg-accent-blue/30 dark:bg-accent-blue/10 p-5 rounded-2xl flex flex-col justify-between h-36 relative overflow-hidden hover:shadow-medium hover:scale-105 transition-all duration-300">
@@ -639,23 +490,19 @@ export default function HomePage() {
             <main className="px-6 space-y-8">
                 {renderWeekCalendar()}
 
-                {/* 根据状态条件渲染不同内容 */}
                 {!hasPets ? (
                     <>
-                        {/* 无宠物状态 */}
                         {renderNoPetCard()}
                         {renderNoRecipeCard()}
                         {renderLockedCards()}
                     </>
                 ) : !hasRecipe ? (
                     <>
-                        {/* 有宠物但无食谱状态 */}
                         {renderNoRecipeCard()}
                         {renderLockedCards()}
                     </>
                 ) : (
                     <>
-                        {/* 有宠物且有食谱状态 - 完整仪表板 */}
                         {renderNutritionProgress()}
                         {renderMealsList()}
                         {renderUnlockedCards()}
@@ -663,14 +510,12 @@ export default function HomePage() {
                 )}
             </main>
 
-            {/* 宠物选择菜单 */}
             <PetSelectorMenu
                 isOpen={isPetMenuOpen}
                 onClose={() => setIsPetMenuOpen(false)}
                 onSelectPet={handlePetSelect}
             />
 
-            {/* 餐食详情弹窗 */}
             <AnimatePresence>
                 {selectedMeal && (
                     <PlanDetails

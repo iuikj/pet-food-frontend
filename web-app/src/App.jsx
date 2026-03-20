@@ -3,6 +3,7 @@ import { AnimatePresence } from 'framer-motion';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { useEffect } from 'react';
 import { PlanGenerationProvider } from './context/PlanGenerationProvider';
+import { MealProvider } from './context/MealProvider';
 import { PetProvider } from './context/PetProvider';
 import { UserProvider } from './context/UserProvider';
 import { useUser } from './hooks/useUser';
@@ -120,9 +121,11 @@ function App() {
     <Router>
       <UserProvider>
         <PetProvider>
-          <PlanGenerationProvider>
-            <AnimatedRoutes />
-          </PlanGenerationProvider>
+          <MealProvider>
+            <PlanGenerationProvider>
+              <AnimatedRoutes />
+            </PlanGenerationProvider>
+          </MealProvider>
         </PetProvider>
       </UserProvider>
     </Router>

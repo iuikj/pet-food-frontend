@@ -322,6 +322,7 @@ export interface NutritionSummary {
   protein: { target: number; consumed: number };
   fat: { target: number; consumed: number };
   carbs: { target: number; consumed: number };
+  fiber?: { target: number; consumed: number };
 }
 
 export interface TodayMealsResponse {
