@@ -169,10 +169,14 @@ export interface Micronutrients {
   vitamin_a: NutrientAmountLike;
   vitamin_c: NutrientAmountLike;
   vitamin_d: NutrientAmountLike;
+  vitamin_e: NutrientAmountLike;
   calcium: NutrientAmountLike;
   iron: NutrientAmountLike;
   sodium: NutrientAmountLike;
   potassium: NutrientAmountLike;
+  phosphorus: NutrientAmountLike;
+  zinc: NutrientAmountLike;
+  taurine: NutrientAmountLike;
   cholesterol: NutrientAmountLike;
   additional_nutrients: Record<string, NutrientAmountLike>;
 }
