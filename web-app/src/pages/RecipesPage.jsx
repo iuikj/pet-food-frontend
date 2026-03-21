@@ -5,11 +5,10 @@ import { Toast } from '@capacitor/toast';
 import { pageTransitions } from '../utils/animations';
 import { usePets } from '../hooks/usePets';
 import { plansApi } from '../api';
-import { transformPetDietPlan } from '../models/dietPlan';
 
 export default function RecipesPage() {
     const navigate = useNavigate();
-    const { pets, currentPet, activePlanId, setActivePlan, setActivePlanData, clearActivePlan } = usePets();
+    const { pets, currentPet, fetchPets } = usePets();
 
     const [plans, setPlans] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -33,35 +32,27 @@ export default function RecipesPage() {
 
     useEffect(() => { fetchPlans(); }, [fetchPlans]);
 
-    // 应用食谱 — 同时获取计划详情存储到 activePlanData
+    // 应用食谱 — 调用后端 apply API
     const handleApply = async (plan) => {
-        if (!currentPet?.id || applyingId) return;
+        if (applyingId) return;
 
         setApplyingId(plan.id);
         try {
-            // 1. 获取计划详情
-            const detailRes = await plansApi.getPlan(plan.id);
-            if (detailRes.code !== 0 || !detailRes.data) {
-                try { await Toast.show({ text: '获取食谱详情失败', duration: 'short' }); } catch { /* web */ }
+            const res = await plansApi.applyPlan(plan.id);
+            if (res.code !== 0) {
+                try { await Toast.show({ text: res.message || '应用失败', duration: 'short' }); } catch { /* web */ }
                 return;
             }
 
-            // 2. 转换数据并校验是否有效（防止 plan_data 为空的旧计划）
-            const planData = detailRes.data.plan_data || detailRes.data;
-            const transformed = transformPetDietPlan(planData);
-            if (!transformed || !transformed.weeks || transformed.weeks.length === 0) {
-                try { await Toast.show({ text: '该食谱数据不完整，请重新生成', duration: 'long' }); } catch { /* web */ }
-                return;
-            }
-
-            // 3. 数据有效 → 设置活跃计划
-            setActivePlan(currentPet.id, plan.id);
-            setActivePlanData(currentPet.id, transformed);
+            // 刷新列表获取最新 is_active 状态
+            await fetchPlans();
+            // 刷新宠物列表（has_plan 可能变化）
+            if (fetchPets) await fetchPets();
 
             try {
                 const linkedPet = plan.pet_id ? pets.find(p => p.id === plan.pet_id) : null;
                 const petName = linkedPet?.name || '宠物';
-                await Toast.show({ text: `已应用「${petName}」的食谱`, duration: 'short' });
+                await Toast.show({ text: `已应用「${petName}」的食谱，已生成${res.data?.meals_created || 0}天餐食`, duration: 'short' });
             } catch { /* web 环境 */ }
         } catch (err) {
             console.error('Failed to apply plan:', err);
@@ -85,12 +76,6 @@ export default function RecipesPage() {
         // 乐观删除
         setPlans(prev => prev.filter(p => p.id !== deletingId));
 
-        // 如果是活跃计划，同时清除（包括 activePlanData）
-        const wasActivePlan = currentPet?.id && activePlanId === deletingId;
-        if (wasActivePlan) {
-            clearActivePlan(currentPet.id);
-        }
-
         try {
             const res = await plansApi.deletePlan(deletingId);
             // 校验返回码，确保后端确实删除成功
@@ -104,10 +89,6 @@ export default function RecipesPage() {
             console.error('Failed to delete plan:', err);
             // 回滚乐观删除
             if (planToDelete) setPlans(prev => [planToDelete, ...prev]);
-            // 回滚活跃计划
-            if (wasActivePlan && currentPet?.id) {
-                setActivePlan(currentPet.id, deletingId);
-            }
             try {
                 await Toast.show({ text: '删除失败，请重试', duration: 'short' });
             } catch { /* web 环境 */ }
@@ -153,7 +134,7 @@ export default function RecipesPage() {
 
     // 渲染计划卡片
     const renderPlanCard = (plan) => {
-        const isActive = currentPet?.id && activePlanId === plan.id;
+        const isActive = plan.is_active === true;
         const isApplying = applyingId === plan.id;
         const petType = (plan.pet_type || 'dog') === 'dog' ? 'dog' : 'cat';
         const petIcon = petType === 'dog' ? '🐕' : '🐱';
@@ -203,10 +184,10 @@ export default function RecipesPage() {
                         <span className="material-icons-round text-sm text-primary">calendar_month</span>
                         4 周计划
                     </span>
-                    {plan.health_goal && (
+                    {isActive && plan.applied_at && (
                         <span className="flex items-center gap-1">
-                            <span className="material-icons-round text-sm text-yellow-500">flag</span>
-                            {plan.health_goal}
+                            <span className="material-icons-round text-sm text-green-500">schedule</span>
+                            {formatDate(plan.applied_at)} 应用
                         </span>
                     )}
                 </div>

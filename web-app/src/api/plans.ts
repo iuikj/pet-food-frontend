@@ -5,6 +5,7 @@ import type {
     PlanResponse,
     PlanListResponse,
     TaskResponse,
+    ApplyPlanResponse,
 } from './types';
 import { getAccessToken } from '../utils/storage';
 
@@ -158,6 +159,10 @@ export async function confirmPlan(planId: string): Promise<ApiResponse<{ plan_id
     return apiClient.post<any, ApiResponse<{ plan_id: string }>>(`/plans/${planId}/confirm`);
 }
 
+export async function applyPlan(planId: string): Promise<ApiResponse<ApplyPlanResponse>> {
+    return apiClient.post<any, ApiResponse<ApplyPlanResponse>>(`/plans/${planId}/apply`);
+}
+
 export async function getTask(taskId: string): Promise<ApiResponse<TaskResponse>> {
     return apiClient.get<any, ApiResponse<TaskResponse>>(`/tasks/${taskId}`);
 }
@@ -179,6 +184,7 @@ export const plansApi = {
     getPlan,
     deletePlan,
     confirmPlan,
+    applyPlan,
     getTask,
     getTaskResult,
     cancelTask,

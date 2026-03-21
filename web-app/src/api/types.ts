@@ -216,6 +216,8 @@ export interface PlanSummaryResponse {
   pet_age: number;
   pet_weight: number;
   health_status?: string;
+  is_active: boolean;
+  applied_at?: string;
   created_at: string;
   updated_at?: string;
 }
@@ -406,4 +408,31 @@ export interface NutritionAnalysisResponse {
   daily_data: DailyNutritionData[];
   trend_chart: TrendChart;
   ai_insights: AIInsight[];
+}
+
+// ==================== 计划应用类型 ====================
+
+export interface ApplyPlanResponse {
+  plan_id: string;
+  is_active: boolean;
+  applied_at: string;
+  meals_created: number;
+}
+
+// ==================== 体重记录类型 ====================
+
+export interface WeightRecord {
+  id: string;
+  pet_id: string;
+  weight: number;
+  recorded_date: string;
+  notes?: string;
+  created_at?: string;
+}
+
+export interface RecordWeightRequest {
+  pet_id: string;
+  weight: number;
+  recorded_date?: string;
+  notes?: string;
 }
