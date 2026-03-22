@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { App as CapacitorApp } from '@capacitor/app';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { Capacitor } from '@capacitor/core';
@@ -632,25 +632,42 @@ export const PlanGenerationProvider = ({ children }) => {
         };
     }, [restoreFromBackground]);
 
+    const contextValue = useMemo(() => ({
+        status,
+        progress,
+        currentStepIndex,
+        currentStep: STEPS[currentStepIndex],
+        steps: STEPS,
+        isBackgroundRunning,
+        taskId,
+        planId,
+        error,
+        result,
+        currentNode,
+        logs,
+        weekStatuses,
+        startGeneration,
+        resetGeneration,
+        restoreFromBackground,
+    }), [
+        status,
+        progress,
+        currentStepIndex,
+        isBackgroundRunning,
+        taskId,
+        planId,
+        error,
+        result,
+        currentNode,
+        logs,
+        weekStatuses,
+        startGeneration,
+        resetGeneration,
+        restoreFromBackground,
+    ]);
+
     return (
-        <PlanGenerationContext.Provider value={{
-            status,
-            progress,
-            currentStepIndex,
-            currentStep: STEPS[currentStepIndex],
-            steps: STEPS,
-            isBackgroundRunning,
-            taskId,
-            planId,
-            error,
-            result,
-            currentNode,
-            logs,
-            weekStatuses,
-            startGeneration,
-            resetGeneration,
-            restoreFromBackground,
-        }}>
+        <PlanGenerationContext.Provider value={contextValue}>
             {children}
         </PlanGenerationContext.Provider>
     );

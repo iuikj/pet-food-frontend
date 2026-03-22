@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import MealContext from './MealContextValue';
 import { mealsApi } from '../api';
 import { usePets } from '../hooks/usePets';
@@ -194,13 +194,13 @@ export function MealProvider({ children }) {
         }
     }, [meals, nutritionSummary, currentPet?.id]);
 
-    const value = {
+    const value = useMemo(() => ({
         meals,
         nutritionSummary,
         isLoading,
         fetchTodayMeals,
         toggleMealComplete,
-    };
+    }), [meals, nutritionSummary, isLoading, fetchTodayMeals, toggleMealComplete]);
 
     return (
         <MealContext.Provider value={value}>

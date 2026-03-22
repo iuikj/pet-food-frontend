@@ -29,13 +29,12 @@
   font-feature-settings: 'liga';
 }
 
-/* Material Symbols Outlined Class */
+/* Compatibility alias to keep existing icon markup on a single local font family. */
 .material-symbols-outlined {
-  font-family: 'Material Symbols Outlined';
+  font-family: 'Material Icons Round';
   font-weight: normal;
   font-style: normal;
   font-size: 24px;
-  /* Preferred icon size */
   display: inline-block;
   line-height: 1;
   text-transform: none;
@@ -43,6 +42,10 @@
   word-wrap: normal;
   white-space: nowrap;
   direction: ltr;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: 'liga';
 }
 
 /* Custom Utilities */

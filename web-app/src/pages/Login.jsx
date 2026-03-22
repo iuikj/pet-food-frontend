@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useUser } from '../hooks/useUser';
 import FormField from '../components/FormField';
 import { isMockMode, setMockMode, isManualOverride } from '../mock/mockMode';
+import googleLogo from '../assets/google-g.svg';
 
 export default function Login() {
     const navigate = useNavigate();
@@ -29,6 +30,7 @@ export default function Login() {
     // 键盘状态和视口高度
     const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
     const formRef = useRef(null);
+    const countdownTimerRef = useRef(null);
 
     // 监听软键盘弹出（通过视口高度变化检测）
     useEffect(() => {
@@ -47,6 +49,14 @@ export default function Login() {
             window.addEventListener('resize', handleResize);
             return () => window.removeEventListener('resize', handleResize);
         }
+    }, []);
+
+    useEffect(() => {
+        return () => {
+            if (countdownTimerRef.current) {
+                clearInterval(countdownTimerRef.current);
+            }
+        };
     }, []);
 
     // 验证表单
@@ -91,10 +101,15 @@ export default function Login() {
         if (result.success) {
             setCodeSent(true);
             setCountdown(60);
-            const timer = setInterval(() => {
+            if (countdownTimerRef.current) {
+                clearInterval(countdownTimerRef.current);
+            }
+
+            countdownTimerRef.current = setInterval(() => {
                 setCountdown(prev => {
                     if (prev <= 1) {
-                        clearInterval(timer);
+                        clearInterval(countdownTimerRef.current);
+                        countdownTimerRef.current = null;
                         return 0;
                     }
                     return prev - 1;
@@ -331,7 +346,7 @@ export default function Login() {
                     </div>
                     <div className="grid grid-cols-2 gap-4 mt-6">
                         <button className="flex items-center justify-center gap-2 py-3 bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition-all border border-gray-100 dark:border-gray-800 active:scale-[0.97]">
-                            <img alt="Google" className="w-5 h-5" src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" />
+                            <img alt="Google" className="w-5 h-5" src={googleLogo} />
                             <span className="text-sm font-bold">Google</span>
                         </button>
                         <button className="flex items-center justify-center gap-2 py-3 bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition-all border border-gray-100 dark:border-gray-800 active:scale-[0.97]">

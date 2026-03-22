@@ -247,3 +247,12 @@ VITE_RECONNECT_DELAY=3000
 6. **环境变量**: 开发时确保 `VITE_API_BASE_URL` 指向正确的后端地址
 7. **页面组件**: 使用 JSX（非 TypeScript），但 API 层使用 TypeScript
 8. **ESLint**: 忽略以大写字母或下划线开头的未使用变量 (`varsIgnorePattern: '^[A-Z_]'`)
+## Icon Localization Rule
+
+- For `web-app/`, core UI icons must stay local to the project.
+- The current approved baseline is one local icon font family: `@fontsource/material-icons-round`.
+- Do not add `@fontsource/material-symbols-outlined` back by default. If a future change needs it, verify the packaged Android app after `npm run build` and `npx cap sync`.
+- Existing `material-symbols-outlined` markup should be treated as compatibility markup only and resolved through local CSS mapping, not by reintroducing a second font package.
+- Do not use remote icon or image URLs for packaged UI assets. Copy them into `src/assets/` or `public/` first.
+- `npm run dev` is not enough to validate mobile safety. Any asset-loading or code-splitting change must be verified in production build output and on Android WebView.
+- If Android shows a white screen after a frontend optimization, first suspect production asset loading, chunk loading, or Capacitor-packaged resource behavior before blaming generic system log noise.

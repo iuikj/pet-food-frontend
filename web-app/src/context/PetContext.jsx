@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { petsApi } from '../api';
 import PetContext from './PetContextValue';
 import { useUser } from '../hooks/useUser';
@@ -66,7 +66,10 @@ export const PetProvider = ({ children }) => {
         setCurrentPetId(null);
     }, [fetchPets, isAuthenticated]);
 
-    const currentPet = pets.find((pet) => pet.id === currentPetId) || pets[0] || null;
+    const currentPet = useMemo(
+        () => pets.find((pet) => pet.id === currentPetId) || pets[0] || null,
+        [pets, currentPetId]
+    );
 
     const getPetById = useCallback((id) => {
         return pets.find((pet) => pet.id === id) || null;
@@ -197,28 +200,50 @@ export const PetProvider = ({ children }) => {
     const activePlanId = currentPet?.id ? activePlanMap[currentPet.id] || null : null;
     const activePlanData = currentPet?.id ? activePlanDataMap[currentPet.id] || null : null;
 
+    const contextValue = useMemo(() => ({
+        pets,
+        currentPet,
+        currentPetId,
+        isLoading,
+        error,
+        fetchPets,
+        getPetById,
+        addPet,
+        updatePet,
+        deletePet,
+        uploadPetAvatar,
+        setCurrentPet,
+        setPetHasPlan,
+        activePlanMap,
+        activePlanId,
+        activePlanData,
+        setActivePlan,
+        setActivePlanData,
+        clearActivePlan,
+    }), [
+        pets,
+        currentPet,
+        currentPetId,
+        isLoading,
+        error,
+        fetchPets,
+        getPetById,
+        addPet,
+        updatePet,
+        deletePet,
+        uploadPetAvatar,
+        setCurrentPet,
+        setPetHasPlan,
+        activePlanMap,
+        activePlanId,
+        activePlanData,
+        setActivePlan,
+        setActivePlanData,
+        clearActivePlan,
+    ]);
+
     return (
-        <PetContext.Provider value={{
-            pets,
-            currentPet,
-            currentPetId,
-            isLoading,
-            error,
-            fetchPets,
-            getPetById,
-            addPet,
-            updatePet,
-            deletePet,
-            uploadPetAvatar,
-            setCurrentPet,
-            setPetHasPlan,
-            activePlanMap,
-            activePlanId,
-            activePlanData,
-            setActivePlan,
-            setActivePlanData,
-            clearActivePlan,
-        }}>
+        <PetContext.Provider value={contextValue}>
             {children}
         </PetContext.Provider>
     );
