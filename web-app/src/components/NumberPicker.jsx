@@ -12,6 +12,7 @@ import { motion } from 'framer-motion';
  * @param {string} label - 输入框标签
  * @param {string} placeholder - 占位符
  * @param {boolean} allowDecimal - 是否允许小数
+ * @param {boolean} compact - 紧凑模式（缩小按钮和间距）
  */
 export default function NumberPicker({
     value = 0,
@@ -23,6 +24,7 @@ export default function NumberPicker({
     label = '',
     placeholder = '0',
     allowDecimal = false,
+    compact = false,
 }) {
     const intervalRef = useRef(null);
     const timeoutRef = useRef(null);
@@ -96,15 +98,19 @@ export default function NumberPicker({
     };
 
     // 触摸优化的按钮样式
-    const buttonClass = `
-        w-11 h-11 flex-shrink-0 rounded-xl flex items-center justify-center 
-        bg-primary/10 dark:bg-primary/20 text-primary 
-        font-bold text-xl
-        active:bg-primary active:text-white
-        transition-colors duration-150
-        touch-manipulation
-        select-none
-    `;
+    const buttonClass = compact
+        ? `w-9 h-9 flex-shrink-0 rounded-xl flex items-center justify-center
+           bg-primary/10 dark:bg-primary/20 text-primary
+           font-bold text-lg
+           active:bg-primary active:text-white
+           transition-colors duration-150
+           touch-manipulation select-none`
+        : `w-11 h-11 flex-shrink-0 rounded-xl flex items-center justify-center
+           bg-primary/10 dark:bg-primary/20 text-primary
+           font-bold text-xl
+           active:bg-primary active:text-white
+           transition-colors duration-150
+           touch-manipulation select-none`;
 
     return (
         <div className="space-y-2">
@@ -113,7 +119,7 @@ export default function NumberPicker({
                     {label}
                 </label>
             )}
-            <div className="flex items-center gap-2 bg-background-light dark:bg-background-dark rounded-2xl shadow-inner p-2">
+            <div className={`flex items-center ${compact ? 'gap-1 p-1.5' : 'gap-2 p-2'} bg-background-light dark:bg-background-dark rounded-2xl shadow-inner`}>
                 {/* 减少按钮 */}
                 <motion.button
                     type="button"
@@ -122,11 +128,11 @@ export default function NumberPicker({
                     onMouseDown={startDecrement}
                     onMouseUp={stopHolding}
                     onMouseLeave={stopHolding}
-                    onTouchStart={startDecrement}
-                    onTouchEnd={stopHolding}
+                    onTouchStart={(e) => { e.preventDefault(); startDecrement(); }}
+                    onTouchEnd={(e) => { e.preventDefault(); stopHolding(); }}
                     disabled={parseFloat(value) <= min}
                 >
-                    <span className="material-icons-round text-xl">remove</span>
+                    <span className={`material-icons-round ${compact ? 'text-lg' : 'text-xl'}`}>remove</span>
                 </motion.button>
 
                 {/* 数值输入 */}
@@ -138,7 +144,7 @@ export default function NumberPicker({
                         onChange={handleInputChange}
                         onBlur={handleBlur}
                         placeholder={placeholder}
-                        className="w-full bg-transparent border-none p-0 text-2xl font-bold text-center text-text-main-light dark:text-text-main-dark focus:ring-0 placeholder-gray-300 dark:placeholder-gray-600"
+                        className={`w-full bg-transparent border-none p-0 ${compact ? 'text-xl' : 'text-2xl'} font-bold text-center text-text-main-light dark:text-text-main-dark focus:ring-0 placeholder-gray-300 dark:placeholder-gray-600`}
                     />
                     {unit && (
                         <span className="text-sm font-bold text-text-muted-light dark:text-text-muted-dark whitespace-nowrap">
@@ -155,11 +161,11 @@ export default function NumberPicker({
                     onMouseDown={startIncrement}
                     onMouseUp={stopHolding}
                     onMouseLeave={stopHolding}
-                    onTouchStart={startIncrement}
-                    onTouchEnd={stopHolding}
+                    onTouchStart={(e) => { e.preventDefault(); startIncrement(); }}
+                    onTouchEnd={(e) => { e.preventDefault(); stopHolding(); }}
                     disabled={parseFloat(value) >= max}
                 >
-                    <span className="material-icons-round text-xl">add</span>
+                    <span className={`material-icons-round ${compact ? 'text-lg' : 'text-xl'}`}>add</span>
                 </motion.button>
             </div>
         </div>

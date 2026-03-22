@@ -1,17 +1,56 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { pageTransitions } from '../utils/animations';
 import { usePets } from '../hooks/usePets';
 import { useMeals } from '../hooks/useMeals';
 import MealCard from '../components/MealCard';
 import PlanDetails from './PlanDetails';
-import { weightsApi } from '../api';
+import { weightsApi, mealsApi } from '../api';
 
 export default function DashboardDaily() {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const targetDate = searchParams.get('date'); // YYYY-MM-DD or null
     const { currentPet } = usePets();
-    const { meals, nutritionSummary, isLoading: mealsLoading, toggleMealComplete } = useMeals();
+    const { meals: todayMeals, nutritionSummary: todayNutrition, isLoading: todayLoading, toggleMealComplete } = useMeals();
+
+    // 指定日期的餐食数据
+    const [dateMeals, setDateMeals] = useState([]);
+    const [dateMealsLoading, setDateMealsLoading] = useState(false);
+
+    // 实际使用的数据（根据是否有 date 参数决定）
+    const meals = targetDate ? dateMeals : todayMeals;
+    const mealsLoading = targetDate ? dateMealsLoading : todayLoading;
+    const nutritionSummary = targetDate ? null : todayNutrition;
+
+    // 获取指定日期餐食
+    useEffect(() => {
+        if (!targetDate || !currentPet?.id) return;
+        let cancelled = false;
+        setDateMealsLoading(true);
+        mealsApi.getMealsByDate(currentPet.id, targetDate)
+            .then(res => {
+                if (cancelled) return;
+                if (res.code === 0 && res.data?.meals) {
+                    // 映射为与 useMeals 一致的格式
+                    setDateMeals(res.data.meals.map(m => ({
+                        id: m.id,
+                        type: m.meal_type,
+                        name: m.name || m.meal_type,
+                        time: m.scheduled_time || '',
+                        calories: m.calories || 0,
+                        isCompleted: m.is_completed || false,
+                        _raw: m,
+                    })));
+                } else {
+                    setDateMeals([]);
+                }
+            })
+            .catch(() => { if (!cancelled) setDateMeals([]); })
+            .finally(() => { if (!cancelled) setDateMealsLoading(false); });
+        return () => { cancelled = true; };
+    }, [targetDate, currentPet?.id]);
 
     const [selectedMeal, setSelectedMeal] = useState(null);
 
@@ -231,18 +270,22 @@ export default function DashboardDaily() {
                     </div>
                 </div>
                 <div className="flex gap-3">
-                    <button onClick={() => navigate('/')} className="w-10 h-10 rounded-full bg-white dark:bg-surface-dark shadow-sm flex items-center justify-center text-text-muted-light dark:text-text-muted-dark hover:text-primary transition-colors">
+                    <button onClick={() => navigate(targetDate ? '/calendar' : '/')} className="w-10 h-10 rounded-full bg-white dark:bg-surface-dark shadow-sm flex items-center justify-center text-text-muted-light dark:text-text-muted-dark hover:text-primary transition-colors">
                         <span className="material-icons-round">arrow_back</span>
                     </button>
                 </div>
             </header>
 
             <main className="px-6 space-y-8">
-                {/* 本周日历 */}
+                {/* 本周日历 / 日期标题 */}
                 <section>
                     <div className="flex justify-between items-end mb-4">
                         <div>
-                            <h2 className="text-2xl font-bold">本周</h2>
+                            <h2 className="text-2xl font-bold">
+                                {targetDate
+                                    ? new Date(targetDate).toLocaleDateString('zh-CN', { month: 'long', day: 'numeric', weekday: 'short' })
+                                    : '本周'}
+                            </h2>
                             <p className="text-sm text-text-muted-light dark:text-text-muted-dark">
                                 AI计划： <span className="text-primary font-semibold">体重管理</span>
                             </p>
@@ -251,6 +294,7 @@ export default function DashboardDaily() {
                             完整日历
                         </button>
                     </div>
+                    {!targetDate && (
                     <div className="flex justify-between items-center bg-white dark:bg-surface-dark p-4 rounded-2xl shadow-soft">
                         {weekDays.map((day, idx) => (
                             <div key={idx} className={`flex flex-col items-center gap-1 ${day.isPast ? 'opacity-40' : ''} ${day.isToday ? 'transform scale-110' : ''}`}>
@@ -267,6 +311,7 @@ export default function DashboardDaily() {
                             </div>
                         ))}
                     </div>
+                    )}
                 </section>
 
                 {/* 营养进度 */}

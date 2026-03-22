@@ -1,13 +1,47 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import Calendar from 'react-calendar';
+import 'react-calendar/dist/Calendar.css';
 import { pageTransitions } from '../utils/animations';
 import PetSelectorMenu from '../components/PetSelectorMenu';
 import MealCard from '../components/MealCard';
 import PlanDetails from './PlanDetails';
 import { usePets } from '../hooks/usePets';
 import { useMeals } from '../hooks/useMeals';
-import { weightsApi } from '../api';
+import { weightsApi, calendarApi, mealsApi } from '../api';
+import { WEEK_COLORS, WEEK_DAY_LABELS, WEEK_DOT_COLORS } from '../utils/calendarConstants';
+
+/** YYYY-MM-DD 格式化 */
+function formatDate(date) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+}
+
+/** 构建 dateMap: { 'YYYY-MM-DD': { ...dayData, weekIndex } } */
+function buildDateMap(days) {
+    if (!days || days.length === 0) return {};
+    const planDays = days.filter(d => d.has_plan);
+    if (planDays.length === 0) {
+        const map = {};
+        days.forEach(d => { map[d.date] = { ...d, weekIndex: -1 }; });
+        return map;
+    }
+    const sorted = [...planDays].sort((a, b) => a.date.localeCompare(b.date));
+    const planStart = new Date(sorted[0].date);
+    const map = {};
+    days.forEach(d => {
+        let weekIndex = -1;
+        if (d.has_plan) {
+            const diff = Math.floor((new Date(d.date) - planStart) / 86400000);
+            weekIndex = Math.min(3, Math.floor(diff / 7));
+        }
+        map[d.date] = { ...d, weekIndex };
+    });
+    return map;
+}
 
 // 辅助函数
 const getMealTypeName = (type) => {
@@ -143,59 +177,137 @@ export default function HomePage() {
         </header>
     );
 
-    // 日历展开状态
+    // ========== 日历 & 日期选择 ==========
     const [isCalendarExpanded, setIsCalendarExpanded] = useState(false);
+    const [calendarData, setCalendarData] = useState([]);
+    const [calendarActiveDate, setCalendarActiveDate] = useState(new Date());
+    const [selectedDate, setSelectedDate] = useState(null);       // null = 今日
+    const [dateMeals, setDateMeals] = useState([]);
+    const [dateMealsLoading, setDateMealsLoading] = useState(false);
 
-    // 获取四周的日期数据
-    const getWeeksData = () => {
-        const today = new Date();
-        const currentDay = today.getDay();
-        const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay;
-        const thisMonday = new Date(today);
-        thisMonday.setDate(today.getDate() + mondayOffset);
+    const dateMap = useMemo(() => buildDateMap(calendarData), [calendarData]);
 
-        const weeks = [];
-        const weekColors = [
-            { bg: 'bg-primary/20', border: 'border-primary/30', text: 'text-primary', label: '第一周' },
-            { bg: 'bg-secondary/20', border: 'border-secondary/30', text: 'text-yellow-700 dark:text-yellow-300', label: '第二周' },
-            { bg: 'bg-accent-blue/20', border: 'border-accent-blue/30', text: 'text-blue-700 dark:text-blue-300', label: '第三周' },
-            { bg: 'bg-purple-100 dark:bg-purple-900/20', border: 'border-purple-300', text: 'text-purple-700 dark:text-purple-300', label: '第四周' }
-        ];
-
-        for (let w = 0; w < 4; w++) {
-            const weekStart = new Date(thisMonday);
-            weekStart.setDate(thisMonday.getDate() + w * 7);
-
-            const days = [];
-            for (let d = 0; d < 7; d++) {
-                const date = new Date(weekStart);
-                date.setDate(weekStart.getDate() + d);
-                days.push({
-                    date: date.getDate(),
-                    month: date.getMonth() + 1,
-                    isToday: date.toDateString() === today.toDateString(),
-                    fullDate: date
-                });
+    // 加载月度日历数据
+    const fetchCalendarData = useCallback(async (date) => {
+        if (!currentPet?.id) return;
+        try {
+            const res = await calendarApi.getMonthlyCalendar(
+                currentPet.id, date.getFullYear(), date.getMonth() + 1
+            );
+            if (res.code === 0 && res.data?.days) {
+                setCalendarData(res.data.days);
+            } else {
+                setCalendarData([]);
             }
-            weeks.push({
-                ...weekColors[w],
-                days,
-                startDate: `${weekStart.getMonth() + 1}/${weekStart.getDate()}`,
-                endDate: `${days[6].month}/${days[6].date}`
-            });
+        } catch { setCalendarData([]); }
+    }, [currentPet?.id]);
+
+    useEffect(() => { fetchCalendarData(calendarActiveDate); }, [fetchCalendarData, calendarActiveDate]);
+
+    // 点击日期 → 在主页原地加载该日餐食
+    const handleDayClick = useCallback((date) => {
+        const today = new Date();
+        const isToday = date.toDateString() === today.toDateString();
+        if (isToday) {
+            setSelectedDate(null);   // 回到"今日"
+            setDateMeals([]);
+            return;
         }
-        return weeks;
+        setSelectedDate(date);
+    }, []);
+
+    // selectedDate 变化时加载指定日期餐食
+    useEffect(() => {
+        if (!selectedDate || !currentPet?.id) { setDateMeals([]); return; }
+        let cancelled = false;
+        setDateMealsLoading(true);
+        mealsApi.getMealsByDate(currentPet.id, formatDate(selectedDate))
+            .then(res => {
+                if (cancelled) return;
+                if (res.code === 0 && res.data?.meals) {
+                    setDateMeals(res.data.meals.map(m => ({
+                        id: m.id,
+                        type: m.meal_type,
+                        name: m.name || m.meal_type,
+                        time: m.scheduled_time || '',
+                        calories: m.calories || 0,
+                        isCompleted: m.is_completed || false,
+                        _raw: m,
+                    })));
+                } else { setDateMeals([]); }
+            })
+            .catch(() => { if (!cancelled) setDateMeals([]); })
+            .finally(() => { if (!cancelled) setDateMealsLoading(false); });
+        return () => { cancelled = true; };
+    }, [selectedDate, currentPet?.id]);
+
+    // 展示的餐食：选中日期 or 今日
+    const displayMeals = selectedDate ? dateMeals : meals;
+    const displayMealsLoading = selectedDate ? dateMealsLoading : mealsLoading;
+    const displayDateLabel = selectedDate
+        ? selectedDate.toLocaleDateString('zh-CN', { month: 'long', day: 'numeric', weekday: 'short' })
+        : '今日';
+
+    // --- react-calendar 回调 ---
+    const handleActiveStartDateChange = ({ activeStartDate }) => {
+        setCalendarActiveDate(activeStartDate);
     };
 
-    const weeksData = getWeeksData();
-    const weekDayLabels = ['一', '二', '三', '四', '五', '六', '日'];
+    const calendarTileContent = useCallback(({ date, view }) => {
+        if (view !== 'month') return null;
+        const key = formatDate(date);
+        const dayData = dateMap[key];
+        if (!dayData?.has_plan || dayData.weekIndex < 0) return null;
+        const dotColor = WEEK_DOT_COLORS[dayData.weekIndex] || WEEK_DOT_COLORS[0];
+        return (
+            <div className="flex justify-center mt-0.5">
+                <span className="block w-1.5 h-1.5 rounded-full" style={{ backgroundColor: dotColor }} />
+            </div>
+        );
+    }, [dateMap]);
+
+    const calendarTileClassName = useCallback(({ date, view }) => {
+        if (view !== 'month') return '';
+        const key = formatDate(date);
+        const dayData = dateMap[key];
+        const classes = [];
+        if (dayData?.has_plan) classes.push('has-plan-tile');
+        if (dayData?.status && dayData.status !== 'none') classes.push(`status-${dayData.status}`);
+        return classes.join(' ');
+    }, [dateMap]);
+
+    // --- 折叠状态：当前周条 (Mon-Sun, 7 天) ---
+    const getThisWeekDays = () => {
+        const today = new Date();
+        const dow = today.getDay();
+        const mondayOffset = dow === 0 ? -6 : 1 - dow;
+        const monday = new Date(today);
+        monday.setDate(today.getDate() + mondayOffset);
+        return Array.from({ length: 7 }, (_, i) => {
+            const d = new Date(monday);
+            d.setDate(monday.getDate() + i);
+            const key = formatDate(d);
+            const dayData = dateMap[key];
+            return {
+                label: WEEK_DAY_LABELS[i],
+                dateNum: d.getDate(),
+                fullDate: d,
+                dateStr: key,
+                isToday: d.toDateString() === today.toDateString(),
+                isSelected: selectedDate && d.toDateString() === selectedDate.toDateString(),
+                hasPlan: dayData?.has_plan || false,
+                weekIndex: dayData?.weekIndex ?? -1,
+            };
+        });
+    };
+    const thisWeekDays = getThisWeekDays();
 
     // 渲染周历
     const renderWeekCalendar = () => (
         <section>
             <div className="flex justify-between items-end mb-4">
                 <div>
-                    <h2 className="text-2xl font-bold">本周</h2>
+                    <h2 className="text-2xl font-bold">{selectedDate ? displayDateLabel : '本周'}</h2>
                     <p className="text-sm text-text-muted-light dark:text-text-muted-dark">
                         AI计划： <span className="text-primary font-semibold">{hasRecipe ? '体重管理' : '待创建'}</span>
                     </p>
@@ -215,25 +327,51 @@ export default function HomePage() {
                 </button>
             </div>
 
+            {/* 折叠：紧凑周条 */}
             {!isCalendarExpanded && (
-                <div className="flex justify-between items-center bg-white dark:bg-surface-dark p-4 rounded-2xl shadow-soft">
-                    {weeksData[0].days.slice(0, 5).map((day, idx) => (
-                        <div key={idx} className={`flex flex-col items-center gap-1 ${!day.isToday && idx < 2 ? 'opacity-40' : ''} ${day.isToday ? 'transform scale-110' : ''}`}>
-                            <span className={`text-xs font-${day.isToday ? 'bold text-primary' : 'medium text-text-muted-light dark:text-text-muted-dark'}`}>
-                                {weekDayLabels[idx]}
-                            </span>
-                            <div className={`${day.isToday
-                                ? 'w-10 h-10 rounded-full bg-primary text-white dark:text-gray-900 flex items-center justify-center text-base font-bold shadow-glow relative'
-                                : 'w-8 h-8 rounded-full bg-background-light dark:bg-background-dark flex items-center justify-center text-sm font-medium'}`}
+                <div className="flex justify-between items-center bg-white dark:bg-surface-dark p-3 rounded-2xl shadow-soft gap-1">
+                    {thisWeekDays.map((day, idx) => {
+                        const dotColor = day.hasPlan && day.weekIndex >= 0
+                            ? WEEK_DOT_COLORS[day.weekIndex]
+                            : null;
+                        return (
+                            <button
+                                key={idx}
+                                onClick={() => handleDayClick(day.fullDate)}
+                                className={`flex flex-col items-center gap-1 flex-1 py-1 rounded-xl transition-all duration-150
+                                    ${day.isSelected ? 'bg-primary/15' : ''}
+                                    ${day.isToday && !day.isSelected ? '' : ''}`}
                             >
-                                {day.date}
-                                {day.isToday && <div className="absolute -bottom-1.5 w-1 h-1 bg-current rounded-full"></div>}
-                            </div>
-                        </div>
-                    ))}
+                                <span className={`text-[10px] font-semibold
+                                    ${day.isToday ? 'text-primary' : 'text-text-muted-light dark:text-text-muted-dark'}`}>
+                                    {day.label}
+                                </span>
+                                <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-medium transition-all
+                                    ${day.isToday
+                                        ? 'bg-primary text-white dark:text-gray-900 font-bold shadow-glow'
+                                        : day.isSelected
+                                            ? 'bg-primary/20 text-primary font-bold'
+                                            : day.hasPlan
+                                                ? 'bg-gray-100 dark:bg-gray-800'
+                                                : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'}`}
+                                >
+                                    {day.dateNum}
+                                </div>
+                                {/* 圆点指示 */}
+                                <div className="h-1.5 flex items-center justify-center">
+                                    {dotColor ? (
+                                        <span className="block w-1.5 h-1.5 rounded-full" style={{ backgroundColor: dotColor }} />
+                                    ) : (
+                                        day.isToday ? <span className="block w-1 h-1 rounded-full bg-primary" /> : null
+                                    )}
+                                </div>
+                            </button>
+                        );
+                    })}
                 </div>
             )}
 
+            {/* 展开：react-calendar 月历 */}
             <motion.div
                 initial={false}
                 animate={{
@@ -243,49 +381,51 @@ export default function HomePage() {
                 transition={{ duration: 0.3, ease: 'easeInOut' }}
                 className="overflow-hidden"
             >
-                <div className="bg-white dark:bg-surface-dark rounded-2xl shadow-soft p-4 space-y-3">
-                    <div className="grid grid-cols-8 gap-1 mb-2">
-                        <div className="text-xs font-medium text-text-muted-light dark:text-text-muted-dark text-center"></div>
-                        {weekDayLabels.map((label, idx) => (
-                            <div key={idx} className="text-xs font-medium text-text-muted-light dark:text-text-muted-dark text-center">
-                                {label}
-                            </div>
-                        ))}
-                    </div>
-
-                    {weeksData.map((week, weekIdx) => (
-                        <div
-                            key={weekIdx}
-                            className={`grid grid-cols-8 gap-1 p-2 rounded-xl ${week.bg} ${week.border} border transition-all duration-200 hover:shadow-soft`}
-                        >
-                            <div className={`flex flex-col justify-center items-center text-center ${week.text}`}>
-                                <span className="text-[10px] font-bold leading-tight">{week.label}</span>
-                                <span className="text-[8px] opacity-70">{week.startDate}</span>
-                            </div>
-                            {week.days.map((day, dayIdx) => (
-                                <div
-                                    key={dayIdx}
-                                    className={`aspect-square rounded-lg flex items-center justify-center text-sm font-medium transition-all duration-200
-                                        ${day.isToday
-                                            ? 'bg-primary text-white dark:text-gray-900 shadow-glow font-bold'
-                                            : 'hover:bg-white/50 dark:hover:bg-white/10'}`}
-                                >
-                                    {day.date}
-                                </div>
-                            ))}
-                        </div>
-                    ))}
-
-                    <div className="flex flex-wrap gap-3 pt-2 border-t border-gray-100 dark:border-gray-800">
-                        {weeksData.map((week, idx) => (
+                <div className="calendar-container calendar-compact bg-white dark:bg-surface-dark rounded-2xl shadow-soft p-3">
+                    <Calendar
+                        locale="zh-CN"
+                        calendarType="iso8601"
+                        value={selectedDate || new Date()}
+                        tileContent={calendarTileContent}
+                        tileClassName={calendarTileClassName}
+                        onClickDay={handleDayClick}
+                        onActiveStartDateChange={handleActiveStartDateChange}
+                        prev2Label={null}
+                        next2Label={null}
+                        minDetail="month"
+                        formatDay={(_locale, date) => date.getDate()}
+                    />
+                    {/* 图例 */}
+                    <div className="flex flex-wrap gap-3 pt-2 mt-1 border-t border-gray-100 dark:border-gray-800">
+                        {WEEK_COLORS.map((week, idx) => (
                             <div key={idx} className="flex items-center gap-1.5">
-                                <div className={`w-3 h-3 rounded ${week.bg} ${week.border} border`}></div>
-                                <span className={`text-xs font-medium ${week.text}`}>{week.label}</span>
+                                <span className="block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: WEEK_DOT_COLORS[idx] }} />
+                                <span className={`text-[10px] font-medium ${week.text}`}>{week.label}</span>
                             </div>
                         ))}
                     </div>
                 </div>
             </motion.div>
+
+            {/* 选中非今日日期时的提示条 */}
+            {selectedDate && (
+                <motion.div
+                    initial={{ opacity: 0, y: -5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mt-3 flex items-center justify-between bg-primary/10 dark:bg-primary/5 rounded-xl px-4 py-2.5"
+                >
+                    <span className="text-sm font-medium text-primary">
+                        {displayDateLabel} 的餐食
+                    </span>
+                    <button
+                        onClick={() => { setSelectedDate(null); setDateMeals([]); }}
+                        className="text-xs text-primary font-medium flex items-center gap-0.5 hover:opacity-70 transition-opacity"
+                    >
+                        回到今日
+                        <span className="material-icons-round text-xs">close</span>
+                    </button>
+                </motion.div>
+            )}
         </section>
     );
 
@@ -473,35 +613,35 @@ export default function HomePage() {
     };
 
     // 计算已完成餐食数量
-    const completedMealsCount = meals.filter(m => m.isCompleted).length;
+    const completedMealsCount = displayMeals.filter(m => m.isCompleted).length;
 
     // 渲染：今日餐食列表
     const renderMealsList = () => (
         <section>
             <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-                今日餐食
+                {displayDateLabel}餐食
                 <span className="text-xs bg-gray-200 dark:bg-gray-700 px-2 py-0.5 rounded text-text-muted-light dark:text-text-muted-dark font-normal">
-                    已完成 {completedMealsCount}/{meals.length} 餐
+                    已完成 {completedMealsCount}/{displayMeals.length} 餐
                 </span>
             </h3>
-            {mealsLoading ? (
+            {displayMealsLoading ? (
                 <div className="flex justify-center py-8">
                     <span className="material-icons-round text-3xl text-primary animate-spin">refresh</span>
                 </div>
-            ) : meals.length === 0 ? (
+            ) : displayMeals.length === 0 ? (
                 <div className="text-center py-8 text-text-muted-light dark:text-text-muted-dark">
                     <span className="material-icons-round text-4xl mb-2 block opacity-40">restaurant</span>
-                    <p className="text-sm">今日暂无餐食记录</p>
+                    <p className="text-sm">{selectedDate ? '该日暂无餐食记录' : '今日暂无餐食记录'}</p>
                 </div>
             ) : (
                 <div className="space-y-4">
-                    {meals.map(meal => (
+                    {displayMeals.map(meal => (
                         <MealCard
                             key={meal.id}
                             meal={meal}
                             isExpanded={false}
                             onToggleExpand={handleMealCardClick}
-                            onToggleComplete={toggleMealComplete}
+                            onToggleComplete={selectedDate ? undefined : toggleMealComplete}
                         />
                     ))}
                 </div>

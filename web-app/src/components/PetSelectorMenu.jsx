@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePets } from '../hooks/usePets';
 
@@ -45,6 +45,7 @@ const itemVariants = {
 
 export default function PetSelectorMenu({ isOpen, onClose, onSelectPet }) {
     const { pets, setCurrentPet } = usePets();
+    const location = useLocation();
 
     const handlePetClick = (pet) => {
         setCurrentPet(pet.id);
@@ -142,6 +143,7 @@ export default function PetSelectorMenu({ isOpen, onClose, onSelectPet }) {
                             >
                                 <Link
                                     to="/onboarding/step1"
+                                    state={{ from: location.pathname }}
                                     onClick={onClose}
                                     className="w-full flex items-center gap-4 p-4 rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700 hover:border-primary/50 hover:bg-primary/10 transition-all group"
                                 >

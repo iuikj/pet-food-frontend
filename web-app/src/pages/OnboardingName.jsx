@@ -1,12 +1,19 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import OnboardingLayout from '../components/OnboardingLayout';
 
 export default function OnboardingName() {
     const navigate = useNavigate();
+    const location = useLocation();
     const [petPhoto, setPetPhoto] = useState(sessionStorage.getItem('onboarding_pet_photo') || null);
     const [petName, setPetName] = useState(sessionStorage.getItem('onboarding_pet_name') || '');
+
+    // 首次进入 step1 时保存来源路径（后续步骤间跳转不覆盖）
+    if (!sessionStorage.getItem('onboarding_referrer')) {
+        sessionStorage.setItem('onboarding_referrer', location.state?.from || '/');
+    }
+    const backLink = sessionStorage.getItem('onboarding_referrer') || '/';
 
     const takePicture = async () => {
         try {
@@ -41,7 +48,7 @@ export default function OnboardingName() {
         <OnboardingLayout
             currentStep={1}
             totalSteps={3}
-            backLink="/"
+            backLink={backLink}
             onNext={handleNext}
             nextDisabled={!petName.trim()}
         >

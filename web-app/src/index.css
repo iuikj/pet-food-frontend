@@ -155,3 +155,158 @@ textarea,
 select {
   font-size: 16px !important;
 }
+
+/* ============================================
+   react-calendar 自定义样式
+   ============================================ */
+
+.calendar-container .react-calendar {
+  width: 100%;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+}
+
+.calendar-container .react-calendar__navigation {
+  margin-bottom: 0.5rem;
+}
+
+.calendar-container .react-calendar__navigation button {
+  font-size: 1rem;
+  font-weight: 700;
+  color: inherit;
+  min-width: 36px;
+  border-radius: 0.75rem;
+  transition: background-color 0.15s;
+}
+
+.calendar-container .react-calendar__navigation button:hover,
+.calendar-container .react-calendar__navigation button:focus {
+  background-color: rgba(163, 217, 165, 0.15);
+}
+
+.calendar-container .react-calendar__navigation button:disabled {
+  background-color: transparent;
+  opacity: 0.4;
+}
+
+.calendar-container .react-calendar__month-view__weekdays {
+  text-transform: none;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #9ca3af;
+}
+
+.calendar-container .react-calendar__month-view__weekdays abbr {
+  text-decoration: none;
+}
+
+.calendar-container .react-calendar__tile {
+  position: relative;
+  padding: 0.5rem 0.25rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: 0.75rem;
+  transition: all 0.15s;
+  line-height: 1.5;
+}
+
+.calendar-container .react-calendar__tile:hover {
+  background-color: rgba(163, 217, 165, 0.15);
+}
+
+.calendar-container .react-calendar__tile--now {
+  background-color: rgba(163, 217, 165, 0.2) !important;
+  font-weight: 700;
+  color: #22c55e;
+}
+
+.calendar-container .react-calendar__tile--active {
+  background-color: #A3D9A5 !important;
+  color: white !important;
+  font-weight: 700;
+}
+
+.calendar-container .react-calendar__tile--neighboringMonth {
+  opacity: 0.3;
+}
+
+.calendar-container .react-calendar__tile.has-plan-tile {
+  font-weight: 600;
+  background-color: rgba(0, 0, 0, 0.04);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.03);
+}
+
+.calendar-container .react-calendar__tile.status-excellent {
+  background-color: rgba(34, 197, 94, 0.1);
+}
+
+.calendar-container .react-calendar__tile.status-good {
+  background-color: rgba(163, 217, 165, 0.1);
+}
+
+.calendar-container .react-calendar__tile.status-poor {
+  background-color: rgba(239, 68, 68, 0.08);
+}
+
+/* Dark mode overrides */
+@media (prefers-color-scheme: dark) {
+  .calendar-container .react-calendar__navigation button {
+    color: #e5e7eb;
+  }
+  .calendar-container .react-calendar__month-view__weekdays {
+    color: #6b7280;
+  }
+  .calendar-container .react-calendar__tile {
+    color: #e5e7eb;
+  }
+  .calendar-container .react-calendar__tile--now {
+    color: #86efac;
+  }
+  .calendar-container .react-calendar__tile--neighboringMonth {
+    opacity: 0.2;
+  }
+}
+
+.dark .calendar-container .react-calendar__navigation button {
+  color: #e5e7eb;
+}
+.dark .calendar-container .react-calendar__month-view__weekdays {
+  color: #6b7280;
+}
+.dark .calendar-container .react-calendar__tile {
+  color: #e5e7eb;
+}
+.dark .calendar-container .react-calendar__tile--now {
+  color: #86efac;
+}
+
+/* has-plan-tile dark mode */
+.dark .calendar-container .react-calendar__tile.has-plan-tile {
+  background-color: rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+/* ============================================
+   react-calendar 紧凑模式 (主页展开日历)
+   ============================================ */
+
+.calendar-compact .react-calendar__navigation {
+  margin-bottom: 0.25rem;
+}
+
+.calendar-compact .react-calendar__navigation button {
+  font-size: 0.875rem;
+  min-width: 32px;
+  padding: 4px;
+}
+
+.calendar-compact .react-calendar__month-view__weekdays {
+  font-size: 0.65rem;
+}
+
+.calendar-compact .react-calendar__tile {
+  padding: 0.35rem 0.15rem;
+  font-size: 0.8rem;
+  line-height: 1.4;
+}

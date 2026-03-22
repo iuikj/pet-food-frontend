@@ -91,6 +91,7 @@ export default function OnboardingBasic() {
                                 step={1}
                                 unit="岁"
                                 placeholder="0"
+                                compact
                             />
                             <NumberPicker
                                 value={ageMonths}
@@ -100,6 +101,7 @@ export default function OnboardingBasic() {
                                 step={1}
                                 unit="月"
                                 placeholder="0"
+                                compact
                             />
                         </div>
                     </div>

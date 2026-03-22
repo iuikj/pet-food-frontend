@@ -39,7 +39,8 @@ export function useBackButton() {
             // 添加宠物多步骤流程的返回
             if (currentPath.startsWith('/onboarding/')) {
                 if (currentPath === '/onboarding/step1') {
-                    navigate('/');
+                    const referrer = sessionStorage.getItem('onboarding_referrer') || '/';
+                    navigate(referrer);
                 } else if (currentPath === '/onboarding/step2') {
                     navigate('/onboarding/step1');
                 } else if (currentPath === '/onboarding/step3') {

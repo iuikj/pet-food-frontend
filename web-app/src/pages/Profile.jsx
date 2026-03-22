@@ -122,6 +122,7 @@ export default function Profile() {
                         {/* 新增宠物按钮 */}
                         <Link
                             to="/onboarding/step1"
+                            state={{ from: '/profile' }}
                             className="w-full p-6 rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700 hover:border-primary/50 dark:hover:border-primary/50 bg-gray-50/50 dark:bg-surface-dark/30 hover:bg-primary/10 hover:shadow-soft transition-all duration-300 group flex flex-col items-center justify-center gap-2 active:scale-[0.98]"
                         >
                             <div className="w-12 h-12 rounded-full bg-white dark:bg-surface-dark shadow-sm flex items-center justify-center text-text-muted-light group-hover:text-white group-hover:bg-primary transition-all duration-300">

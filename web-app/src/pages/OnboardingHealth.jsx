@@ -85,7 +85,9 @@ export default function OnboardingHealth() {
                 sessionStorage.removeItem('onboarding_pet_weight');
                 sessionStorage.removeItem('onboarding_pet_photo');
 
-                navigate('/');
+                const referrer = sessionStorage.getItem('onboarding_referrer') || '/';
+                sessionStorage.removeItem('onboarding_referrer');
+                navigate(referrer);
             } else {
                 alert(result.message || '创建宠物失败');
                 setSubmitting(false);

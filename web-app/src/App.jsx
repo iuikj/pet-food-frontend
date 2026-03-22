@@ -23,6 +23,7 @@ import Profile from './pages/Profile';
 import ProfileEdit from './pages/ProfileEdit';
 import PetEdit from './pages/PetEdit';
 import { useBackButton } from './hooks/useBackButton';
+import ScrollToTop from './components/ScrollToTop';
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated, isLoading } = useUser();
@@ -90,8 +91,10 @@ function AnimatedRoutes() {
   }, [navigate]);
 
   return (
-    <AnimatePresence mode="wait" initial={false}>
-      <Routes location={location} key={location.pathname}>
+    <>
+      <ScrollToTop />
+      <AnimatePresence mode="wait" initial={false}>
+        <Routes location={location} key={location.pathname}>
         <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
           <Route path="/" element={<HomePage />} />
           <Route path="/calendar" element={<CalendarPage />} />
@@ -112,7 +115,8 @@ function AnimatedRoutes() {
         <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    </AnimatePresence>
+      </AnimatePresence>
+    </>
   );
 }
 
