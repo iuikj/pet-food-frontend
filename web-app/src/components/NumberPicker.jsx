@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { motion } from 'framer-motion';
 
 /**
  * 数值选择器组件（步进器模式）
@@ -29,6 +28,15 @@ export default function NumberPicker({
     const intervalRef = useRef(null);
     const timeoutRef = useRef(null);
     const [isHolding, setIsHolding] = useState(false);
+
+    // refs for touch event binding (non-passive)
+    const decrementBtnRef = useRef(null);
+    const incrementBtnRef = useRef(null);
+
+    // 用 ref 保存最新的回调，避免 addEventListener 闭包过期
+    const startIncrementRef = useRef(null);
+    const startDecrementRef = useRef(null);
+    const stopHoldingRef = useRef(null);
 
     const clampValue = useCallback((val) => {
         const num = parseFloat(val) || 0;
@@ -73,6 +81,52 @@ export default function NumberPicker({
         }
     }, []);
 
+    // 保持 ref 指向最新回调
+    useEffect(() => {
+        startIncrementRef.current = startIncrement;
+        startDecrementRef.current = startDecrement;
+        stopHoldingRef.current = stopHolding;
+    });
+
+    // 使用非 passive 的 touch 事件监听器（解决 preventDefault 警告）
+    useEffect(() => {
+        const decBtn = decrementBtnRef.current;
+        const incBtn = incrementBtnRef.current;
+
+        const handleDecTouchStart = (e) => {
+            e.preventDefault();
+            startDecrementRef.current?.();
+        };
+        const handleIncTouchStart = (e) => {
+            e.preventDefault();
+            startIncrementRef.current?.();
+        };
+        const handleTouchEnd = (e) => {
+            e.preventDefault();
+            stopHoldingRef.current?.();
+        };
+
+        if (decBtn) {
+            decBtn.addEventListener('touchstart', handleDecTouchStart, { passive: false });
+            decBtn.addEventListener('touchend', handleTouchEnd, { passive: false });
+        }
+        if (incBtn) {
+            incBtn.addEventListener('touchstart', handleIncTouchStart, { passive: false });
+            incBtn.addEventListener('touchend', handleTouchEnd, { passive: false });
+        }
+
+        return () => {
+            if (decBtn) {
+                decBtn.removeEventListener('touchstart', handleDecTouchStart);
+                decBtn.removeEventListener('touchend', handleTouchEnd);
+            }
+            if (incBtn) {
+                incBtn.removeEventListener('touchstart', handleIncTouchStart);
+                incBtn.removeEventListener('touchend', handleTouchEnd);
+            }
+        };
+    }, []);
+
     useEffect(() => {
         return () => {
             stopHolding();
@@ -97,19 +151,19 @@ export default function NumberPicker({
         }
     };
 
-    // 触摸优化的按钮样式
+    // 按钮样式（使用纯 CSS active 状态替代 framer-motion whileTap）
     const buttonClass = compact
         ? `w-9 h-9 flex-shrink-0 rounded-xl flex items-center justify-center
            bg-primary/10 dark:bg-primary/20 text-primary
            font-bold text-lg
-           active:bg-primary active:text-white
-           transition-colors duration-150
+           active:bg-primary active:text-white active:scale-90
+           transition-all duration-150
            touch-manipulation select-none`
         : `w-11 h-11 flex-shrink-0 rounded-xl flex items-center justify-center
            bg-primary/10 dark:bg-primary/20 text-primary
            font-bold text-xl
-           active:bg-primary active:text-white
-           transition-colors duration-150
+           active:bg-primary active:text-white active:scale-90
+           transition-all duration-150
            touch-manipulation select-none`;
 
     return (
@@ -121,19 +175,17 @@ export default function NumberPicker({
             )}
             <div className={`flex items-center ${compact ? 'gap-1 p-1.5' : 'gap-2 p-2'} bg-background-light dark:bg-background-dark rounded-2xl shadow-inner`}>
                 {/* 减少按钮 */}
-                <motion.button
+                <button
+                    ref={decrementBtnRef}
                     type="button"
-                    whileTap={{ scale: 0.9 }}
                     className={buttonClass}
                     onMouseDown={startDecrement}
                     onMouseUp={stopHolding}
                     onMouseLeave={stopHolding}
-                    onTouchStart={(e) => { e.preventDefault(); startDecrement(); }}
-                    onTouchEnd={(e) => { e.preventDefault(); stopHolding(); }}
                     disabled={parseFloat(value) <= min}
                 >
                     <span className={`material-icons-round ${compact ? 'text-lg' : 'text-xl'}`}>remove</span>
-                </motion.button>
+                </button>
 
                 {/* 数值输入 */}
                 <div className="flex-1 flex items-center justify-center gap-1 px-2">
@@ -154,19 +206,17 @@ export default function NumberPicker({
                 </div>
 
                 {/* 增加按钮 */}
-                <motion.button
+                <button
+                    ref={incrementBtnRef}
                     type="button"
-                    whileTap={{ scale: 0.9 }}
                     className={buttonClass}
                     onMouseDown={startIncrement}
                     onMouseUp={stopHolding}
                     onMouseLeave={stopHolding}
-                    onTouchStart={(e) => { e.preventDefault(); startIncrement(); }}
-                    onTouchEnd={(e) => { e.preventDefault(); stopHolding(); }}
                     disabled={parseFloat(value) >= max}
                 >
                     <span className={`material-icons-round ${compact ? 'text-lg' : 'text-xl'}`}>add</span>
-                </motion.button>
+                </button>
             </div>
         </div>
     );

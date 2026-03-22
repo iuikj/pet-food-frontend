@@ -69,7 +69,7 @@ export default function EnhancedTagSelect({
                         key={value}
                         whileTap={{ scale: 0.92 }}
                         animate={isSelected ? { scale: [1, 1.05, 1] } : { scale: 1 }}
-                        transition={springConfig}
+                        transition={isSelected ? { scale: { type: 'tween', duration: 0.3 } } : springConfig}
                         onClick={() => handleSelect(value)}
                         className={`relative flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-full shadow-soft text-sm font-semibold border transition-all whitespace-nowrap ${isSelected
                             ? 'bg-primary text-white border-primary shadow-glow'

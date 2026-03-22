@@ -184,6 +184,7 @@ export default function HomePage() {
     const [selectedDate, setSelectedDate] = useState(null);       // null = 今日
     const [dateMeals, setDateMeals] = useState([]);
     const [dateMealsLoading, setDateMealsLoading] = useState(false);
+    const [dateNutritionSummary, setDateNutritionSummary] = useState(null);
 
     const dateMap = useMemo(() => buildDateMap(calendarData), [calendarData]);
 
@@ -211,6 +212,7 @@ export default function HomePage() {
         if (isToday) {
             setSelectedDate(null);   // 回到"今日"
             setDateMeals([]);
+            setDateNutritionSummary(null);
             return;
         }
         setSelectedDate(date);
@@ -218,7 +220,11 @@ export default function HomePage() {
 
     // selectedDate 变化时加载指定日期餐食
     useEffect(() => {
-        if (!selectedDate || !currentPet?.id) { setDateMeals([]); return; }
+        if (!selectedDate || !currentPet?.id) {
+            setDateMeals([]);
+            setDateNutritionSummary(null);
+            return;
+        }
         let cancelled = false;
         setDateMealsLoading(true);
         mealsApi.getMealsByDate(currentPet.id, formatDate(selectedDate))
@@ -234,9 +240,18 @@ export default function HomePage() {
                         isCompleted: m.is_completed || false,
                         _raw: m,
                     })));
-                } else { setDateMeals([]); }
+                    setDateNutritionSummary(res.data.nutrition_summary || null);
+                } else {
+                    setDateMeals([]);
+                    setDateNutritionSummary(null);
+                }
             })
-            .catch(() => { if (!cancelled) setDateMeals([]); })
+            .catch(() => {
+                if (!cancelled) {
+                    setDateMeals([]);
+                    setDateNutritionSummary(null);
+                }
+            })
             .finally(() => { if (!cancelled) setDateMealsLoading(false); });
         return () => { cancelled = true; };
     }, [selectedDate, currentPet?.id]);
@@ -418,7 +433,7 @@ export default function HomePage() {
                         {displayDateLabel} 的餐食
                     </span>
                     <button
-                        onClick={() => { setSelectedDate(null); setDateMeals([]); }}
+                        onClick={() => { setSelectedDate(null); setDateMeals([]); setDateNutritionSummary(null); }}
                         className="text-xs text-primary font-medium flex items-center gap-0.5 hover:opacity-70 transition-opacity"
                     >
                         回到今日
@@ -507,11 +522,14 @@ export default function HomePage() {
         </section>
     );
 
+    // 展示的营养摘要：选中日期 or 今日
+    const displayNutritionSummary = selectedDate ? dateNutritionSummary : nutritionSummary;
+
     // 渲染：每日营养进度（真实数据）
     const renderNutritionProgress = () => {
-        if (!nutritionSummary) return null;
+        if (!displayNutritionSummary) return null;
 
-        const { total_calories, consumed_calories, protein, fat, carbs } = nutritionSummary;
+        const { total_calories, consumed_calories, protein, fat, carbs } = displayNutritionSummary;
         const remainingCalories = Math.max(0, (total_calories || 0) - (consumed_calories || 0));
         const caloriePercent = total_calories > 0
             ? Math.min(100, Math.round((consumed_calories / total_calories) * 100))
@@ -539,9 +557,9 @@ export default function HomePage() {
                 <div className="relative z-10">
                     <div className="flex justify-between items-start mb-6">
                         <div>
-                            <h3 className="font-bold text-lg">每日营养</h3>
+                            <h3 className="font-bold text-lg">{selectedDate ? displayDateLabel : '每日'}营养</h3>
                             <p className="text-sm opacity-70">
-                                {caloriePercent > 0 ? `已完成每日目标的${caloriePercent}%` : '今日尚未开始打卡'}
+                                {caloriePercent > 0 ? `已完成${selectedDate ? '' : '每日'}目标的${caloriePercent}%` : `${selectedDate ? '当日' : '今日'}尚未开始打卡`}
                             </p>
                         </div>
                         <div className="bg-white/50 dark:bg-white/10 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1">

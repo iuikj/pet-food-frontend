@@ -87,7 +87,7 @@ export default function OnboardingHealth() {
 
                 const referrer = sessionStorage.getItem('onboarding_referrer') || '/';
                 sessionStorage.removeItem('onboarding_referrer');
-                navigate(referrer);
+                navigate(referrer, { replace: true });
             } else {
                 alert(result.message || '创建宠物失败');
                 setSubmitting(false);
