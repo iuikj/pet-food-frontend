@@ -6,6 +6,7 @@ import { usePets } from '../hooks/usePets';
 import { useUser } from '../hooks/useUser';
 import PetCard from '../components/PetCard';
 import Modal from '../components/Modal';
+import Skeleton from '../components/ui/Skeleton';
 
 export default function Profile() {
     const navigate = useNavigate();
@@ -41,8 +42,42 @@ export default function Profile() {
 
     if (userLoading) {
         return (
-            <div className="h-screen flex items-center justify-center">
-                <span className="material-icons-round text-4xl text-primary animate-spin">refresh</span>
+            <div className="pb-32 overflow-x-hidden">
+                {/* Header skeleton */}
+                <div className="px-6 pt-12 pb-2 flex justify-end gap-3">
+                    <Skeleton.Circle size={40} />
+                    <Skeleton.Circle size={40} />
+                </div>
+                <div className="px-6 space-y-8">
+                    {/* User info skeleton */}
+                    <div className="flex items-center gap-4">
+                        <Skeleton.Circle size={80} />
+                        <div className="space-y-2">
+                            <Skeleton className="h-5 w-28" />
+                            <Skeleton className="h-4 w-40" />
+                        </div>
+                    </div>
+                    {/* Pet cards skeleton */}
+                    <div>
+                        <div className="flex justify-between items-end mb-4">
+                            <Skeleton className="h-6 w-24" />
+                            <Skeleton className="h-4 w-16" />
+                        </div>
+                        <div className="space-y-4">
+                            {Array.from({ length: 2 }, (_, i) => (
+                                <div key={i} className="bg-white dark:bg-surface-dark rounded-2xl p-5 shadow-soft">
+                                    <div className="flex items-center gap-3">
+                                        <Skeleton.Circle size={48} />
+                                        <div className="flex-1 space-y-2">
+                                            <Skeleton className="h-4 w-24" />
+                                            <Skeleton className="h-3 w-36" />
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
             </div>
         );
     }

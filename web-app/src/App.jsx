@@ -24,11 +24,58 @@ import ProfileEdit from './pages/ProfileEdit';
 import PetEdit from './pages/PetEdit';
 import { useBackButton } from './hooks/useBackButton';
 import ScrollToTop from './components/ScrollToTop';
+import Skeleton from './components/ui/Skeleton';
 
-function FullPageSpinner() {
+function AppSkeleton() {
   return (
-    <div className="h-screen flex items-center justify-center">
-      <span className="material-icons-round text-4xl text-primary animate-spin">refresh</span>
+    <div className="h-screen bg-background-light dark:bg-background-dark overflow-hidden">
+      {/* Header */}
+      <div className="px-6 pt-12 pb-4 flex justify-between items-center">
+        <div className="flex items-center gap-3">
+          <Skeleton.Circle size={48} />
+          <div className="space-y-2">
+            <Skeleton className="h-3 w-16" />
+            <Skeleton className="h-5 w-24" />
+          </div>
+        </div>
+        <div className="flex gap-3">
+          <Skeleton.Circle size={40} />
+          <Skeleton.Circle size={40} />
+        </div>
+      </div>
+      {/* Week bar */}
+      <div className="px-6 mb-6">
+        <div className="space-y-2 mb-4">
+          <Skeleton className="h-7 w-20" />
+          <Skeleton className="h-4 w-36" />
+        </div>
+        <div className="flex justify-between bg-white dark:bg-surface-dark p-3 rounded-2xl">
+          {Array.from({ length: 7 }, (_, i) => (
+            <div key={i} className="flex flex-col items-center gap-1.5">
+              <Skeleton className="h-3 w-4" />
+              <Skeleton.Circle size={36} />
+            </div>
+          ))}
+        </div>
+      </div>
+      {/* Nutrition card */}
+      <div className="px-6 mb-6">
+        <Skeleton className="h-48 w-full rounded-3xl" />
+      </div>
+      {/* Meal cards */}
+      <div className="px-6 space-y-4">
+        <Skeleton className="h-5 w-28 mb-2" />
+        {Array.from({ length: 3 }, (_, i) => (
+          <div key={i} className="flex items-center gap-4 bg-white dark:bg-surface-dark p-4 rounded-2xl">
+            <Skeleton.Circle size={44} />
+            <div className="flex-1 space-y-2">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-3 w-36" />
+            </div>
+            <Skeleton className="h-8 w-16 rounded-xl" />
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -37,7 +84,7 @@ function ProtectedRoute({ children }) {
   const { isAuthenticated, isLoading } = useUser();
 
   if (isLoading) {
-    return <FullPageSpinner />;
+    return <AppSkeleton />;
   }
 
   if (!isAuthenticated) {
@@ -51,7 +98,7 @@ function PublicRoute({ children }) {
   const { isAuthenticated, isLoading } = useUser();
 
   if (isLoading) {
-    return <FullPageSpinner />;
+    return <AppSkeleton />;
   }
 
   if (isAuthenticated) {

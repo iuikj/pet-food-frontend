@@ -5,6 +5,7 @@ import { Toast } from '@capacitor/toast';
 import { pageTransitions } from '../utils/animations';
 import { usePets } from '../hooks/usePets';
 import { plansApi } from '../api';
+import Skeleton from '../components/ui/Skeleton';
 
 export default function RecipesPage() {
     const navigate = useNavigate();
@@ -255,9 +256,27 @@ export default function RecipesPage() {
 
             <main className="px-6">
                 {loading ? (
-                    <div className="flex flex-col items-center justify-center py-20">
-                        <div className="w-10 h-10 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
-                        <p className="text-sm text-text-muted-light dark:text-text-muted-dark mt-4">加载中...</p>
+                    <div className="space-y-4 mt-2">
+                        {Array.from({ length: 3 }, (_, i) => (
+                            <div key={i} className="bg-white dark:bg-surface-dark rounded-2xl p-5 shadow-soft border border-gray-100 dark:border-gray-800">
+                                <div className="flex items-start gap-3 mb-3">
+                                    <Skeleton className="h-8 w-8 rounded-lg" />
+                                    <div className="flex-1 space-y-2">
+                                        <Skeleton className="h-4 w-32" />
+                                        <Skeleton className="h-3 w-48" />
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-4 mb-4">
+                                    <Skeleton className="h-3 w-20" />
+                                    <Skeleton className="h-3 w-24" />
+                                </div>
+                                <div className="flex gap-2">
+                                    <Skeleton className="h-10 flex-1 rounded-xl" />
+                                    <Skeleton className="h-10 w-16 rounded-xl" />
+                                    <Skeleton className="h-10 w-16 rounded-xl" />
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 ) : plans.length === 0 ? (
                     renderEmpty()

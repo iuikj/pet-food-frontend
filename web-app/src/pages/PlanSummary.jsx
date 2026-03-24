@@ -8,6 +8,7 @@ import { usePets } from '../hooks/usePets';
 import { plansApi } from '../api';
 import { transformPetDietPlan } from '../models/dietPlan';
 import PlanDetails from './PlanDetails';
+import Skeleton from '../components/ui/Skeleton';
 
 export default function PlanSummary() {
     const navigate = useNavigate();
@@ -89,11 +90,46 @@ export default function PlanSummary() {
                         <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full flex items-center justify-center text-text-muted-light dark:text-text-muted-dark hover:bg-gray-100 dark:hover:bg-surface-dark transition-colors">
                             <span className="material-symbols-outlined text-lg">arrow_back</span>
                         </button>
-                        <h1 className="text-xl font-bold">加载中...</h1>
+                        <div className="space-y-2">
+                            <Skeleton className="h-5 w-40" />
+                            <Skeleton className="h-3 w-28" />
+                        </div>
                     </div>
                 </header>
-                <main className="px-6 flex flex-col items-center justify-center min-h-[60vh]">
-                    <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+                <main className="px-6 space-y-6">
+                    {/* Nutrition target skeleton */}
+                    <div>
+                        <Skeleton className="h-5 w-28 mb-4" />
+                        <Skeleton className="h-28 w-full rounded-[2rem] mb-3" />
+                        <div className="grid grid-cols-3 gap-3">
+                            {Array.from({ length: 3 }, (_, i) => (
+                                <Skeleton key={i} className="h-16 rounded-2xl" />
+                            ))}
+                        </div>
+                    </div>
+                    {/* Week tabs skeleton */}
+                    <div className="flex gap-4 mb-5">
+                        {Array.from({ length: 4 }, (_, i) => (
+                            <Skeleton key={i} className="h-10 w-20 rounded-xl" />
+                        ))}
+                    </div>
+                    {/* Timeline skeleton */}
+                    <div className="space-y-6">
+                        {Array.from({ length: 3 }, (_, i) => (
+                            <div key={i} className="flex gap-4">
+                                <Skeleton.Circle size={40} />
+                                <div className="flex-1 bg-white dark:bg-surface-dark rounded-2xl p-4 shadow-soft">
+                                    <Skeleton className="h-4 w-32 mb-3" />
+                                    <div className="flex gap-2 mb-3">
+                                        <Skeleton className="h-6 w-16 rounded-md" />
+                                        <Skeleton className="h-6 w-20 rounded-md" />
+                                        <Skeleton className="h-6 w-14 rounded-md" />
+                                    </div>
+                                    <Skeleton className="h-8 w-full rounded-xl" />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 </main>
             </motion.div>
         );

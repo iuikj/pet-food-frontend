@@ -234,8 +234,8 @@ export default function CalendarPage() {
                 {/* 日历组件 */}
                 <div className="calendar-container bg-white dark:bg-surface-dark rounded-2xl shadow-soft p-4 relative">
                     {isLoading && (
-                        <div className="absolute inset-0 bg-white/60 dark:bg-surface-dark/60 z-10 flex items-center justify-center rounded-2xl">
-                            <span className="material-icons-round text-2xl text-primary animate-spin">refresh</span>
+                        <div className="absolute inset-0 bg-white/60 dark:bg-surface-dark/60 z-10 rounded-2xl overflow-hidden">
+                            <div className="absolute inset-0 animate-shimmer bg-gradient-to-r from-transparent via-white/40 dark:via-white/10 to-transparent" />
                         </div>
                     )}
                     <Calendar

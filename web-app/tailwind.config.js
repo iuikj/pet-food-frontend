@@ -33,9 +33,16 @@ export default {
         'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
         'glow': '0 0 15px rgba(163, 217, 165, 0.4)',
       },
+      keyframes: {
+        shimmer: {
+          '0%': { transform: 'translateX(-100%)' },
+          '100%': { transform: 'translateX(100%)' },
+        },
+      },
       animation: {
         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
         'spin-slow': 'spin 3s linear infinite',
+        shimmer: 'shimmer 1.5s infinite',
       },
       spacing: {
         'safe-top': 'env(safe-area-inset-top)',
