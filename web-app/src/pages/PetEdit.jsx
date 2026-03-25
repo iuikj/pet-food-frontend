@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { usePets } from '../hooks/usePets';
+import usePhotoSelect from '../hooks/usePhotoSelect';
 import { fromMonths, toMonths } from '../utils/petUtils';
 
 export default function PetEdit() {
     const navigate = useNavigate();
     const { id } = useParams();
     const { getPetById, updatePet, deletePet, uploadPetAvatar, isLoading } = usePets();
+    const { selectPhoto } = usePhotoSelect();
 
     const petData = getPetById(id);
 
@@ -52,28 +53,15 @@ export default function PetEdit() {
     }, [petData, isLoading, navigate]);
 
     const handlePhotoChange = async () => {
-        try {
-            const image = await Camera.getPhoto({
-                quality: 90,
-                allowEditing: true,
-                resultType: CameraResultType.DataUrl,
-                source: CameraSource.Prompt,
-                width: 500,
-                height: 500,
-                saveToGallery: false,
-                promptLabelHeader: '选择宠物照片',
-                promptLabelPhoto: '从相册选择',
-                promptLabelPicture: '拍照'
-            });
-            setPhoto(image.dataUrl);
-
-            // 转换为 File
-            const response = await fetch(image.dataUrl);
-            const blob = await response.blob();
-            const file = new File([blob], 'pet_avatar.jpg', { type: 'image/jpeg' });
-            setPhotoFile(file);
-        } catch (error) {
-            console.error('选择照片失败:', error);
+        const result = await selectPhoto({
+            fileName: 'pet_avatar.jpg',
+            promptLabelHeader: '选择宠物照片',
+            promptLabelPhoto: '从相册选择',
+            promptLabelPicture: '拍照',
+        });
+        if (result) {
+            setPhoto(result.dataUrl);
+            setPhotoFile(result.file);
         }
     };
 

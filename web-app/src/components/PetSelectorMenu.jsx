@@ -104,9 +104,9 @@ export default function PetSelectorMenu({ isOpen, onClose, onSelectPet }) {
                                 >
                                     {/* 宠物头像 */}
                                     <div className="w-14 h-14 rounded-full bg-gray-100 dark:bg-gray-700 flex-shrink-0 overflow-hidden border-2 border-white dark:border-gray-600 shadow-sm group-hover:border-primary/50 transition-colors">
-                                        {pet.avatar ? (
+                                        {pet.avatar_url ? (
                                             <img
-                                                src={pet.avatar}
+                                                src={pet.avatar_url}
                                                 alt={pet.name}
                                                 className="w-full h-full object-cover"
                                             />

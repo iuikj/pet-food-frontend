@@ -37,11 +37,11 @@ export default function PetCard({ pet, onDelete, showActions = true, variant = '
             <div className="flex gap-4 relative z-10">
                 {/* 宠物头像 */}
                 <div className="relative w-24 h-24 flex-shrink-0">
-                    {pet.avatar ? (
+                    {pet.avatar_url ? (
                         <img
                             alt={pet.name}
                             className="w-full h-full object-cover rounded-2xl shadow-sm"
-                            src={pet.avatar}
+                            src={pet.avatar_url}
                         />
                     ) : (
                         <div className="w-full h-full rounded-2xl bg-accent-blue/10 dark:bg-accent-blue/5 flex items-center justify-center text-accent-blue border border-accent-blue/20">

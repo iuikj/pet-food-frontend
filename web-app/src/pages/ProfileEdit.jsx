@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
+import usePhotoSelect from '../hooks/usePhotoSelect';
 import { useUser } from '../hooks/useUser';
 
 export default function ProfileEdit() {
     const navigate = useNavigate();
     const { user, updateUser, updateAvatar, isLoading } = useUser();
+    const { selectPhoto } = usePhotoSelect();
 
     const [avatar, setAvatar] = useState('');
     const [avatarFile, setAvatarFile] = useState(null);
@@ -29,28 +30,17 @@ export default function ProfileEdit() {
     }, [user]);
 
     const handleAvatarChange = async () => {
-        try {
-            const image = await Camera.getPhoto({
-                quality: 90,
-                allowEditing: true,
-                resultType: CameraResultType.DataUrl,
-                source: CameraSource.Prompt,
-                width: 400,
-                height: 400,
-                saveToGallery: false,
-                promptLabelHeader: '选择头像',
-                promptLabelPhoto: '从相册选择',
-                promptLabelPicture: '拍照'
-            });
-            setAvatar(image.dataUrl);
-
-            // 转换 DataUrl 为 File
-            const response = await fetch(image.dataUrl);
-            const blob = await response.blob();
-            const file = new File([blob], 'avatar.jpg', { type: 'image/jpeg' });
-            setAvatarFile(file);
-        } catch (error) {
-            console.error('选择头像失败:', error);
+        const result = await selectPhoto({
+            width: 400,
+            height: 400,
+            fileName: 'avatar.jpg',
+            promptLabelHeader: '选择头像',
+            promptLabelPhoto: '从相册选择',
+            promptLabelPicture: '拍照',
+        });
+        if (result) {
+            setAvatar(result.dataUrl);
+            setAvatarFile(result.file);
         }
     };
 

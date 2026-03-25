@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
+import usePhotoSelect from '../hooks/usePhotoSelect';
 import OnboardingLayout from '../components/OnboardingLayout';
 
 export default function OnboardingName() {
@@ -8,6 +8,7 @@ export default function OnboardingName() {
     const location = useLocation();
     const [petPhoto, setPetPhoto] = useState(sessionStorage.getItem('onboarding_pet_photo') || null);
     const [petName, setPetName] = useState(sessionStorage.getItem('onboarding_pet_name') || '');
+    const { selectPhoto } = usePhotoSelect();
 
     // 首次进入 step1 时保存来源路径（后续步骤间跳转不覆盖）
     if (!sessionStorage.getItem('onboarding_referrer')) {
@@ -16,24 +17,14 @@ export default function OnboardingName() {
     const backLink = sessionStorage.getItem('onboarding_referrer') || '/';
 
     const takePicture = async () => {
-        try {
-            const image = await Camera.getPhoto({
-                quality: 90,
-                allowEditing: true,
-                resultType: CameraResultType.DataUrl,
-                source: CameraSource.Prompt,
-                width: 500,
-                height: 500,
-                saveToGallery: false,
-                promptLabelHeader: '选择照片来源',
-                promptLabelPhoto: '从相册选择',
-                promptLabelPicture: '拍照'
-            });
-
-            setPetPhoto(image.dataUrl);
-            sessionStorage.setItem('onboarding_pet_photo', image.dataUrl);
-        } catch (error) {
-            console.error('选择照片失败:', error);
+        const result = await selectPhoto({
+            promptLabelHeader: '选择照片来源',
+            promptLabelPhoto: '从相册选择',
+            promptLabelPicture: '拍照',
+        });
+        if (result) {
+            setPetPhoto(result.dataUrl);
+            sessionStorage.setItem('onboarding_pet_photo', result.dataUrl);
         }
     };
 
