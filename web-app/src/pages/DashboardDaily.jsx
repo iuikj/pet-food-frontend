@@ -225,6 +225,16 @@ export default function DashboardDaily() {
     // 已完成餐食数
     const completedMealsCount = meals.filter(m => m.isCompleted).length;
 
+    // 判断目标日期是否在未来（不含今天）
+    const isDateInFuture = (() => {
+        if (!targetDate) return false;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const target = new Date(targetDate);
+        target.setHours(0, 0, 0, 0);
+        return target > today;
+    })();
+
     // 本周日历
     const getThisWeekDays = () => {
         const today = new Date();
@@ -325,6 +335,11 @@ export default function DashboardDaily() {
                         <span className="text-xs bg-gray-200 dark:bg-gray-700 px-2 py-0.5 rounded text-text-muted-light dark:text-text-muted-dark font-normal">
                             已完成 {completedMealsCount}/{meals.length} 餐
                         </span>
+                        {isDateInFuture && (
+                            <span className="text-xs bg-primary/15 text-primary px-2 py-0.5 rounded font-medium">
+                                仅查看
+                            </span>
+                        )}
                     </h3>
                     {mealsLoading ? (
                         <div className="space-y-4">
@@ -353,6 +368,7 @@ export default function DashboardDaily() {
                                     isExpanded={false}
                                     onToggleExpand={handleMealCardClick}
                                     onToggleComplete={toggleMealComplete}
+                                    readOnly={isDateInFuture}
                                 />
                             ))}
                         </div>

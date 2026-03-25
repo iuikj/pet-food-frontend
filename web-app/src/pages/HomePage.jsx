@@ -11,7 +11,7 @@ import PlanDetails from './PlanDetails';
 import { usePets } from '../hooks/usePets';
 import { useMeals } from '../hooks/useMeals';
 import { weightsApi, calendarApi, mealsApi } from '../api';
-import { WEEK_COLORS, WEEK_DAY_LABELS, WEEK_DOT_COLORS } from '../utils/calendarConstants';
+import { WEEK_DAY_LABELS } from '../utils/calendarConstants';
 
 /** YYYY-MM-DD 格式化 */
 function formatDate(date) {
@@ -21,26 +21,11 @@ function formatDate(date) {
     return `${y}-${m}-${d}`;
 }
 
-/** 构建 dateMap: { 'YYYY-MM-DD': { ...dayData, weekIndex } } */
+/** 构建 dateMap: { 'YYYY-MM-DD': { ...dayData } } */
 function buildDateMap(days) {
     if (!days || days.length === 0) return {};
-    const planDays = days.filter(d => d.has_plan);
-    if (planDays.length === 0) {
-        const map = {};
-        days.forEach(d => { map[d.date] = { ...d, weekIndex: -1 }; });
-        return map;
-    }
-    const sorted = [...planDays].sort((a, b) => a.date.localeCompare(b.date));
-    const planStart = new Date(sorted[0].date);
     const map = {};
-    days.forEach(d => {
-        let weekIndex = -1;
-        if (d.has_plan) {
-            const diff = Math.floor((new Date(d.date) - planStart) / 86400000);
-            weekIndex = Math.min(3, Math.floor(diff / 7));
-        }
-        map[d.date] = { ...d, weekIndex };
-    });
+    days.forEach(d => { map[d.date] = { ...d }; });
     return map;
 }
 
@@ -273,24 +258,23 @@ export default function HomePage() {
         if (view !== 'month') return null;
         const key = formatDate(date);
         const dayData = dateMap[key];
-        if (!dayData?.has_plan || dayData.weekIndex < 0) return null;
-        const dotColor = WEEK_DOT_COLORS[dayData.weekIndex] || WEEK_DOT_COLORS[0];
+        if (!dayData?.has_plan) return null;
         return (
             <div className="flex justify-center mt-0.5">
-                <span className="block w-1.5 h-1.5 rounded-full" style={{ backgroundColor: dotColor }} />
+                <span className="block w-1.5 h-1.5 rounded-full bg-primary" />
             </div>
         );
     }, [dateMap]);
 
     const calendarTileClassName = useCallback(({ date, view }) => {
         if (view !== 'month') return '';
-        const key = formatDate(date);
-        const dayData = dateMap[key];
-        const classes = [];
-        if (dayData?.has_plan) classes.push('has-plan-tile');
-        if (dayData?.status && dayData.status !== 'none') classes.push(`status-${dayData.status}`);
-        return classes.join(' ');
-    }, [dateMap]);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const d = new Date(date);
+        d.setHours(0, 0, 0, 0);
+        if (d < today) return 'past-date';
+        return '';
+    }, []);
 
     // --- 折叠状态：当前周条 (Mon-Sun, 7 天) ---
     const getThisWeekDays = () => {
@@ -312,7 +296,6 @@ export default function HomePage() {
                 isToday: d.toDateString() === today.toDateString(),
                 isSelected: selectedDate && d.toDateString() === selectedDate.toDateString(),
                 hasPlan: dayData?.has_plan || false,
-                weekIndex: dayData?.weekIndex ?? -1,
             };
         });
     };
@@ -347,16 +330,11 @@ export default function HomePage() {
             {!isCalendarExpanded && (
                 <div className="flex justify-between items-center bg-white dark:bg-surface-dark p-3 rounded-2xl shadow-soft gap-1">
                     {thisWeekDays.map((day, idx) => {
-                        const dotColor = day.hasPlan && day.weekIndex >= 0
-                            ? WEEK_DOT_COLORS[day.weekIndex]
-                            : null;
                         return (
                             <button
                                 key={idx}
                                 onClick={() => handleDayClick(day.fullDate)}
-                                className={`flex flex-col items-center gap-1 flex-1 py-1 rounded-xl transition-all duration-150
-                                    ${day.isSelected ? 'bg-primary/15' : ''}
-                                    ${day.isToday && !day.isSelected ? '' : ''}`}
+                                className="flex flex-col items-center gap-1 flex-1 py-1 rounded-xl transition-all duration-150"
                             >
                                 <span className={`text-[10px] font-semibold
                                     ${day.isToday ? 'text-primary' : 'text-text-muted-light dark:text-text-muted-dark'}`}>
@@ -366,17 +344,15 @@ export default function HomePage() {
                                     ${day.isToday
                                         ? 'bg-primary text-white dark:text-gray-900 font-bold shadow-glow'
                                         : day.isSelected
-                                            ? 'bg-primary/20 text-primary font-bold'
-                                            : day.hasPlan
-                                                ? 'bg-gray-100 dark:bg-gray-800'
-                                                : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'}`}
+                                            ? 'bg-gray-200 dark:bg-gray-700 font-bold'
+                                            : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'}`}
                                 >
                                     {day.dateNum}
                                 </div>
                                 {/* 圆点指示 */}
                                 <div className="h-1.5 flex items-center justify-center">
-                                    {dotColor ? (
-                                        <span className="block w-1.5 h-1.5 rounded-full" style={{ backgroundColor: dotColor }} />
+                                    {day.hasPlan ? (
+                                        <span className="block w-1.5 h-1.5 rounded-full bg-primary" />
                                     ) : (
                                         day.isToday ? <span className="block w-1 h-1 rounded-full bg-primary" /> : null
                                     )}
@@ -402,6 +378,7 @@ export default function HomePage() {
                         locale="zh-CN"
                         calendarType="iso8601"
                         value={selectedDate || new Date()}
+                        activeStartDate={calendarActiveDate}
                         tileContent={calendarTileContent}
                         tileClassName={calendarTileClassName}
                         onClickDay={handleDayClick}
@@ -411,14 +388,21 @@ export default function HomePage() {
                         minDetail="month"
                         formatDay={(_locale, date) => date.getDate()}
                     />
-                    {/* 图例 */}
-                    <div className="flex flex-wrap gap-3 pt-2 mt-1 border-t border-gray-100 dark:border-gray-800">
-                        {WEEK_COLORS.map((week, idx) => (
-                            <div key={idx} className="flex items-center gap-1.5">
-                                <span className="block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: WEEK_DOT_COLORS[idx] }} />
-                                <span className={`text-[10px] font-medium ${week.text}`}>{week.label}</span>
-                            </div>
-                        ))}
+                    {/* 分割线 + 回到今日 */}
+                    <div className="border-t border-gray-100 dark:border-gray-800 mt-1.5 pt-1.5 flex justify-end">
+                        <button
+                            onClick={() => {
+                                const today = new Date();
+                                setCalendarActiveDate(new Date(today.getFullYear(), today.getMonth(), 1));
+                                setSelectedDate(null);
+                                setDateMeals([]);
+                                setDateNutritionSummary(null);
+                            }}
+                            className="px-2.5 py-1 rounded-lg bg-primary/10 text-primary font-bold text-xs flex items-center justify-center hover:bg-primary/20 active:scale-95 transition-all"
+                            title="回到今日"
+                        >
+                            今
+                        </button>
                     </div>
                 </div>
             </motion.div>

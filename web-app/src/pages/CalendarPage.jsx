@@ -6,7 +6,6 @@ import 'react-calendar/dist/Calendar.css';
 import { pageTransitions } from '../utils/animations';
 import { usePets } from '../hooks/usePets';
 import { calendarApi } from '../api';
-import { WEEK_COLORS, WEEK_DOT_COLORS } from '../utils/calendarConstants';
 
 /**
  * 格式化日期为 YYYY-MM-DD
@@ -19,36 +18,33 @@ function formatDate(date) {
 }
 
 /**
- * 根据日期列表构建 dateMap，计算每日所属周索引
+ * 根据日期列表构建 dateMap
  */
 function buildDateMap(days) {
     if (!days || days.length === 0) return {};
-
-    // 找到最早的 has_plan 日期作为计划起点
-    const planDays = days.filter(d => d.has_plan);
-    if (planDays.length === 0) {
-        // 无计划日期，仅构建基础 map
-        const map = {};
-        days.forEach(d => {
-            map[d.date] = { ...d, weekIndex: -1 };
-        });
-        return map;
-    }
-
-    const sortedPlanDays = [...planDays].sort((a, b) => a.date.localeCompare(b.date));
-    const planStart = new Date(sortedPlanDays[0].date);
-
     const map = {};
     days.forEach(d => {
-        let weekIndex = -1;
-        if (d.has_plan) {
-            const dayDate = new Date(d.date);
-            const diffDays = Math.floor((dayDate - planStart) / 86400000);
-            weekIndex = Math.min(3, Math.floor(diffDays / 7));
-        }
-        map[d.date] = { ...d, weekIndex };
+        map[d.date] = { ...d };
     });
     return map;
+}
+
+/** 判断日期是否在今天之前（不含今天） */
+function isPastDate(date) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const target = new Date(date);
+    target.setHours(0, 0, 0, 0);
+    return target < today;
+}
+
+/** 判断日期是否在今天之后（不含今天） */
+function isFutureDate(date) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const target = new Date(date);
+    target.setHours(0, 0, 0, 0);
+    return target > today;
 }
 
 export default function CalendarPage() {
@@ -101,46 +97,39 @@ export default function CalendarPage() {
         navigate(`/dashboard/daily?date=${formatDate(date)}`);
     };
 
-    // react-calendar tileContent: 渲染彩色圆点
+    const handleBackToToday = () => {
+        const today = new Date();
+        setActiveDate(new Date(today.getFullYear(), today.getMonth(), 1));
+        setSelectedDate(null);
+    };
+
+    // react-calendar tileContent: 有计划的日子渲染小圆点
     const tileContent = ({ date, view }) => {
         if (view !== 'month') return null;
         const key = formatDate(date);
         const dayData = dateMap[key];
-        if (!dayData?.has_plan || dayData.weekIndex < 0) return null;
+        if (!dayData?.has_plan) return null;
 
-        const dotColor = WEEK_DOT_COLORS[dayData.weekIndex] || WEEK_DOT_COLORS[0];
         return (
             <div className="flex justify-center mt-0.5">
-                <span
-                    className="block w-1.5 h-1.5 rounded-full"
-                    style={{ backgroundColor: dotColor }}
-                />
+                <span className="block w-1.5 h-1.5 rounded-full bg-primary" />
             </div>
         );
     };
 
-    // react-calendar tileClassName: 按状态添加自定义 class
+    // react-calendar tileClassName: 过去日期加灰色样式
     const tileClassName = ({ date, view }) => {
         if (view !== 'month') return '';
-        const key = formatDate(date);
-        const dayData = dateMap[key];
-        const classes = [];
-
-        if (dayData?.has_plan) {
-            classes.push('has-plan-tile');
-        }
-        if (dayData?.status && dayData.status !== 'none') {
-            classes.push(`status-${dayData.status}`);
-        }
-        return classes.join(' ');
+        if (isPastDate(date)) return 'past-date';
+        return '';
     };
 
     // 选中日期的摘要面板
     const renderSelectedDatePanel = () => {
         if (!selectedDate) return null;
         const { date, data } = selectedDate;
-        const dateStr = formatDate(date);
         const dayLabel = date.toLocaleDateString('zh-CN', { month: 'long', day: 'numeric', weekday: 'short' });
+        const future = isFutureDate(date);
 
         return (
             <motion.div
@@ -155,7 +144,7 @@ export default function CalendarPage() {
                             onClick={() => handleGoToDaily(date)}
                             className="text-sm text-primary font-medium flex items-center gap-1 hover:opacity-80 transition-opacity"
                         >
-                            查看详情
+                            {future ? '查看计划' : '查看详情'}
                             <span className="material-icons-round text-sm">arrow_forward</span>
                         </button>
                     )}
@@ -170,9 +159,9 @@ export default function CalendarPage() {
                                     {data.completed_meals}/{data.total_meals} 餐已完成
                                 </span>
                             </div>
-                            {data.weekIndex >= 0 && (
-                                <span className={`text-xs px-2 py-0.5 rounded-full ${WEEK_COLORS[data.weekIndex]?.bg || ''} ${WEEK_COLORS[data.weekIndex]?.text || ''} font-medium`}>
-                                    {WEEK_COLORS[data.weekIndex]?.label}
+                            {future && (
+                                <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-text-muted-light dark:text-text-muted-dark font-medium">
+                                    仅查看
                                 </span>
                             )}
                         </div>
@@ -232,7 +221,7 @@ export default function CalendarPage() {
 
             <main className="px-6 space-y-6">
                 {/* 日历组件 */}
-                <div className="calendar-container bg-white dark:bg-surface-dark rounded-2xl shadow-soft p-4 relative">
+                <div className="calendar-container bg-white dark:bg-surface-dark rounded-2xl shadow-soft p-4">
                     {isLoading && (
                         <div className="absolute inset-0 bg-white/60 dark:bg-surface-dark/60 z-10 rounded-2xl overflow-hidden">
                             <div className="absolute inset-0 animate-shimmer bg-gradient-to-r from-transparent via-white/40 dark:via-white/10 to-transparent" />
@@ -241,6 +230,7 @@ export default function CalendarPage() {
                     <Calendar
                         locale="zh-CN"
                         calendarType="iso8601"
+                        activeStartDate={activeDate}
                         tileContent={tileContent}
                         tileClassName={tileClassName}
                         onClickDay={handleClickDay}
@@ -250,19 +240,16 @@ export default function CalendarPage() {
                         minDetail="month"
                         formatDay={(locale, date) => date.getDate()}
                     />
-                </div>
-
-                {/* 周颜色图例 */}
-                <div className="flex flex-wrap gap-4 px-2">
-                    {WEEK_COLORS.map((week, idx) => (
-                        <div key={idx} className="flex items-center gap-1.5">
-                            <span
-                                className="block w-3 h-3 rounded-full"
-                                style={{ backgroundColor: WEEK_DOT_COLORS[idx] }}
-                            />
-                            <span className={`text-xs font-medium ${week.text}`}>{week.label}</span>
-                        </div>
-                    ))}
+                    {/* 分割线 + 回到今日 */}
+                    <div className="border-t border-gray-100 dark:border-gray-800 mt-2 pt-2 flex justify-end">
+                        <button
+                            onClick={handleBackToToday}
+                            className="px-3 py-1.5 rounded-xl bg-primary/10 text-primary font-bold text-sm flex items-center justify-center hover:bg-primary/20 active:scale-95 transition-all"
+                            title="回到今日"
+                        >
+                            今
+                        </button>
+                    </div>
                 </div>
 
                 {/* 选中日期摘要 */}
