@@ -38,11 +38,32 @@ export default {
           '0%': { transform: 'translateX(-100%)' },
           '100%': { transform: 'translateX(100%)' },
         },
+        'bounce-gentle': {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-12px)' },
+        },
+        'float': {
+          '0%, 100%': { transform: 'translateY(0) scale(1)', opacity: '0.7' },
+          '50%': { transform: 'translateY(-20px) scale(1.05)', opacity: '1' },
+        },
+        'dot-blink': {
+          '0%, 80%, 100%': { opacity: '0.3', transform: 'scale(0.8)' },
+          '40%': { opacity: '1', transform: 'scale(1)' },
+        },
+        'paw-step': {
+          '0%': { opacity: '0', transform: 'scale(0.5) rotate(-15deg)' },
+          '50%': { opacity: '1', transform: 'scale(1) rotate(0deg)' },
+          '100%': { opacity: '0', transform: 'scale(0.5) rotate(15deg)' },
+        },
       },
       animation: {
         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
         'spin-slow': 'spin 3s linear infinite',
         shimmer: 'shimmer 1.5s infinite',
+        'bounce-gentle': 'bounce-gentle 2s ease-in-out infinite',
+        'float': 'float 3s ease-in-out infinite',
+        'dot-blink': 'dot-blink 1.4s ease-in-out infinite',
+        'paw-step': 'paw-step 2s ease-in-out infinite',
       },
       spacing: {
         'safe-top': 'env(safe-area-inset-top)',

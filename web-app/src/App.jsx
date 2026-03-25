@@ -24,56 +24,52 @@ import ProfileEdit from './pages/ProfileEdit';
 import PetEdit from './pages/PetEdit';
 import { useBackButton } from './hooks/useBackButton';
 import ScrollToTop from './components/ScrollToTop';
-import Skeleton from './components/ui/Skeleton';
 
-function AppSkeleton() {
+function SplashScreen() {
   return (
-    <div className="h-screen bg-background-light dark:bg-background-dark overflow-hidden">
-      {/* Header */}
-      <div className="px-6 pt-12 pb-4 flex justify-between items-center">
-        <div className="flex items-center gap-3">
-          <Skeleton.Circle size={48} />
-          <div className="space-y-2">
-            <Skeleton className="h-3 w-16" />
-            <Skeleton className="h-5 w-24" />
-          </div>
+    <div className="h-screen flex flex-col items-center justify-center bg-gradient-to-br from-primary/20 via-background-light to-secondary/20 dark:from-primary/10 dark:via-background-dark dark:to-secondary/10 overflow-hidden relative">
+      {/* Floating decorative bubbles */}
+      <div className="absolute top-[15%] left-[12%] w-16 h-16 rounded-full bg-primary/20 animate-float" />
+      <div className="absolute top-[25%] right-[15%] w-10 h-10 rounded-full bg-secondary/30 animate-float" style={{ animationDelay: '0.8s' }} />
+      <div className="absolute bottom-[22%] left-[20%] w-12 h-12 rounded-full bg-accent-blue/25 animate-float" style={{ animationDelay: '1.5s' }} />
+      <div className="absolute bottom-[30%] right-[10%] w-8 h-8 rounded-full bg-primary/15 animate-float" style={{ animationDelay: '2.2s' }} />
+
+      {/* Paw trail — 3 small paw prints walking toward center */}
+      <div className="absolute top-[38%] left-[22%] text-primary/30 animate-paw-step" style={{ animationDelay: '0s' }}>
+        <span className="material-icons-round text-2xl">pets</span>
+      </div>
+      <div className="absolute top-[42%] left-[35%] text-primary/40 animate-paw-step" style={{ animationDelay: '0.6s' }}>
+        <span className="material-icons-round text-2xl">pets</span>
+      </div>
+
+      {/* Main icon */}
+      <div className="relative mb-6">
+        <div className="absolute inset-0 w-28 h-28 rounded-full bg-primary/20 blur-xl animate-pulse-slow" />
+        <div className="relative w-28 h-28 rounded-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-glow animate-bounce-gentle">
+          <span className="material-icons-round text-white dark:text-gray-900 text-5xl">pets</span>
         </div>
-        <div className="flex gap-3">
-          <Skeleton.Circle size={40} />
-          <Skeleton.Circle size={40} />
+        {/* Little food bowl accent */}
+        <div className="absolute -bottom-1 -right-1 w-10 h-10 rounded-full bg-secondary flex items-center justify-center shadow-soft animate-bounce-gentle" style={{ animationDelay: '0.3s' }}>
+          <span className="material-icons-round text-yellow-800 text-lg">restaurant</span>
         </div>
       </div>
-      {/* Week bar */}
-      <div className="px-6 mb-6">
-        <div className="space-y-2 mb-4">
-          <Skeleton className="h-7 w-20" />
-          <Skeleton className="h-4 w-36" />
-        </div>
-        <div className="flex justify-between bg-white dark:bg-surface-dark p-3 rounded-2xl">
-          {Array.from({ length: 7 }, (_, i) => (
-            <div key={i} className="flex flex-col items-center gap-1.5">
-              <Skeleton className="h-3 w-4" />
-              <Skeleton.Circle size={36} />
-            </div>
-          ))}
-        </div>
-      </div>
-      {/* Nutrition card */}
-      <div className="px-6 mb-6">
-        <Skeleton className="h-48 w-full rounded-3xl" />
-      </div>
-      {/* Meal cards */}
-      <div className="px-6 space-y-4">
-        <Skeleton className="h-5 w-28 mb-2" />
-        {Array.from({ length: 3 }, (_, i) => (
-          <div key={i} className="flex items-center gap-4 bg-white dark:bg-surface-dark p-4 rounded-2xl">
-            <Skeleton.Circle size={44} />
-            <div className="flex-1 space-y-2">
-              <Skeleton className="h-4 w-24" />
-              <Skeleton className="h-3 w-36" />
-            </div>
-            <Skeleton className="h-8 w-16 rounded-xl" />
-          </div>
+
+      {/* App name */}
+      <h1 className="text-2xl font-bold font-display text-text-main-light dark:text-text-main-dark mb-1">
+        PetCare
+      </h1>
+      <p className="text-sm text-text-muted-light dark:text-text-muted-dark mb-8">
+        智能宠物饮食助手
+      </p>
+
+      {/* Dot loading indicator */}
+      <div className="flex gap-2">
+        {[0, 1, 2].map(i => (
+          <div
+            key={i}
+            className="w-2.5 h-2.5 rounded-full bg-primary animate-dot-blink"
+            style={{ animationDelay: `${i * 0.2}s` }}
+          />
         ))}
       </div>
     </div>
@@ -84,7 +80,7 @@ function ProtectedRoute({ children }) {
   const { isAuthenticated, isLoading } = useUser();
 
   if (isLoading) {
-    return <AppSkeleton />;
+    return <SplashScreen />;
   }
 
   if (!isAuthenticated) {
@@ -98,7 +94,7 @@ function PublicRoute({ children }) {
   const { isAuthenticated, isLoading } = useUser();
 
   if (isLoading) {
-    return <AppSkeleton />;
+    return <SplashScreen />;
   }
 
   if (isAuthenticated) {
