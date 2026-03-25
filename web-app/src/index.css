@@ -225,9 +225,17 @@ select {
   font-weight: 700;
 }
 
-/* 选中日期 — 浅灰背景 + 灰色阴影 + 黑体字 */
-.calendar-container .react-calendar__tile--active {
-  background-color: #f3f4f6 !important;
+/* 周末日期 — 不标红，使用常规颜色 */
+.calendar-container .react-calendar__month-view__days__day--weekend {
+  color: inherit;
+}
+
+/* 选中日期 — 浅灰背景 + 灰色阴影 + 黑体字（覆盖默认蓝色） */
+.calendar-container .react-calendar__tile--active,
+.calendar-container .react-calendar__tile--active:enabled:hover,
+.calendar-container .react-calendar__tile--active:enabled:focus {
+  background: #f3f4f6 !important;
+  color: #1f2937 !important;
   font-weight: 700;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
@@ -266,8 +274,13 @@ select {
     background-color: #A3D9A5 !important;
     color: #1c1c1e !important;
   }
-  .calendar-container .react-calendar__tile--active {
-    background-color: #374151 !important;
+  .calendar-container .react-calendar__month-view__days__day--weekend {
+    color: inherit;
+  }
+  .calendar-container .react-calendar__tile--active,
+  .calendar-container .react-calendar__tile--active:enabled:hover,
+  .calendar-container .react-calendar__tile--active:enabled:focus {
+    background: #374151 !important;
     color: #e5e7eb !important;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   }
@@ -296,8 +309,13 @@ select {
   background-color: #A3D9A5 !important;
   color: #1c1c1e !important;
 }
-.dark .calendar-container .react-calendar__tile--active {
-  background-color: #374151 !important;
+.dark .calendar-container .react-calendar__month-view__days__day--weekend {
+  color: inherit;
+}
+.dark .calendar-container .react-calendar__tile--active,
+.dark .calendar-container .react-calendar__tile--active:enabled:hover,
+.dark .calendar-container .react-calendar__tile--active:enabled:focus {
+  background: #374151 !important;
   color: #e5e7eb !important;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }

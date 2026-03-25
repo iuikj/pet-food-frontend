@@ -406,26 +406,6 @@ export default function HomePage() {
                     </div>
                 </div>
             </motion.div>
-
-            {/* 选中非今日日期时的提示条 */}
-            {selectedDate && (
-                <motion.div
-                    initial={{ opacity: 0, y: -5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mt-3 flex items-center justify-between bg-primary/10 dark:bg-primary/5 rounded-xl px-4 py-2.5"
-                >
-                    <span className="text-sm font-medium text-primary">
-                        {displayDateLabel} 的餐食
-                    </span>
-                    <button
-                        onClick={() => { setSelectedDate(null); setDateMeals([]); setDateNutritionSummary(null); }}
-                        className="text-xs text-primary font-medium flex items-center gap-0.5 hover:opacity-70 transition-opacity"
-                    >
-                        回到今日
-                        <span className="material-icons-round text-xs">close</span>
-                    </button>
-                </motion.div>
-            )}
         </section>
     );
 
