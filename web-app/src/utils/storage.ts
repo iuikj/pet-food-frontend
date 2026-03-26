@@ -7,12 +7,15 @@ export const STORAGE_KEYS = {
   activePlanDataMap: 'activePlanDataMap',
   mockMode: 'pet_app_mock_mode',
   mockOverride: 'pet_app_mock_override',
+  mockPets: 'pet_app_mock_pets',
+  mockUser: 'pet_app_mock_user',
 } as const;
 
 function getStorage(): Storage | null {
   if (typeof window === 'undefined') {
     return null;
   }
+
   return window.localStorage;
 }
 

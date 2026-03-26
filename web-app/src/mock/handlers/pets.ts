@@ -1,13 +1,13 @@
-/**
- * Pets Mock Handler
- * 与 petsApi 同名同签名
- */
 import type {
-  ApiResponse, PetResponse, PetListResponse,
-  CreatePetRequest, UpdatePetRequest,
+  ApiResponse,
+  PetResponse,
+  PetListResponse,
+  CreatePetRequest,
+  UpdatePetRequest,
 } from '../../api/types';
 import { mockState } from '../mockState';
 import { delay, mockResponse, generateId } from '../utils';
+import { fileToDataUrl } from '../persistence';
 
 export const mockPetsApi = {
   async getPets(_isActive = true): Promise<ApiResponse<PetListResponse>> {
@@ -36,6 +36,7 @@ export const mockPetsApi = {
       created_at: now,
       updated_at: now,
     };
+
     mockState.addPet(newPet);
     return mockResponse(newPet);
   },
@@ -43,14 +44,20 @@ export const mockPetsApi = {
   async getPet(petId: string): Promise<ApiResponse<PetResponse>> {
     await delay();
     const pet = mockState.getPet(petId);
-    if (!pet) return mockResponse(null as any, 404, '宠物不存在');
+    if (!pet) {
+      return mockResponse(null as any, 404, '宠物不存在');
+    }
+
     return mockResponse(pet);
   },
 
   async updatePet(petId: string, data: UpdatePetRequest): Promise<ApiResponse<PetResponse>> {
     await delay();
     const updated = mockState.updatePet(petId, data as Partial<PetResponse>);
-    if (!updated) return mockResponse(null as any, 404, '宠物不存在');
+    if (!updated) {
+      return mockResponse(null as any, 404, '宠物不存在');
+    }
+
     return mockResponse(updated);
   },
 
@@ -62,8 +69,13 @@ export const mockPetsApi = {
 
   async uploadPetAvatar(petId: string, file: File): Promise<ApiResponse<{ avatar_url: string }>> {
     await delay();
-    const url = URL.createObjectURL(file);
-    mockState.updatePet(petId, { avatar_url: url } as Partial<PetResponse>);
-    return mockResponse({ avatar_url: url });
+    const avatarUrl = await fileToDataUrl(file);
+    const updated = mockState.updatePet(petId, { avatar_url: avatarUrl } as Partial<PetResponse>);
+
+    if (!updated) {
+      return mockResponse(null as any, 404, '宠物不存在');
+    }
+
+    return mockResponse({ avatar_url: avatarUrl });
   },
 };

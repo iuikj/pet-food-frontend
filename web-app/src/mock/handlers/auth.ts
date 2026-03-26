@@ -1,17 +1,32 @@
 import type {
-  ApiResponse, AuthResponse, UserInfo, TokenData,
-  LoginRequest, RegisterRequest, VerifyRegisterRequest,
-  SendCodeRequest, ChangePasswordRequest, ResetPasswordRequest,
-  UpdateProfileRequest, SubscriptionStatusResponse,
+  ApiResponse,
+  AuthResponse,
+  UserInfo,
+  TokenData,
+  LoginRequest,
+  RegisterRequest,
+  VerifyRegisterRequest,
+  SendCodeRequest,
+  ChangePasswordRequest,
+  ResetPasswordRequest,
+  UpdateProfileRequest,
+  SubscriptionStatusResponse,
 } from '../../api/types';
 import { mockUser, mockTokens } from '../data/user';
 import { delay, mockResponse } from '../utils';
 import { setAuthTokens } from '../../utils/storage';
+import { fileToDataUrl, readMockUser, writeMockUser } from '../persistence';
 
-let currentUser: UserInfo = { ...mockUser };
+let currentUser: UserInfo = { ...readMockUser(mockUser) };
 
 function setTokens(): void {
   setAuthTokens(mockTokens);
+}
+
+function syncUser(nextUser: UserInfo): UserInfo {
+  currentUser = nextUser;
+  writeMockUser(currentUser);
+  return currentUser;
 }
 
 export const mockAuthApi = {
@@ -23,14 +38,14 @@ export const mockAuthApi = {
 
   async register(data: RegisterRequest): Promise<ApiResponse<AuthResponse>> {
     await delay();
-    currentUser = { ...currentUser, username: data.username, email: data.email };
+    syncUser({ ...currentUser, username: data.username, email: data.email });
     setTokens();
     return mockResponse({ user: currentUser, tokens: mockTokens });
   },
 
   async verifyRegister(data: VerifyRegisterRequest): Promise<ApiResponse<AuthResponse>> {
     await delay();
-    currentUser = { ...currentUser, username: data.username, email: data.email };
+    syncUser({ ...currentUser, username: data.username, email: data.email });
     setTokens();
     return mockResponse({ user: currentUser, tokens: mockTokens });
   },
@@ -67,15 +82,15 @@ export const mockAuthApi = {
 
   async updateProfile(data: UpdateProfileRequest): Promise<ApiResponse<UserInfo>> {
     await delay();
-    currentUser = { ...currentUser, ...data };
+    syncUser({ ...currentUser, ...data });
     return mockResponse(currentUser);
   },
 
   async uploadAvatar(file: File): Promise<ApiResponse<{ avatar_url: string }>> {
     await delay();
-    const url = URL.createObjectURL(file);
-    currentUser = { ...currentUser, avatar_url: url };
-    return mockResponse({ avatar_url: url });
+    const avatarUrl = await fileToDataUrl(file);
+    syncUser({ ...currentUser, avatar_url: avatarUrl });
+    return mockResponse({ avatar_url: avatarUrl });
   },
 
   async getSubscription(): Promise<ApiResponse<SubscriptionStatusResponse>> {
