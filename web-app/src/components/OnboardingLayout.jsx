@@ -4,26 +4,24 @@ import { motion, AnimatePresence } from 'framer-motion';
 import StepIndicator from './StepIndicator';
 
 /**
- * 统一的 Onboarding 布局组件
- * 包含固定的顶部导航和进度指示器，子内容区域可切换
+ * Onboarding 通用布局。
  */
 export default function OnboardingLayout({
     children,
     currentStep = 1,
     totalSteps = 3,
     backLink = '/',
-    title = '添加宠物',
+    title = '创建宠物档案',
     onNext,
     nextDisabled = false,
     nextLabel = '下一步',
     showNextButton = true,
-    isSubmitting = false
+    isSubmitting = false,
 }) {
     const location = useLocation();
 
     return (
         <div className="flex flex-col h-screen bg-background-light dark:bg-background-dark overflow-hidden">
-            {/* 固定顶部区域 */}
             <header className="flex-shrink-0 px-6 pt-12 pb-4 flex items-center justify-between bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-md z-50">
                 <Link
                     to={backLink}
@@ -39,12 +37,10 @@ export default function OnboardingLayout({
                 </div>
             </header>
 
-            {/* 固定进度指示器 */}
             <div className="flex-shrink-0 px-6 py-4">
                 <StepIndicator currentStep={currentStep} totalSteps={totalSteps} showLabels={false} />
             </div>
 
-            {/* 可滚动内容区域 - 防止水平滚动 */}
             <main className="flex-1 overflow-y-auto overflow-x-hidden px-6">
                 <AnimatePresence mode="wait">
                     <motion.div
@@ -60,7 +56,6 @@ export default function OnboardingLayout({
                 </AnimatePresence>
             </main>
 
-            {/* 固定底部按钮 */}
             {showNextButton && (
                 <div className="flex-shrink-0 px-6 pb-6 pt-4 bg-background-light dark:bg-background-dark border-t border-gray-100 dark:border-gray-800 safe-area-bottom">
                     <button
@@ -71,7 +66,7 @@ export default function OnboardingLayout({
                         {isSubmitting ? (
                             <>
                                 <span className="material-icons-round animate-spin">refresh</span>
-                                处理中...
+                                提交中...
                             </>
                         ) : (
                             <>

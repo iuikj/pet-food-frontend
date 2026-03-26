@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion'; // eslint-disable-line no-unused-vars -- motion used via JSX <motion.div>
+import SecureImage from '../components/SecureImage';
 import { usePlanGeneration } from '../hooks/usePlanGeneration';
 import { usePets } from '../hooks/usePets';
 import { flipTransitions } from '../utils/animations';
@@ -236,7 +237,7 @@ export default function Loading() {
                 <div className="bg-white dark:bg-surface-dark p-5 rounded-2xl shadow-soft mb-8 flex items-center gap-4 border border-gray-100 dark:border-gray-800">
                     <div className="w-14 h-14 rounded-full p-1 border-2 border-primary/20 relative">
                         {currentPet?.avatar_url ? (
-                            <img
+                            <SecureImage
                                 alt={currentPet.name}
                                 className="w-full h-full object-cover rounded-full"
                                 src={currentPet.avatar_url}

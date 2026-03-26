@@ -56,8 +56,8 @@ export async function resetPassword(data: ResetPasswordRequest): Promise<ApiResp
     return apiClient.post<any, ApiResponse<{ message: string }>>('/auth/password/reset', data);
 }
 
-export async function updateProfile(data: UpdateProfileRequest): Promise<ApiResponse<UserInfo>> {
-    return apiClient.put<any, ApiResponse<UserInfo>>('/auth/profile', data);
+export async function updateProfile(data: UpdateProfileRequest): Promise<ApiResponse<Partial<UserInfo>>> {
+    return apiClient.put<any, ApiResponse<Partial<UserInfo>>>('/auth/profile', data);
 }
 
 export async function uploadAvatar(file: File): Promise<ApiResponse<{ avatar_url: string }>> {

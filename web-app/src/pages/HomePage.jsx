@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import SecureImage from '../components/SecureImage';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import { pageTransitions } from '../utils/animations';
@@ -116,7 +117,7 @@ export default function HomePage() {
                     {hasPets && currentPet ? (
                         <button onClick={() => setIsPetMenuOpen(true)}>
                             {currentPet.avatar_url ? (
-                                <img
+                                <SecureImage
                                     alt={currentPet.name}
                                     className="w-12 h-12 rounded-full object-cover border-2 border-white dark:border-surface-dark shadow-sm"
                                     src={currentPet.avatar_url}

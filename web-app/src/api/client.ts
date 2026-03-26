@@ -11,6 +11,59 @@ export const apiClient = axios.create({
     },
 });
 
+export function getApiErrorMessage(error, fallback = '请求失败') {
+    if (axios.isAxiosError(error)) {
+        const payload = error.response?.data;
+
+        if (typeof payload?.message === 'string' && payload.message.trim()) {
+            return payload.message;
+        }
+
+        if (payload?.message && typeof payload.message === 'object') {
+            const nestedMessage = typeof payload.message.message === 'string' ? payload.message.message.trim() : '';
+            const nestedDetail = typeof payload.message.detail === 'string' ? payload.message.detail.trim() : '';
+
+            if (nestedMessage && nestedDetail && nestedDetail !== nestedMessage) {
+                return `${nestedMessage}：${nestedDetail}`;
+            }
+
+            if (nestedMessage) {
+                return nestedMessage;
+            }
+
+            if (nestedDetail) {
+                return nestedDetail;
+            }
+        }
+
+        if (typeof payload?.detail === 'string' && payload.detail.trim()) {
+            return payload.detail;
+        }
+
+        if (Array.isArray(payload?.detail) && payload.detail.length > 0) {
+            const firstError = payload.detail[0];
+
+            if (typeof firstError?.msg === 'string' && firstError.msg.trim()) {
+                return firstError.msg;
+            }
+
+            if (typeof firstError?.message === 'string' && firstError.message.trim()) {
+                return firstError.message;
+            }
+        }
+
+        if (typeof error.message === 'string' && error.message.trim()) {
+            return error.message;
+        }
+    }
+
+    if (error instanceof Error && error.message.trim()) {
+        return error.message;
+    }
+
+    return fallback;
+}
+
 apiClient.interceptors.request.use((config) => {
     const token = getAccessToken();
     if (token && config.headers) {

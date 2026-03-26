@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePets } from '../hooks/usePets';
 import usePhotoSelect from '../hooks/usePhotoSelect';
+import SecureImage from '../components/SecureImage';
 import { fromMonths, toMonths } from '../utils/petUtils';
 
 export default function PetEdit() {
@@ -22,13 +23,12 @@ export default function PetEdit() {
         ageMonths: '',
         weight: '',
         health_status: '',
-        special_requirements: ''
+        special_requirements: '',
     });
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-    // 初始化表单数据
     useEffect(() => {
         if (petData) {
             setPhoto(petData.avatar_url || '');
@@ -40,12 +40,11 @@ export default function PetEdit() {
                 ageMonths: months > 0 ? months.toString() : '',
                 weight: petData.weight?.toString() || '',
                 health_status: petData.health_status || '',
-                special_requirements: petData.special_requirements || ''
+                special_requirements: petData.special_requirements || '',
             });
         }
     }, [petData]);
 
-    // 如果找不到宠物，返回 profile 页面
     useEffect(() => {
         if (!isLoading && !petData) {
             navigate('/profile');
@@ -55,10 +54,11 @@ export default function PetEdit() {
     const handlePhotoChange = async () => {
         const result = await selectPhoto({
             fileName: 'pet_avatar.jpg',
-            promptLabelHeader: '选择宠物照片',
-            promptLabelPhoto: '从相册选择',
-            promptLabelPicture: '拍照',
+            promptLabelHeader: '选择宠物头像来源',
+            promptLabelPhoto: '拍照',
+            promptLabelPicture: '从相册选择',
         });
+
         if (result) {
             setPhoto(result.dataUrl);
             setPhotoFile(result.file);
@@ -67,15 +67,15 @@ export default function PetEdit() {
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
-        setFormData(prev => ({
+        setFormData((prev) => ({
             ...prev,
-            [name]: value
+            [name]: value,
         }));
     };
 
     const handleSave = async () => {
         if (!formData.name.trim()) {
-            setError('请输入宠物名字');
+            setError('请输入宠物名称');
             return;
         }
 
@@ -83,35 +83,35 @@ export default function PetEdit() {
         setError('');
 
         try {
-            // 上传头像
+            const ageInMonths = toMonths(formData.ageYears, formData.ageMonths);
+            const parsedWeight = Number.parseFloat(formData.weight);
+
+            const updateResult = await updatePet(id, {
+                name: formData.name.trim(),
+                breed: formData.breed || undefined,
+                age: ageInMonths > 0 ? ageInMonths : undefined,
+                weight: Number.isFinite(parsedWeight) ? parsedWeight : undefined,
+                health_status: formData.health_status || undefined,
+                special_requirements: formData.special_requirements || undefined,
+            });
+
+            if (!updateResult.success) {
+                setError(updateResult.message || '更新宠物信息失败');
+                return;
+            }
+
             if (photoFile) {
                 const avatarResult = await uploadPetAvatar(id, photoFile);
                 if (!avatarResult.success) {
-                    setError(avatarResult.message || '头像上传失败');
-                    setSaving(false);
+                    setError(avatarResult.message || '宠物信息已保存，但头像上传失败，请重试');
                     return;
                 }
             }
 
-            // 更新宠物信息
-            const ageInMonths = toMonths(formData.ageYears, formData.ageMonths);
-            const updateResult = await updatePet(id, {
-                name: formData.name,
-                breed: formData.breed || undefined,
-                age: ageInMonths > 0 ? ageInMonths : undefined,
-                weight: parseFloat(formData.weight) || undefined,
-                health_status: formData.health_status || undefined,
-                special_requirements: formData.special_requirements || undefined
-            });
-
-            if (updateResult.success) {
-                navigate('/profile');
-            } else {
-                setError(updateResult.message || '保存失败');
-            }
+            navigate('/profile');
         } catch (err) {
-            console.error('保存失败:', err);
-            setError('保存失败，请重试');
+            console.error('更新宠物失败:', err);
+            setError('更新宠物失败，请稍后重试');
         } finally {
             setSaving(false);
         }
@@ -122,7 +122,7 @@ export default function PetEdit() {
         if (result.success) {
             navigate('/profile');
         } else {
-            setError(result.message || '删除失败');
+            setError(result.message || '删除宠物失败');
             setShowDeleteConfirm(false);
         }
     };
@@ -142,7 +142,6 @@ export default function PetEdit() {
             exit={{ opacity: 0, x: -50 }}
             className="flex flex-col min-h-screen bg-background-light dark:bg-background-dark pb-safe"
         >
-            {/* 头部导航 */}
             <header className="px-6 pt-12 pb-4 flex items-center justify-between bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-md sticky top-0 z-50">
                 <Link
                     to="/profile"
@@ -159,7 +158,6 @@ export default function PetEdit() {
                 </button>
             </header>
 
-            {/* 主要内容 */}
             <main className="px-6 py-6 flex-1 overflow-y-auto">
                 {error && (
                     <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl text-sm">
@@ -167,7 +165,6 @@ export default function PetEdit() {
                     </div>
                 )}
 
-                {/* 照片编辑 */}
                 <div className="flex flex-col items-center mb-8">
                     <div className="relative group">
                         <div className="absolute inset-0 bg-primary/20 blur-xl rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -177,7 +174,7 @@ export default function PetEdit() {
                         >
                             {photo ? (
                                 <>
-                                    <img
+                                    <SecureImage
                                         src={photo}
                                         alt="Pet"
                                         className="w-full h-full object-cover"
@@ -194,16 +191,14 @@ export default function PetEdit() {
                         </div>
                     </div>
                     <p className="text-sm text-text-muted-light dark:text-text-muted-dark mt-3">
-                        点击更换照片
+                        点击更换宠物头像
                     </p>
                 </div>
 
-                {/* 表单 */}
                 <div className="space-y-5">
-                    {/* 名字 */}
                     <div className="space-y-2">
                         <label className="block text-sm font-semibold text-text-main-light dark:text-text-main-dark">
-                            宠物名字 *
+                            宠物名称 *
                         </label>
                         <div className="relative bg-white dark:bg-surface-dark rounded-2xl shadow-soft transition-all focus-within:ring-2 focus-within:ring-primary/50 focus-within:shadow-glow">
                             <span className="absolute left-4 top-1/2 -translate-y-1/2 material-icons-round text-text-muted-light dark:text-text-muted-dark text-xl">
@@ -215,12 +210,11 @@ export default function PetEdit() {
                                 value={formData.name}
                                 onChange={handleInputChange}
                                 className="w-full bg-transparent border-none py-4 pl-12 pr-4 text-text-main-light dark:text-text-main-dark focus:ring-0 rounded-2xl"
-                                placeholder="请输入宠物名字"
+                                placeholder="请输入宠物名称"
                             />
                         </div>
                     </div>
 
-                    {/* 品种 */}
                     <div className="space-y-2">
                         <label className="block text-sm font-semibold text-text-main-light dark:text-text-main-dark">
                             品种
@@ -235,12 +229,11 @@ export default function PetEdit() {
                                 value={formData.breed}
                                 onChange={handleInputChange}
                                 className="w-full bg-transparent border-none py-4 pl-12 pr-4 text-text-main-light dark:text-text-main-dark focus:ring-0 rounded-2xl"
-                                placeholder="请输入宠物品种"
+                                placeholder="请输入品种"
                             />
                         </div>
                     </div>
 
-                    {/* 年龄 */}
                     <div className="space-y-2">
                         <label className="block text-sm font-semibold text-text-main-light dark:text-text-main-dark">
                             年龄
@@ -277,7 +270,6 @@ export default function PetEdit() {
                         </div>
                     </div>
 
-                    {/* 体重 */}
                     <div className="space-y-2">
                         <label className="block text-sm font-semibold text-text-main-light dark:text-text-main-dark">
                             体重 (kg)
@@ -298,7 +290,6 @@ export default function PetEdit() {
                         </div>
                     </div>
 
-                    {/* 健康状态 */}
                     <div className="space-y-2">
                         <label className="block text-sm font-semibold text-text-main-light dark:text-text-main-dark">
                             健康状态
@@ -313,12 +304,11 @@ export default function PetEdit() {
                                 value={formData.health_status}
                                 onChange={handleInputChange}
                                 className="w-full bg-transparent border-none py-4 pl-12 pr-4 text-text-main-light dark:text-text-main-dark focus:ring-0 rounded-2xl"
-                                placeholder="如：健康、肥胖、过敏..."
+                                placeholder="例如：过敏、肠胃敏感、术后恢复"
                             />
                         </div>
                     </div>
 
-                    {/* 特殊需求 */}
                     <div className="space-y-2">
                         <label className="block text-sm font-semibold text-text-main-light dark:text-text-main-dark">
                             特殊需求
@@ -330,14 +320,13 @@ export default function PetEdit() {
                                 onChange={handleInputChange}
                                 rows={3}
                                 className="w-full bg-transparent border-none py-4 px-4 text-text-main-light dark:text-text-main-dark focus:ring-0 rounded-2xl resize-none"
-                                placeholder="如：对谷物过敏、需要低脂食物..."
+                                placeholder="例如：需要低脂饮食、挑食、不能吃鸡肉等"
                             />
                         </div>
                     </div>
                 </div>
             </main>
 
-            {/* 底部按钮 */}
             <div className="px-6 py-6 bg-background-light dark:bg-background-dark border-t border-gray-100 dark:border-gray-800">
                 <button
                     onClick={handleSave}
@@ -352,13 +341,12 @@ export default function PetEdit() {
                     ) : (
                         <>
                             <span className="material-icons-round">check</span>
-                            保存更改
+                            保存修改
                         </>
                     )}
                 </button>
             </div>
 
-            {/* 删除确认弹窗 */}
             <AnimatePresence>
                 {showDeleteConfirm && (
                     <>
@@ -379,9 +367,9 @@ export default function PetEdit() {
                                 <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
                                     <span className="material-icons-round text-red-500 text-3xl">delete_forever</span>
                                 </div>
-                                <h3 className="text-xl font-bold mb-2">确定删除？</h3>
+                                <h3 className="text-xl font-bold mb-2">确认删除宠物？</h3>
                                 <p className="text-text-muted-light dark:text-text-muted-dark mb-6">
-                                    删除后将无法恢复 {formData.name} 的所有数据
+                                    删除后将无法恢复，确定要删除 {formData.name || '这只宠物'} 吗？
                                 </p>
                                 <div className="flex gap-3">
                                     <button

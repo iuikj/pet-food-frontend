@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { authApi } from '../api';
+import { getApiErrorMessage } from '../api/client';
 import { initMockMode } from '../mock/mockMode';
 import UserContext from './UserContextValue';
 import { clearAuthTokens, getAccessToken, setAuthTokens } from '../utils/storage';
@@ -99,13 +100,13 @@ export const UserProvider = ({ children }) => {
         try {
             const res = await authApi.updateProfile(updates);
             if (res.code === 0) {
-                setUser(res.data);
+                setUser((prev) => (prev ? { ...prev, ...res.data } : res.data));
                 return { success: true };
             }
             return { success: false, message: res.message };
         } catch (error) {
             console.error('Failed to update user:', error);
-            return { success: false, message: '更新失败' };
+            return { success: false, message: getApiErrorMessage(error, '更新资料失败') };
         }
     }, []);
 
@@ -119,7 +120,7 @@ export const UserProvider = ({ children }) => {
             return { success: false, message: res.message };
         } catch (error) {
             console.error('Failed to upload avatar:', error);
-            return { success: false, message: '上传失败' };
+            return { success: false, message: getApiErrorMessage(error, '上传头像失败') };
         }
     }, []);
 
@@ -129,7 +130,7 @@ export const UserProvider = ({ children }) => {
             return res.code === 0 ? { success: true } : { success: false, message: res.message };
         } catch (error) {
             console.error('Failed to change password:', error);
-            return { success: false, message: '修改失败' };
+            return { success: false, message: getApiErrorMessage(error, '修改密码失败') };
         }
     }, []);
 

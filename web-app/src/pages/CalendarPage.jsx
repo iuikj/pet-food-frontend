@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import SecureImage from '../components/SecureImage';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import { pageTransitions } from '../utils/animations';
@@ -195,7 +196,7 @@ export default function CalendarPage() {
                 <div className="flex items-center gap-3">
                     <div className="relative">
                         {currentPet?.avatar_url ? (
-                            <img
+                            <SecureImage
                                 alt={currentPet.name}
                                 className="w-10 h-10 rounded-full object-cover border-2 border-white dark:border-surface-dark shadow-sm"
                                 src={currentPet.avatar_url}

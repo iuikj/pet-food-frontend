@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import DropdownMenu from './DropdownMenu';
+import SecureImage from './SecureImage';
 import { formatPetAge } from '../utils/petUtils';
 
 /**
@@ -38,7 +39,7 @@ export default function PetCard({ pet, onDelete, showActions = true, variant = '
                 {/* 宠物头像 */}
                 <div className="relative w-24 h-24 flex-shrink-0">
                     {pet.avatar_url ? (
-                        <img
+                        <SecureImage
                             alt={pet.name}
                             className="w-full h-full object-cover rounded-2xl shadow-sm"
                             src={pet.avatar_url}

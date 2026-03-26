@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import SecureImage from '../components/SecureImage';
 import { pageTransitions } from '../utils/animations';
 import { usePets } from '../hooks/usePets';
 import { useMeals } from '../hooks/useMeals';
@@ -264,7 +265,7 @@ export default function DashboardDaily() {
                 <div className="flex items-center gap-3">
                     <div className="relative">
                         {currentPet?.avatar_url ? (
-                            <img alt={currentPet.name} className="w-12 h-12 rounded-full object-cover border-2 border-white dark:border-surface-dark shadow-sm" src={currentPet.avatar_url} />
+                            <SecureImage alt={currentPet.name} className="w-12 h-12 rounded-full object-cover border-2 border-white dark:border-surface-dark shadow-sm" src={currentPet.avatar_url} />
                         ) : (
                             <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-lg border-2 border-white dark:border-surface-dark shadow-sm">
                                 {currentPet?.name?.charAt(0) || '?'}

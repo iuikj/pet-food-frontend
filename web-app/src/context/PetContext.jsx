@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { petsApi } from '../api';
+import { getApiErrorMessage } from '../api/client';
 import PetContext from './PetContextValue';
 import { useUser } from '../hooks/useUser';
 import { readJSON, STORAGE_KEYS, writeJSON } from '../utils/storage';
@@ -48,9 +49,10 @@ export const PetProvider = ({ children }) => {
             setError(res.message);
             return { success: false, message: res.message };
         } catch (err) {
+            const message = getApiErrorMessage(err, '获取宠物列表失败');
             console.error('Failed to fetch pets:', err);
-            setError('获取宠物列表失败');
-            return { success: false, message: '获取宠物列表失败' };
+            setError(message);
+            return { success: false, message };
         } finally {
             setIsLoading(false);
         }
@@ -88,7 +90,7 @@ export const PetProvider = ({ children }) => {
             return { success: false, message: res.message };
         } catch (err) {
             console.error('Failed to create pet:', err);
-            return { success: false, message: '创建宠物失败' };
+            return { success: false, message: getApiErrorMessage(err, '创建宠物失败') };
         } finally {
             setIsLoading(false);
         }
@@ -108,7 +110,7 @@ export const PetProvider = ({ children }) => {
             return { success: false, message: res.message };
         } catch (err) {
             console.error('Failed to update pet:', err);
-            return { success: false, message: '更新宠物失败' };
+            return { success: false, message: getApiErrorMessage(err, '更新宠物失败') };
         } finally {
             setIsLoading(false);
         }
@@ -136,7 +138,7 @@ export const PetProvider = ({ children }) => {
             return { success: false, message: res.message };
         } catch (err) {
             console.error('Failed to delete pet:', err);
-            return { success: false, message: '删除宠物失败' };
+            return { success: false, message: getApiErrorMessage(err, '删除宠物失败') };
         } finally {
             setIsLoading(false);
         }
@@ -154,7 +156,7 @@ export const PetProvider = ({ children }) => {
             return { success: false, message: res.message };
         } catch (err) {
             console.error('Failed to upload pet avatar:', err);
-            return { success: false, message: '上传头像失败' };
+            return { success: false, message: getApiErrorMessage(err, '上传宠物头像失败') };
         }
     }, []);
 

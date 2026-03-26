@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import SecureImage from '../components/SecureImage';
 import { pageTransitions } from '../utils/animations';
 import { usePets } from '../hooks/usePets';
 import { formatPetAge } from '../utils/petUtils';
@@ -148,7 +149,7 @@ export default function Home() {
                                         {/* 头像 */}
                                         <div className={`w-16 h-16 rounded-full p-1 ${isSelected ? 'border-2 border-primary/20' : 'bg-gray-100 dark:bg-gray-800'}`}>
                                             {pet.avatar_url ? (
-                                                <img
+                                                <SecureImage
                                                     alt={pet.name}
                                                     className="w-full h-full object-cover rounded-full"
                                                     src={pet.avatar_url}

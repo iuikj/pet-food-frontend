@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import SecureImage from '../components/SecureImage';
 import { pageTransitions } from '../utils/animations';
 import { usePets } from '../hooks/usePets';
 import { useUser } from '../hooks/useUser';
@@ -104,7 +105,7 @@ export default function Profile() {
                     <div className="relative">
                         <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary to-accent-blue p-1 shadow-glow">
                             {user?.avatar_url ? (
-                                <img
+                                <SecureImage
                                     alt="User Avatar"
                                     className="w-full h-full rounded-full object-cover border-2 border-white dark:border-background-dark"
                                     src={user.avatar_url}

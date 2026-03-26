@@ -21,7 +21,7 @@ export default function OnboardingHealth() {
     };
 
     const handleRemoveAllergen = (item) => {
-        setAllergens(allergens.filter(i => i !== item));
+        setAllergens(allergens.filter((current) => current !== item));
     };
 
     const handleAddIssue = (item) => {
@@ -31,21 +31,22 @@ export default function OnboardingHealth() {
     };
 
     const handleRemoveIssue = (item) => {
-        setHealthIssues(healthIssues.filter(i => i !== item));
+        setHealthIssues(healthIssues.filter((current) => current !== item));
     };
 
     const handleSave = async () => {
         setSubmitting(true);
+
         try {
             const name = sessionStorage.getItem('onboarding_pet_name');
             const species = sessionStorage.getItem('onboarding_pet_species');
             const breed = sessionStorage.getItem('onboarding_pet_breed');
-            const age = parseInt(sessionStorage.getItem('onboarding_pet_age') || '0');
+            const age = parseInt(sessionStorage.getItem('onboarding_pet_age') || '0', 10);
             const weight = parseFloat(sessionStorage.getItem('onboarding_pet_weight') || '0');
             const avatarBase64 = sessionStorage.getItem('onboarding_pet_photo');
 
             if (!name) {
-                alert('缺少必要信息，请返回重新填写');
+                alert('缺少宠物基础信息，请返回上一步重新填写。');
                 setSubmitting(false);
                 return;
             }
@@ -56,45 +57,48 @@ export default function OnboardingHealth() {
                 breed,
                 age,
                 weight,
-                health_status: healthIssues.join(', ') || '健康',
-                special_requirements: allergens.length > 0 ? `过敏: ${allergens.join(', ')}` : ''
+                health_status: healthIssues.join(', ') || '暂无特殊健康问题',
+                special_requirements: allergens.length > 0 ? `过敏原: ${allergens.join(', ')}` : '',
             };
 
             const result = await addPet(petData);
-            if (result.success && result.pet) {
-                const petId = result.pet.id;
-
-                if (avatarBase64) {
-                    try {
-                        const response = await fetch(avatarBase64);
-                        const blob = await response.blob();
-                        const file = new File([blob], 'avatar.jpg', { type: 'image/jpeg' });
-                        await uploadPetAvatar(petId, file);
-                    } catch (e) {
-                        console.error('头像处理/上传失败', e);
-                    }
-                }
-
-                // 清除 sessionStorage
-                sessionStorage.removeItem('onboarding_pet_name');
-                sessionStorage.removeItem('onboarding_pet_species');
-                sessionStorage.removeItem('onboarding_pet_breed');
-                sessionStorage.removeItem('onboarding_pet_age');
-                sessionStorage.removeItem('onboarding_pet_age_years');
-                sessionStorage.removeItem('onboarding_pet_age_months');
-                sessionStorage.removeItem('onboarding_pet_weight');
-                sessionStorage.removeItem('onboarding_pet_photo');
-
-                const referrer = sessionStorage.getItem('onboarding_referrer') || '/';
-                sessionStorage.removeItem('onboarding_referrer');
-                navigate(referrer, { replace: true });
-            } else {
+            if (!result.success || !result.pet) {
                 alert(result.message || '创建宠物失败');
                 setSubmitting(false);
+                return;
             }
+
+            if (avatarBase64) {
+                try {
+                    const response = await fetch(avatarBase64);
+                    const blob = await response.blob();
+                    const file = new File([blob], 'avatar.jpg', { type: 'image/jpeg' });
+                    const avatarResult = await uploadPetAvatar(result.pet.id, file);
+
+                    if (!avatarResult.success) {
+                        alert(avatarResult.message || '宠物已创建，但头像上传失败，可稍后在资料页重新上传。');
+                    }
+                } catch (e) {
+                    console.error('Failed to process pet avatar during onboarding:', e);
+                    alert('宠物已创建，但头像上传失败，可稍后在资料页重新上传。');
+                }
+            }
+
+            sessionStorage.removeItem('onboarding_pet_name');
+            sessionStorage.removeItem('onboarding_pet_species');
+            sessionStorage.removeItem('onboarding_pet_breed');
+            sessionStorage.removeItem('onboarding_pet_age');
+            sessionStorage.removeItem('onboarding_pet_age_years');
+            sessionStorage.removeItem('onboarding_pet_age_months');
+            sessionStorage.removeItem('onboarding_pet_weight');
+            sessionStorage.removeItem('onboarding_pet_photo');
+
+            const referrer = sessionStorage.getItem('onboarding_referrer') || '/';
+            sessionStorage.removeItem('onboarding_referrer');
+            navigate(referrer, { replace: true });
         } catch (error) {
             console.error(error);
-            alert('发生错误');
+            alert('提交失败，请稍后重试。');
             setSubmitting(false);
         }
     };
@@ -106,25 +110,23 @@ export default function OnboardingHealth() {
             backLink="/onboarding/step2"
             onNext={handleSave}
             nextDisabled={false}
-            nextLabel="完成"
+            nextLabel="完成创建"
             isSubmitting={submitting}
         >
             <div className="flex flex-col items-center pt-2">
                 <div className="w-full max-w-sm space-y-6">
-                    {/* 标题 */}
                     <div className="space-y-2 text-center mb-6">
-                        <h2 className="text-2xl font-bold text-text-main-light dark:text-text-main-dark">健康信息</h2>
-                        <p className="text-sm text-text-muted-light dark:text-text-muted-dark">有什么过敏或需要注意的健康问题吗？</p>
+                        <h2 className="text-2xl font-bold text-text-main-light dark:text-text-main-dark">健康与饮食偏好</h2>
+                        <p className="text-sm text-text-muted-light dark:text-text-muted-dark">补充宠物的过敏信息和健康状况，方便后续生成更准确的饮食建议。</p>
                     </div>
 
-                    {/* 过敏源 */}
                     <div className="space-y-3">
                         <div className="flex items-center justify-between px-1">
-                            <label className="text-sm font-semibold text-text-main-light dark:text-text-main-dark">过敏源</label>
+                            <label className="text-sm font-semibold text-text-main-light dark:text-text-main-dark">过敏原</label>
                         </div>
                         <div className="relative bg-white dark:bg-surface-dark rounded-2xl p-4 shadow-soft">
                             <div className="flex flex-wrap gap-2 mb-2 items-center min-h-[40px]">
-                                {allergens.map(item => (
+                                {allergens.map((item) => (
                                     <span key={item} className="inline-flex items-center px-3 py-1 rounded-full bg-primary/20 text-green-900 dark:text-green-100 text-sm font-medium">
                                         {item}
                                         <button
@@ -138,11 +140,11 @@ export default function OnboardingHealth() {
                                 ))}
                                 <input
                                     className="flex-1 min-w-[100px] border-none focus:ring-0 bg-transparent text-sm text-text-main-light dark:text-text-main-dark p-0"
-                                    placeholder="如：玉米、小麦、鸡蛋等..."
+                                    placeholder="输入过敏原后按回车添加"
                                     type="text"
                                     value={allergenInput}
-                                    onChange={e => setAllergenInput(e.target.value)}
-                                    onKeyDown={e => {
+                                    onChange={(e) => setAllergenInput(e.target.value)}
+                                    onKeyDown={(e) => {
                                         if (e.key === 'Enter' && allergenInput.trim()) {
                                             handleAddAllergen(allergenInput.trim());
                                             setAllergenInput('');
@@ -153,23 +155,22 @@ export default function OnboardingHealth() {
                             </div>
                         </div>
                         <EnhancedTagSelect
-                            options={['鸡肉', '牛肉', '乳制品', '海鲜/鱼', '羊肉']}
+                            options={['鸡肉', '牛肉', '乳制品', '谷物', '鱼类']}
                             selected={allergens}
                             onChange={setAllergens}
                             multiple={true}
-                            clearLabel="无"
+                            clearLabel="清空"
                             onClear={() => setAllergens([])}
                         />
                     </div>
 
-                    {/* 健康困扰 */}
                     <div className="space-y-3">
                         <div className="flex items-center justify-between px-1">
-                            <label className="text-sm font-semibold text-text-main-light dark:text-text-main-dark">近期健康困扰</label>
+                            <label className="text-sm font-semibold text-text-main-light dark:text-text-main-dark">健康问题</label>
                         </div>
                         <div className="relative bg-white dark:bg-surface-dark rounded-2xl p-4 shadow-soft">
                             <div className="flex flex-wrap gap-2 mb-2 items-center min-h-[40px]">
-                                {healthIssues.map(item => (
+                                {healthIssues.map((item) => (
                                     <span key={item} className="inline-flex items-center px-3 py-1 rounded-full bg-primary/20 text-green-900 dark:text-green-100 text-sm font-medium">
                                         {item}
                                         <button
@@ -183,11 +184,11 @@ export default function OnboardingHealth() {
                                 ))}
                                 <input
                                     className="flex-1 min-w-[100px] border-none focus:ring-0 bg-transparent text-sm text-text-main-light dark:text-text-main-dark p-0"
-                                    placeholder="如：关节炎、肠胃敏感、肥胖等..."
+                                    placeholder="输入健康问题后按回车添加"
                                     type="text"
                                     value={issueInput}
-                                    onChange={e => setIssueInput(e.target.value)}
-                                    onKeyDown={e => {
+                                    onChange={(e) => setIssueInput(e.target.value)}
+                                    onKeyDown={(e) => {
                                         if (e.key === 'Enter' && issueInput.trim()) {
                                             handleAddIssue(issueInput.trim());
                                             setIssueInput('');
@@ -199,15 +200,15 @@ export default function OnboardingHealth() {
                         </div>
                         <EnhancedTagSelect
                             options={[
-                                { icon: 'healing', text: '皮肤瘙痒' },
-                                { icon: 'monitor_weight', text: '体重超标' },
-                                { icon: 'sentiment_dissatisfied', text: '软便/拉稀' },
-                                { icon: 'restaurant', text: '挑食' }
+                                { icon: 'healing', text: '肠胃敏感' },
+                                { icon: 'monitor_weight', text: '体重异常' },
+                                { icon: 'sentiment_dissatisfied', text: '食欲不振' },
+                                { icon: 'restaurant', text: '挑食' },
                             ]}
                             selected={healthIssues}
                             onChange={setHealthIssues}
                             multiple={true}
-                            clearLabel="无"
+                            clearLabel="清空"
                             onClear={() => setHealthIssues([])}
                         />
                     </div>

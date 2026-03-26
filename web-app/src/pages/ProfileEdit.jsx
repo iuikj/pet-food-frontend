@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import usePhotoSelect from '../hooks/usePhotoSelect';
+import SecureImage from '../components/SecureImage';
 import { useUser } from '../hooks/useUser';
 
 export default function ProfileEdit() {
@@ -13,18 +14,17 @@ export default function ProfileEdit() {
     const [avatarFile, setAvatarFile] = useState(null);
     const [formData, setFormData] = useState({
         nickname: '',
-        phone: ''
+        phone: '',
     });
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
 
-    // 初始化表单数据
     useEffect(() => {
         if (user) {
             setAvatar(user.avatar_url || '');
             setFormData({
                 nickname: user.nickname || user.username || '',
-                phone: user.phone || ''
+                phone: user.phone || '',
             });
         }
     }, [user]);
@@ -34,10 +34,11 @@ export default function ProfileEdit() {
             width: 400,
             height: 400,
             fileName: 'avatar.jpg',
-            promptLabelHeader: '选择头像',
-            promptLabelPhoto: '从相册选择',
-            promptLabelPicture: '拍照',
+            promptLabelHeader: '选择头像来源',
+            promptLabelPhoto: '拍照',
+            promptLabelPicture: '从相册选择',
         });
+
         if (result) {
             setAvatar(result.dataUrl);
             setAvatarFile(result.file);
@@ -46,9 +47,9 @@ export default function ProfileEdit() {
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
-        setFormData(prev => ({
+        setFormData((prev) => ({
             ...prev,
-            [name]: value
+            [name]: value,
         }));
     };
 
@@ -57,30 +58,28 @@ export default function ProfileEdit() {
         setError('');
 
         try {
-            // 上传头像
+            const updateResult = await updateUser({
+                nickname: formData.nickname || undefined,
+                phone: formData.phone || undefined,
+            });
+
+            if (!updateResult.success) {
+                setError(updateResult.message || '更新资料失败');
+                return;
+            }
+
             if (avatarFile) {
                 const avatarResult = await updateAvatar(avatarFile);
                 if (!avatarResult.success) {
-                    setError(avatarResult.message || '头像上传失败');
-                    setSaving(false);
+                    setError(avatarResult.message || '资料已保存，但头像上传失败，请重试');
                     return;
                 }
             }
 
-            // 更新用户信息
-            const updateResult = await updateUser({
-                nickname: formData.nickname,
-                phone: formData.phone
-            });
-
-            if (updateResult.success) {
-                navigate('/profile');
-            } else {
-                setError(updateResult.message || '保存失败');
-            }
+            navigate('/profile');
         } catch (err) {
-            console.error('保存失败:', err);
-            setError('保存失败，请重试');
+            console.error('更新资料失败:', err);
+            setError('更新资料失败，请稍后重试');
         } finally {
             setSaving(false);
         }
@@ -101,7 +100,6 @@ export default function ProfileEdit() {
             exit={{ opacity: 0, x: -50 }}
             className="flex flex-col min-h-screen bg-background-light dark:bg-background-dark pb-safe"
         >
-            {/* 头部导航 */}
             <header className="px-6 pt-12 pb-4 flex items-center justify-between bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-md sticky top-0 z-50">
                 <Link
                     to="/profile"
@@ -109,11 +107,10 @@ export default function ProfileEdit() {
                 >
                     <span className="material-icons-round">arrow_back</span>
                 </Link>
-                <h1 className="text-xl font-bold text-center flex-1">编辑资料</h1>
+                <h1 className="text-xl font-bold text-center flex-1">编辑个人资料</h1>
                 <div className="w-10 h-10" />
             </header>
 
-            {/* 主要内容 */}
             <main className="px-6 py-6 flex-1 overflow-y-auto">
                 {error && (
                     <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl text-sm">
@@ -121,7 +118,6 @@ export default function ProfileEdit() {
                     </div>
                 )}
 
-                {/* 头像编辑 */}
                 <div className="flex flex-col items-center mb-8">
                     <div className="relative group">
                         <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -130,7 +126,7 @@ export default function ProfileEdit() {
                             className="relative w-28 h-28 rounded-full bg-gradient-to-br from-primary to-accent-blue p-1 shadow-glow cursor-pointer overflow-hidden"
                         >
                             {avatar ? (
-                                <img
+                                <SecureImage
                                     src={avatar}
                                     alt="Avatar"
                                     className="w-full h-full rounded-full object-cover border-2 border-white dark:border-background-dark"
@@ -150,9 +146,7 @@ export default function ProfileEdit() {
                     </p>
                 </div>
 
-                {/* 表单 */}
                 <div className="space-y-5">
-                    {/* 昵称 */}
                     <div className="space-y-2">
                         <label className="block text-sm font-semibold text-text-main-light dark:text-text-main-dark">
                             昵称
@@ -172,7 +166,6 @@ export default function ProfileEdit() {
                         </div>
                     </div>
 
-                    {/* 邮箱（只读） */}
                     <div className="space-y-2">
                         <label className="block text-sm font-semibold text-text-main-light dark:text-text-main-dark">
                             邮箱 <span className="text-text-muted-light dark:text-text-muted-dark font-normal">(不可修改)</span>
@@ -190,7 +183,6 @@ export default function ProfileEdit() {
                         </div>
                     </div>
 
-                    {/* 手机号 */}
                     <div className="space-y-2">
                         <label className="block text-sm font-semibold text-text-main-light dark:text-text-main-dark">
                             手机号 <span className="text-text-muted-light dark:text-text-muted-dark font-normal">(可选)</span>
@@ -211,7 +203,6 @@ export default function ProfileEdit() {
                     </div>
                 </div>
 
-                {/* 会员信息卡片 */}
                 {user?.is_pro && (
                     <div className="mt-8 p-5 rounded-2xl bg-gradient-to-br from-yellow-400/20 to-orange-400/20 dark:from-yellow-900/20 dark:to-orange-900/20 border border-yellow-200/50 dark:border-yellow-900/30">
                         <div className="flex items-center gap-3">
@@ -220,14 +211,13 @@ export default function ProfileEdit() {
                             </div>
                             <div>
                                 <h3 className="font-bold text-yellow-800 dark:text-yellow-200">PRO 会员</h3>
-                                <p className="text-sm text-yellow-700/80 dark:text-yellow-300/80">享受所有高级功能</p>
+                                <p className="text-sm text-yellow-700/80 dark:text-yellow-300/80">你正在使用高级会员权益。</p>
                             </div>
                         </div>
                     </div>
                 )}
             </main>
 
-            {/* 底部按钮 */}
             <div className="px-6 py-6 bg-background-light dark:bg-background-dark border-t border-gray-100 dark:border-gray-800">
                 <button
                     onClick={handleSave}
@@ -242,7 +232,7 @@ export default function ProfileEdit() {
                     ) : (
                         <>
                             <span className="material-icons-round">check</span>
-                            保存更改
+                            保存修改
                         </>
                     )}
                 </button>
