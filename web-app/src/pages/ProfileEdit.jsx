@@ -35,8 +35,8 @@ export default function ProfileEdit() {
             height: 400,
             fileName: 'avatar.jpg',
             promptLabelHeader: '选择头像来源',
-            promptLabelPhoto: '拍照',
-            promptLabelPicture: '从相册选择',
+            promptLabelPhoto: '从相册选择',
+            promptLabelPicture: '拍照',
         });
 
         if (result) {

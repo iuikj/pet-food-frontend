@@ -30,15 +30,15 @@ export default function usePhotoSelect() {
             height = 500,
             fileName = 'photo.jpg',
             promptLabelHeader = '选择头像来源',
-            promptLabelPhoto = '拍照',
-            promptLabelPicture = '从相册选择',
+            promptLabelPhoto = '从相册选择',
+            promptLabelPicture = '拍照',
         } = options;
 
         if (Capacitor.isNativePlatform()) {
             try {
                 const image = await Camera.getPhoto({
                     quality,
-                    allowEditing: true,
+                    allowEditing: false,
                     resultType: CameraResultType.DataUrl,
                     source: CameraSource.Prompt,
                     width,

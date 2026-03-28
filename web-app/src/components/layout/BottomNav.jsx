@@ -1,11 +1,30 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
+import { Capacitor } from '@capacitor/core';
+import { Keyboard } from '@capacitor/keyboard';
 import { usePlanGeneration } from '../../hooks/usePlanGeneration';
 
 export default function BottomNav() {
     const location = useLocation();
     const navigate = useNavigate();
     const { status } = usePlanGeneration();
+    const [keyboardVisible, setKeyboardVisible] = useState(false);
+
+    useEffect(() => {
+        if (!Capacitor.isNativePlatform()) return;
+
+        const showListener = Keyboard.addListener('keyboardWillShow', () => {
+            setKeyboardVisible(true);
+        });
+        const hideListener = Keyboard.addListener('keyboardWillHide', () => {
+            setKeyboardVisible(false);
+        });
+
+        return () => {
+            showListener.then((h) => h.remove());
+            hideListener.then((h) => h.remove());
+        };
+    }, []);
 
     // 改进的活跃状态判断逻辑,支持子路由
     const isActive = (path) => {
@@ -57,6 +76,8 @@ export default function BottomNav() {
         return 'menu_book'; // 默认
     };
 
+    if (keyboardVisible) return null;
+
     return (
         <nav className="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-surface-dark/90 backdrop-blur-lg border-t border-gray-100 dark:border-gray-800 pb-safe pt-2 px-6 pb-6 rounded-t-3xl shadow-[0_-5px_20px_rgba(0,0,0,0.03)] z-50">
             <div className="flex justify-between items-center">
@@ -70,11 +91,10 @@ export default function BottomNav() {
                                         ? 'bg-secondary animate-pulse'
                                         : status === 'completed'
                                             ? 'bg-green-500'
-                                            : 'bg-surface-dark dark:bg-gray-700'
-                                    } ${isActive(item.path)
-                                        ? 'text-primary'
-                                        : 'text-white dark:text-white'
-                                    }`}
+                                            : isActive(item.path)
+                                                ? 'bg-primary shadow-glow'
+                                                : 'bg-surface-dark dark:bg-gray-700'
+                                    } text-white`}
                             >
                                 <span className={`material-icons-round text-2xl ${status === 'generating' ? 'animate-spin' : ''}`}>
                                     {getFabIcon()}

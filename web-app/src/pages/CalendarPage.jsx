@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import SecureImage from '../components/SecureImage';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
@@ -8,9 +8,6 @@ import { pageTransitions } from '../utils/animations';
 import { usePets } from '../hooks/usePets';
 import { calendarApi } from '../api';
 
-/**
- * 格式化日期为 YYYY-MM-DD
- */
 function formatDate(date) {
     const y = date.getFullYear();
     const m = String(date.getMonth() + 1).padStart(2, '0');
@@ -18,19 +15,6 @@ function formatDate(date) {
     return `${y}-${m}-${d}`;
 }
 
-/**
- * 根据日期列表构建 dateMap
- */
-function buildDateMap(days) {
-    if (!days || days.length === 0) return {};
-    const map = {};
-    days.forEach(d => {
-        map[d.date] = { ...d };
-    });
-    return map;
-}
-
-/** 判断日期是否在今天之前（不含今天） */
 function isPastDate(date) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -39,7 +23,6 @@ function isPastDate(date) {
     return target < today;
 }
 
-/** 判断日期是否在今天之后（不含今天） */
 function isFutureDate(date) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -50,38 +33,72 @@ function isFutureDate(date) {
 
 export default function CalendarPage() {
     const navigate = useNavigate();
-    const { currentPet } = usePets();
+    const { pets } = usePets();
 
     const [activeDate, setActiveDate] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState(null);
-    const [calendarData, setCalendarData] = useState([]);
+    const [allPetData, setAllPetData] = useState({}); // { petId: [dayData...] }
     const [isLoading, setIsLoading] = useState(false);
+    const [collapsedPets, setCollapsedPets] = useState({});
 
-    const dateMap = useMemo(() => buildDateMap(calendarData), [calendarData]);
+    // 只取有计划的宠物
+    const activePets = useMemo(() => pets.filter(p => p.has_plan), [pets]);
 
-    const fetchCalendarData = useCallback(async (date) => {
-        if (!currentPet?.id) return;
+    // 为所有有计划的宠物获取日历数据
+    const fetchAllCalendarData = useCallback(async (date) => {
+        if (activePets.length === 0) return;
         setIsLoading(true);
+        const year = date.getFullYear();
+        const month = date.getMonth() + 1;
+
         try {
-            const year = date.getFullYear();
-            const month = date.getMonth() + 1;
-            const res = await calendarApi.getMonthlyCalendar(currentPet.id, year, month);
-            if (res.code === 0 && res.data?.days) {
-                setCalendarData(res.data.days);
-            } else {
-                setCalendarData([]);
+            const results = await Promise.all(
+                activePets.map(async (pet) => {
+                    try {
+                        const res = await calendarApi.getMonthlyCalendar(pet.id, year, month);
+                        return { petId: pet.id, days: res.code === 0 ? res.data?.days || [] : [] };
+                    } catch {
+                        return { petId: pet.id, days: [] };
+                    }
+                })
+            );
+            const data = {};
+            for (const r of results) {
+                data[r.petId] = r.days;
             }
-        } catch (err) {
-            console.error('Failed to fetch calendar data:', err);
-            setCalendarData([]);
+            setAllPetData(data);
+        } catch {
+            setAllPetData({});
         } finally {
             setIsLoading(false);
         }
-    }, [currentPet?.id]);
+    }, [activePets]);
 
-    useEffect(() => {
-        fetchCalendarData(activeDate);
-    }, [fetchCalendarData, activeDate]);
+    useEffect(() => { fetchAllCalendarData(activeDate); }, [fetchAllCalendarData, activeDate]);
+
+    // 合并所有宠物的 dateMap：某日任一宠物有计划即标记
+    const mergedDateMap = useMemo(() => {
+        const map = {};
+        for (const days of Object.values(allPetData)) {
+            for (const d of days) {
+                if (d.has_plan) map[d.date] = true;
+            }
+        }
+        return map;
+    }, [allPetData]);
+
+    // 选中日期时，获取每只宠物该日的数据
+    const getSelectedDatePetData = () => {
+        if (!selectedDate) return [];
+        const key = formatDate(selectedDate.date);
+        return activePets
+            .map(pet => {
+                const days = allPetData[pet.id] || [];
+                const dayData = days.find(d => d.date === key);
+                return { pet, dayData };
+            })
+            .filter(item => item.dayData?.has_plan);
+    };
 
     const handleActiveStartDateChange = ({ activeStartDate }) => {
         setActiveDate(activeStartDate);
@@ -89,9 +106,7 @@ export default function CalendarPage() {
     };
 
     const handleClickDay = (date) => {
-        const key = formatDate(date);
-        const dayData = dateMap[key];
-        setSelectedDate({ date, data: dayData || null });
+        setSelectedDate({ date });
     };
 
     const handleGoToDaily = (date) => {
@@ -104,13 +119,13 @@ export default function CalendarPage() {
         setSelectedDate(null);
     };
 
-    // react-calendar tileContent: 有计划的日子渲染小圆点
+    const togglePetCollapse = (petId) => {
+        setCollapsedPets(prev => ({ ...prev, [petId]: !prev[petId] }));
+    };
+
     const tileContent = ({ date, view }) => {
         if (view !== 'month') return null;
-        const key = formatDate(date);
-        const dayData = dateMap[key];
-        if (!dayData?.has_plan) return null;
-
+        if (!mergedDateMap[formatDate(date)]) return null;
         return (
             <div className="flex justify-center mt-0.5">
                 <span className="block w-1.5 h-1.5 rounded-full bg-primary" />
@@ -118,19 +133,19 @@ export default function CalendarPage() {
         );
     };
 
-    // react-calendar tileClassName: 过去日期加灰色样式
     const tileClassName = ({ date, view }) => {
         if (view !== 'month') return '';
         if (isPastDate(date)) return 'past-date';
         return '';
     };
 
-    // 选中日期的摘要面板
+    // 选中日期面板 — 按宠物分组
     const renderSelectedDatePanel = () => {
         if (!selectedDate) return null;
-        const { date, data } = selectedDate;
+        const { date } = selectedDate;
         const dayLabel = date.toLocaleDateString('zh-CN', { month: 'long', day: 'numeric', weekday: 'short' });
         const future = isFutureDate(date);
+        const petDataList = getSelectedDatePetData();
 
         return (
             <motion.div
@@ -140,47 +155,89 @@ export default function CalendarPage() {
             >
                 <div className="flex justify-between items-center">
                     <h3 className="font-bold text-lg">{dayLabel}</h3>
-                    {data?.has_plan && (
-                        <button
-                            onClick={() => handleGoToDaily(date)}
-                            className="text-sm text-primary font-medium flex items-center gap-1 hover:opacity-80 transition-opacity"
-                        >
-                            {future ? '查看计划' : '查看详情'}
-                            <span className="material-icons-round text-sm">arrow_forward</span>
-                        </button>
+                    {future && (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-text-muted-light dark:text-text-muted-dark font-medium">
+                            仅查看
+                        </span>
                     )}
                 </div>
 
-                {data?.has_plan ? (
-                    <div className="space-y-2">
-                        <div className="flex items-center gap-3">
-                            <div className="flex items-center gap-1.5">
-                                <span className="material-icons-round text-sm text-primary">restaurant</span>
-                                <span className="text-sm">
-                                    {data.completed_meals}/{data.total_meals} 餐已完成
-                                </span>
-                            </div>
-                            {future && (
-                                <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-text-muted-light dark:text-text-muted-dark font-medium">
-                                    仅查看
-                                </span>
-                            )}
-                        </div>
-                        {/* 完成率进度条 */}
-                        <div className="h-2 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                            <div
-                                className="h-full bg-primary rounded-full transition-all duration-300"
-                                style={{ width: `${Math.round(data.completion_rate * 100)}%` }}
-                            />
-                        </div>
-                        <p className="text-xs text-text-muted-light dark:text-text-muted-dark">
-                            完成率 {Math.round(data.completion_rate * 100)}%
-                        </p>
-                    </div>
-                ) : (
+                {petDataList.length === 0 ? (
                     <p className="text-sm text-text-muted-light dark:text-text-muted-dark">
                         该日暂无饮食计划
                     </p>
+                ) : (
+                    <div className="space-y-3">
+                        {petDataList.map(({ pet, dayData }) => {
+                            const isCollapsed = collapsedPets[pet.id] ?? false;
+                            const completionPct = Math.round((dayData.completion_rate || 0) * 100);
+
+                            return (
+                                <div key={pet.id} className="border border-gray-100 dark:border-gray-800 rounded-xl overflow-hidden">
+                                    {/* 宠物标题行 */}
+                                    <button
+                                        onClick={() => togglePetCollapse(pet.id)}
+                                        className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                                    >
+                                        <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 bg-gray-100 dark:bg-gray-800">
+                                            {pet.avatar_url ? (
+                                                <SecureImage src={pet.avatar_url} alt={pet.name} className="w-full h-full object-cover" />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center text-primary font-bold text-sm">
+                                                    {pet.name?.charAt(0)}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <span className="font-medium text-sm flex-1 text-left">{pet.name}</span>
+                                        <span className="text-xs text-text-muted-light dark:text-text-muted-dark">
+                                            {dayData.completed_meals}/{dayData.total_meals} 餐
+                                        </span>
+                                        <motion.span
+                                            className="material-icons-round text-text-muted-light dark:text-text-muted-dark text-lg"
+                                            animate={{ rotate: isCollapsed ? -90 : 0 }}
+                                            transition={{ duration: 0.2 }}
+                                        >
+                                            expand_more
+                                        </motion.span>
+                                    </button>
+
+                                    {/* 展开详情 */}
+                                    <AnimatePresence initial={false}>
+                                        {!isCollapsed && (
+                                            <motion.div
+                                                initial={{ height: 0 }}
+                                                animate={{ height: 'auto' }}
+                                                exit={{ height: 0 }}
+                                                transition={{ duration: 0.2 }}
+                                                className="overflow-hidden"
+                                            >
+                                                <div className="px-3 pb-3 space-y-2">
+                                                    <div className="h-2 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                                                        <div
+                                                            className="h-full bg-primary rounded-full transition-all duration-300"
+                                                            style={{ width: `${completionPct}%` }}
+                                                        />
+                                                    </div>
+                                                    <div className="flex justify-between items-center">
+                                                        <p className="text-xs text-text-muted-light dark:text-text-muted-dark">
+                                                            完成率 {completionPct}%
+                                                        </p>
+                                                        <button
+                                                            onClick={() => handleGoToDaily(date)}
+                                                            className="text-xs text-primary font-medium flex items-center gap-0.5"
+                                                        >
+                                                            {future ? '查看计划' : '查看详情'}
+                                                            <span className="material-icons-round text-xs">arrow_forward</span>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                </div>
+                            );
+                        })}
+                    </div>
                 )}
             </motion.div>
         );
@@ -191,38 +248,25 @@ export default function CalendarPage() {
             {...pageTransitions}
             className="pb-32 overflow-x-hidden"
         >
-            {/* Header */}
-            <header className="px-6 pt-12 pb-4 flex justify-between items-center bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-md sticky top-0 z-50">
-                <div className="flex items-center gap-3">
-                    <div className="relative">
-                        {currentPet?.avatar_url ? (
-                            <SecureImage
-                                alt={currentPet.name}
-                                className="w-10 h-10 rounded-full object-cover border-2 border-white dark:border-surface-dark shadow-sm"
-                                src={currentPet.avatar_url}
-                            />
-                        ) : (
-                            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold border-2 border-white dark:border-surface-dark shadow-sm">
-                                {currentPet?.name?.charAt(0) || '?'}
-                            </div>
-                        )}
-                    </div>
-                    <div>
-                        <p className="text-xs text-text-muted-light dark:text-text-muted-dark font-medium">饮食日历</p>
-                        <h1 className="text-lg font-bold">{currentPet?.name || '宠物'}</h1>
-                    </div>
-                </div>
+            {/* Header — 返回在左 */}
+            <header className="px-6 pt-12 pb-4 flex items-center gap-3 bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-md sticky top-0 z-50">
                 <button
-                    onClick={() => navigate('/')}
+                    onClick={() => navigate(-1)}
                     className="w-10 h-10 rounded-full bg-white dark:bg-surface-dark shadow-sm flex items-center justify-center text-text-muted-light dark:text-text-muted-dark hover:text-primary transition-colors"
                 >
                     <span className="material-icons-round">arrow_back</span>
                 </button>
+                <div className="flex-1">
+                    <h1 className="text-xl font-bold">饮食日历</h1>
+                    <p className="text-xs text-text-muted-light dark:text-text-muted-dark">
+                        {activePets.length > 0 ? `${activePets.length} 只宠物有饮食计划` : '暂无饮食计划'}
+                    </p>
+                </div>
             </header>
 
             <main className="px-6 space-y-6">
                 {/* 日历组件 */}
-                <div className="calendar-container bg-white dark:bg-surface-dark rounded-2xl shadow-soft p-4">
+                <div className="calendar-container bg-white dark:bg-surface-dark rounded-2xl shadow-soft p-4 relative">
                     {isLoading && (
                         <div className="absolute inset-0 bg-white/60 dark:bg-surface-dark/60 z-10 rounded-2xl overflow-hidden">
                             <div className="absolute inset-0 animate-shimmer bg-gradient-to-r from-transparent via-white/40 dark:via-white/10 to-transparent" />
@@ -241,19 +285,17 @@ export default function CalendarPage() {
                         minDetail="month"
                         formatDay={(locale, date) => date.getDate()}
                     />
-                    {/* 分割线 + 回到今日 */}
                     <div className="border-t border-gray-100 dark:border-gray-800 mt-2 pt-2 flex justify-end">
                         <button
                             onClick={handleBackToToday}
                             className="px-3 py-1.5 rounded-xl bg-primary/10 text-primary font-bold text-sm flex items-center justify-center hover:bg-primary/20 active:scale-95 transition-all"
-                            title="回到今日"
                         >
                             今
                         </button>
                     </div>
                 </div>
 
-                {/* 选中日期摘要 */}
+                {/* 选中日期 — 按宠物分组展示 */}
                 {renderSelectedDatePanel()}
             </main>
         </motion.div>

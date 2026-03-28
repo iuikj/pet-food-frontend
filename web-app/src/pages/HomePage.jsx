@@ -50,6 +50,9 @@ export default function HomePage() {
     const [weightSaving, setWeightSaving] = useState(false);
     const [latestWeight, setLatestWeight] = useState(null);
 
+    // 体重历史数据（趋势图用）
+    const [weightHistory, setWeightHistory] = useState([]);
+
     // 获取最新体重
     const fetchLatestWeight = useCallback(async () => {
         if (!currentPet?.id) return;
@@ -65,7 +68,22 @@ export default function HomePage() {
         }
     }, [currentPet?.id]);
 
-    useEffect(() => { fetchLatestWeight(); }, [fetchLatestWeight]);
+    // 获取体重历史
+    const fetchWeightHistory = useCallback(async () => {
+        if (!currentPet?.id) return;
+        try {
+            const res = await weightsApi.getWeightHistory(currentPet.id, 7);
+            if (res.code === 0 && Array.isArray(res.data)) {
+                setWeightHistory(res.data);
+            } else {
+                setWeightHistory([]);
+            }
+        } catch {
+            setWeightHistory([]);
+        }
+    }, [currentPet?.id]);
+
+    useEffect(() => { fetchLatestWeight(); fetchWeightHistory(); }, [fetchLatestWeight, fetchWeightHistory]);
 
     // 保存体重
     const handleSaveWeight = async () => {
@@ -92,6 +110,49 @@ export default function HomePage() {
         const diff = Math.floor((Date.now() - new Date(latestWeight.recorded_date).getTime()) / 86400000);
         if (diff === 0) return '今天';
         return `${diff}天前`;
+    };
+
+    // --- 迷你体重趋势 SVG ---
+    const renderWeightSparkline = (data, w = 100, h = 40) => {
+        if (!data || data.length < 2) return null;
+        const sorted = [...data].sort((a, b) => new Date(a.recorded_date) - new Date(b.recorded_date));
+        const weights = sorted.map(d => d.weight);
+        const minW = Math.min(...weights);
+        const maxW = Math.max(...weights);
+        const range = maxW - minW || 1;
+        const pad = 4;
+        const points = weights.map((v, i) => {
+            const x = pad + (i / (weights.length - 1)) * (w - pad * 2);
+            const y = pad + (1 - (v - minW) / range) * (h - pad * 2);
+            return `${x},${y}`;
+        });
+        return (
+            <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="overflow-visible">
+                <polyline
+                    points={points.join(' ')}
+                    fill="none"
+                    stroke="#A3D9A5"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                />
+                {/* 最后一个点高亮 */}
+                {(() => {
+                    const last = points[points.length - 1].split(',');
+                    return <circle cx={last[0]} cy={last[1]} r="3" fill="#A3D9A5" />;
+                })()}
+            </svg>
+        );
+    };
+
+    // 体重趋势文案
+    const getWeightTrend = () => {
+        if (weightHistory.length < 2) return null;
+        const sorted = [...weightHistory].sort((a, b) => new Date(a.recorded_date) - new Date(b.recorded_date));
+        const diff = sorted[sorted.length - 1].weight - sorted[sorted.length - 2].weight;
+        if (Math.abs(diff) < 0.05) return { text: '保持稳定', icon: 'trending_flat', color: 'text-gray-500' };
+        if (diff > 0) return { text: `+${diff.toFixed(1)}kg`, icon: 'trending_up', color: 'text-red-500' };
+        return { text: `${diff.toFixed(1)}kg`, icon: 'trending_down', color: 'text-green-600' };
     };
 
     // 状态判断
@@ -463,14 +524,26 @@ export default function HomePage() {
     // 渲染：锁定功能卡片（未有食谱时）
     const renderLockedCards = () => (
         <section className="grid grid-cols-2 gap-4">
-            <Link
-                to={hasPets ? "/plan/create" : "/onboarding/step1"}
-                className="bg-accent-blue/20 dark:bg-accent-blue/10 p-5 rounded-2xl flex flex-col justify-center items-center h-36 relative overflow-hidden text-center hover:shadow-soft hover:bg-accent-blue/30 active:scale-[0.98] transition-all duration-300 group"
+            <button
+                onClick={() => {
+                    if (!hasPets) return;
+                    setWeightInput(latestWeight ? String(latestWeight.weight) : String(currentPet?.weight || ''));
+                    setShowWeightModal(true);
+                }}
+                className="bg-primary/10 dark:bg-primary/5 p-5 rounded-2xl flex flex-col justify-between h-36 relative overflow-hidden text-left hover:shadow-soft active:scale-[0.98] transition-all duration-300 group"
             >
-                <span className="material-icons-round text-4xl text-accent-blue/70 mb-2 group-hover:scale-110 transition-transform">water_drop</span>
-                <h4 className="font-bold text-blue-900/80 dark:text-blue-100/80 mb-1">饮水量</h4>
-                <p className="text-xs text-blue-800/60 dark:text-blue-200/60 font-medium px-2">点击开始记录</p>
-            </Link>
+                <div>
+                    <h4 className="font-bold text-green-900/80 dark:text-green-100/80 mb-1">体重趋势</h4>
+                    <p className="text-xs text-green-800/60 dark:text-green-200/60 font-medium">
+                        {weightHistory.length >= 2 ? `${weightHistory.length}条记录` : '点击开始记录'}
+                    </p>
+                </div>
+                <div className="mt-auto">
+                    {renderWeightSparkline(weightHistory, 110, 36) || (
+                        <span className="material-icons-round text-4xl text-primary/30">show_chart</span>
+                    )}
+                </div>
+            </button>
             <button
                 onClick={() => {
                     if (!hasPets) return;
@@ -643,39 +716,52 @@ export default function HomePage() {
     );
 
     // 渲染：已解锁功能卡片
-    const renderUnlockedCards = () => (
-        <section className="grid grid-cols-2 gap-4">
-            <div className="bg-accent-blue/30 dark:bg-accent-blue/10 p-5 rounded-2xl flex flex-col justify-between h-36 relative overflow-hidden hover:shadow-medium hover:scale-105 transition-all duration-300">
-                <span className="material-icons-round absolute -right-2 -bottom-4 text-6xl text-accent-blue opacity-50">water_drop</span>
-                <div>
-                    <h4 className="font-bold text-blue-900 dark:text-blue-100">饮水量</h4>
-                    <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">目标：800毫升</p>
-                </div>
-                <div className="flex items-end gap-1 mt-auto">
-                    <span className="text-2xl font-bold text-blue-900 dark:text-blue-100">550</span>
-                    <span className="text-sm font-medium mb-1 text-blue-700 dark:text-blue-300">毫升</span>
-                </div>
-            </div>
-            <button
-                onClick={() => { setWeightInput(latestWeight ? String(latestWeight.weight) : String(currentPet?.weight || '')); setShowWeightModal(true); }}
-                className="bg-secondary/30 dark:bg-secondary/10 p-5 rounded-2xl flex flex-col justify-between h-36 relative overflow-hidden hover:shadow-medium hover:scale-105 transition-all duration-300 text-left"
-            >
-                <span className="material-icons-round absolute -right-2 -bottom-4 text-6xl text-secondary opacity-50">monitor_weight</span>
-                <div>
-                    <h4 className="font-bold text-yellow-900 dark:text-yellow-100">当前体重</h4>
-                    <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
-                        {getDaysAgo() ? `上次：${getDaysAgo()}` : '点击记录'}
-                    </p>
-                </div>
-                <div className="flex items-end gap-1 mt-auto">
-                    <span className="text-2xl font-bold text-yellow-900 dark:text-yellow-100">
-                        {latestWeight ? latestWeight.weight : (currentPet?.weight || '--')}
-                    </span>
-                    <span className="text-sm font-medium mb-1 text-yellow-700 dark:text-yellow-300">公斤</span>
-                </div>
-            </button>
-        </section>
-    );
+    const renderUnlockedCards = () => {
+        const trend = getWeightTrend();
+        return (
+            <section className="grid grid-cols-2 gap-4">
+                <button
+                    onClick={() => { setWeightInput(latestWeight ? String(latestWeight.weight) : String(currentPet?.weight || '')); setShowWeightModal(true); }}
+                    className="bg-primary/10 dark:bg-primary/5 p-5 rounded-2xl flex flex-col justify-between h-36 relative overflow-hidden hover:shadow-medium hover:scale-105 transition-all duration-300 text-left"
+                >
+                    <div>
+                        <div className="flex items-center justify-between">
+                            <h4 className="font-bold text-green-900 dark:text-green-100">体重趋势</h4>
+                            {trend && (
+                                <span className={`material-icons-round text-sm ${trend.color}`}>{trend.icon}</span>
+                            )}
+                        </div>
+                        <p className="text-xs text-green-700 dark:text-green-300 mt-1">
+                            {trend ? trend.text : `${weightHistory.length}条记录`}
+                        </p>
+                    </div>
+                    <div className="mt-auto pt-1">
+                        {renderWeightSparkline(weightHistory, 110, 36) || (
+                            <span className="material-icons-round text-3xl text-primary/30">show_chart</span>
+                        )}
+                    </div>
+                </button>
+                <button
+                    onClick={() => { setWeightInput(latestWeight ? String(latestWeight.weight) : String(currentPet?.weight || '')); setShowWeightModal(true); }}
+                    className="bg-secondary/30 dark:bg-secondary/10 p-5 rounded-2xl flex flex-col justify-between h-36 relative overflow-hidden hover:shadow-medium hover:scale-105 transition-all duration-300 text-left"
+                >
+                    <span className="material-icons-round absolute -right-2 -bottom-4 text-6xl text-secondary opacity-50">monitor_weight</span>
+                    <div>
+                        <h4 className="font-bold text-yellow-900 dark:text-yellow-100">当前体重</h4>
+                        <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
+                            {getDaysAgo() ? `上次：${getDaysAgo()}` : '点击记录'}
+                        </p>
+                    </div>
+                    <div className="flex items-end gap-1 mt-auto">
+                        <span className="text-2xl font-bold text-yellow-900 dark:text-yellow-100">
+                            {latestWeight ? latestWeight.weight : (currentPet?.weight || '--')}
+                        </span>
+                        <span className="text-sm font-medium mb-1 text-yellow-700 dark:text-yellow-300">公斤</span>
+                    </div>
+                </button>
+            </section>
+        );
+    };
 
     return (
         <motion.div

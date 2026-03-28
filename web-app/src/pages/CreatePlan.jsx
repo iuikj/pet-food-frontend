@@ -140,12 +140,6 @@ export default function Home() {
                                                 : 'bg-white dark:bg-surface-dark shadow-soft border border-transparent opacity-60 hover:opacity-100 hover:shadow-medium hover:scale-105 grayscale'
                                             }`}
                                     >
-                                        {/* 选中标记 */}
-                                        {isSelected && (
-                                            <div className="absolute top-2 right-2 w-5 h-5 bg-primary rounded-full flex items-center justify-center text-white">
-                                                <span className="material-icons-round text-xs">check</span>
-                                            </div>
-                                        )}
                                         {/* 头像 */}
                                         <div className={`w-16 h-16 rounded-full p-1 ${isSelected ? 'border-2 border-primary/20' : 'bg-gray-100 dark:bg-gray-800'}`}>
                                             {pet.avatar_url ? (

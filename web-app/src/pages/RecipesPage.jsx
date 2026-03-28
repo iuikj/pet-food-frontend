@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Toast } from '@capacitor/toast';
 import { pageTransitions } from '../utils/animations';
 import { usePets } from '../hooks/usePets';
 import { plansApi } from '../api';
+import SecureImage from '../components/SecureImage';
 import Skeleton from '../components/ui/Skeleton';
 
 export default function RecipesPage() {
@@ -15,6 +16,22 @@ export default function RecipesPage() {
     const [loading, setLoading] = useState(true);
     const [applyingId, setApplyingId] = useState(null); // 正在应用的 planId
     const [deletingId, setDeletingId] = useState(null); // 正在删除的 planId
+    const [collapsedPets, setCollapsedPets] = useState({}); // { petId: true/false }
+
+    // 按宠物分组
+    const groupedPlans = useMemo(() => {
+        const groups = {};
+        for (const plan of plans) {
+            const key = plan.pet_id || '_unknown';
+            if (!groups[key]) groups[key] = [];
+            groups[key].push(plan);
+        }
+        return groups;
+    }, [plans]);
+
+    const togglePetCollapse = (petId) => {
+        setCollapsedPets(prev => ({ ...prev, [petId]: !prev[petId] }));
+    };
 
     // 获取已保存食谱列表
     const fetchPlans = useCallback(async () => {
@@ -281,10 +298,70 @@ export default function RecipesPage() {
                 ) : plans.length === 0 ? (
                     renderEmpty()
                 ) : (
-                    <div className="space-y-4 mt-2">
-                        <AnimatePresence mode="popLayout">
-                            {plans.map(plan => renderPlanCard(plan))}
-                        </AnimatePresence>
+                    <div className="space-y-6 mt-2">
+                        {Object.entries(groupedPlans).map(([petId, petPlans]) => {
+                            const pet = pets.find(p => p.id === petId);
+                            const petName = pet?.name || '未关联宠物';
+                            const isCollapsed = collapsedPets[petId] ?? false;
+
+                            return (
+                                <div key={petId}>
+                                    {/* 宠物分组标题 */}
+                                    <button
+                                        onClick={() => togglePetCollapse(petId)}
+                                        className="w-full flex items-center gap-3 mb-3 px-1 group"
+                                    >
+                                        <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden flex-shrink-0 border-2 border-white dark:border-surface-dark shadow-sm">
+                                            {pet?.avatar_url ? (
+                                                <SecureImage
+                                                    src={pet.avatar_url}
+                                                    alt={petName}
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center text-primary font-bold">
+                                                    {petName.charAt(0)}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="flex-1 text-left">
+                                            <span className="font-bold text-text-main-light dark:text-text-main-dark">
+                                                {petName}
+                                            </span>
+                                            <span className="text-xs text-text-muted-light dark:text-text-muted-dark ml-2">
+                                                {petPlans.length} 个食谱
+                                            </span>
+                                        </div>
+                                        <motion.span
+                                            className="material-icons-round text-text-muted-light dark:text-text-muted-dark text-xl"
+                                            animate={{ rotate: isCollapsed ? -90 : 0 }}
+                                            transition={{ duration: 0.2 }}
+                                        >
+                                            expand_more
+                                        </motion.span>
+                                    </button>
+
+                                    {/* 折叠内容 */}
+                                    <AnimatePresence initial={false}>
+                                        {!isCollapsed && (
+                                            <motion.div
+                                                initial={{ height: 0, opacity: 0 }}
+                                                animate={{ height: 'auto', opacity: 1 }}
+                                                exit={{ height: 0, opacity: 0 }}
+                                                transition={{ duration: 0.25 }}
+                                                className="overflow-hidden"
+                                            >
+                                                <div className="space-y-4">
+                                                    <AnimatePresence mode="popLayout">
+                                                        {petPlans.map(plan => renderPlanCard(plan))}
+                                                    </AnimatePresence>
+                                                </div>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                </div>
+                            );
+                        })}
                     </div>
                 )}
             </main>

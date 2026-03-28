@@ -55,8 +55,8 @@ export default function PetEdit() {
         const result = await selectPhoto({
             fileName: 'pet_avatar.jpg',
             promptLabelHeader: '选择宠物头像来源',
-            promptLabelPhoto: '拍照',
-            promptLabelPicture: '从相册选择',
+            promptLabelPhoto: '从相册选择',
+            promptLabelPicture: '拍照',
         });
 
         if (result) {
