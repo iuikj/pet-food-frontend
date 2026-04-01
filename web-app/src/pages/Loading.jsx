@@ -129,7 +129,7 @@ function WeekStatusGrid({ weekStatuses }) {
                                     animate={{ scale: 1, rotate: 0 }}
                                     exit={{ scale: 0, rotate: 90 }}
                                     transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-                                    className={`material-symbols-outlined text-base ${config.color}`}
+                                    className={`material-icons-round text-base ${config.color}`}
                                 >
                                     {config.icon}
                                 </motion.span>
@@ -218,7 +218,7 @@ export default function Loading() {
                         onClick={handleForceBack}
                         className="w-8 h-8 rounded-full flex items-center justify-center text-text-muted-light dark:text-text-muted-dark hover:bg-gray-100 dark:hover:bg-surface-dark transition-colors"
                     >
-                        <span className="material-symbols-outlined text-lg">arrow_back</span>
+                        <span className="material-icons-round text-lg">arrow_back</span>
                     </button>
                     <h1 className="text-xl font-bold">专属计划生成中...</h1>
                 </div>
@@ -248,7 +248,7 @@ export default function Loading() {
                             </div>
                         )}
                         <div className="absolute bottom-0 right-0 w-4 h-4 bg-secondary rounded-full border-2 border-white dark:border-surface-dark flex items-center justify-center">
-                            <span className="material-symbols-outlined text-[10px] text-yellow-900 font-bold">bolt</span>
+                            <span className="material-icons-round text-[10px] text-yellow-900 font-bold">bolt</span>
                         </div>
                     </div>
                     <div>
@@ -274,7 +274,7 @@ export default function Loading() {
                                 {/* 标题行 */}
                                 <div className="flex justify-between items-start mb-1">
                                     <div className="flex items-center gap-2">
-                                        <span className="material-symbols-outlined text-primary text-xl">
+                                        <span className="material-icons-round text-primary text-xl">
                                             {phaseIcons[currentStepIndex] || 'science'}
                                         </span>
                                         <h3 className="font-bold text-xl text-text-main-light dark:text-text-main-dark">
@@ -311,7 +311,7 @@ export default function Loading() {
 
                                 {/* 底部旋转图标 */}
                                 <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-12 h-12 rounded-full bg-secondary text-yellow-900 flex items-center justify-center ring-4 ring-white dark:ring-background-dark z-40 transform translate-y-1/2">
-                                    <span className="material-symbols-outlined text-2xl animate-spin-slow">sync</span>
+                                    <span className="material-icons-round text-2xl animate-spin-slow">sync</span>
                                 </div>
                             </div>
                         </motion.div>
@@ -329,13 +329,13 @@ export default function Loading() {
                 {/* 步骤检查列表 */}
                 <div className="mt-12 p-6 bg-white dark:bg-surface-dark rounded-2xl shadow-soft border border-gray-100 dark:border-gray-800">
                     <h3 className="font-bold text-lg mb-4 text-text-main-light dark:text-text-main-dark flex items-center gap-2">
-                        <span className="material-symbols-outlined text-primary text-xl">checklist</span>
+                        <span className="material-icons-round text-primary text-xl">checklist</span>
                         当前任务详情
                     </h3>
                     <ul className="space-y-3 text-text-main-light dark:text-text-main-dark">
                         {steps.map((step, idx) => (
                             <li key={idx} className="flex items-start gap-3">
-                                <span className={`material-symbols-outlined text-sm mt-1 ${idx < currentStepIndex ? 'text-primary' :
+                                <span className={`material-icons-round text-sm mt-1 ${idx < currentStepIndex ? 'text-primary' :
                                     idx === currentStepIndex ? 'text-secondary animate-spin-slow' : 'text-gray-400 dark:text-gray-600'
                                     }`}>
                                     {idx < currentStepIndex ? 'check_circle' :
@@ -350,7 +350,7 @@ export default function Loading() {
                 </div>
 
                 <div className="mt-8 text-center px-6 py-6 bg-primary/5 rounded-2xl border border-primary/10">
-                    <span className="material-symbols-outlined text-primary mb-2 text-2xl">tips_and_updates</span>
+                    <span className="material-icons-round text-primary mb-2 text-2xl">tips_and_updates</span>
                     <p className="text-xs text-text-muted-light dark:text-text-muted-dark leading-5">
                         <span className="font-bold text-primary block mb-1">你知道吗？</span>
                         科学的饮食计划可以帮助宠物延长平均 20% 的健康寿命。
@@ -365,28 +365,28 @@ export default function Loading() {
                         onClick={() => navigate('/')}
                         className="flex flex-col items-center gap-1 w-12 text-text-muted-light dark:text-text-muted-dark hover:text-primary transition-colors"
                     >
-                        <span className="material-symbols-outlined">home</span>
+                        <span className="material-icons-round">home</span>
                     </button>
                     <button
                         onClick={() => navigate('/calendar')}
                         className="flex flex-col items-center gap-1 w-12 text-text-muted-light dark:text-text-muted-dark hover:text-primary transition-colors"
                     >
-                        <span className="material-symbols-outlined">calendar_today</span>
+                        <span className="material-icons-round">calendar_today</span>
                     </button>
                     <button className="relative -top-6 bg-primary text-white dark:text-gray-900 w-14 h-14 rounded-full shadow-glow flex items-center justify-center transform transition-transform hover:scale-105 active:scale-95">
-                        <span className="material-symbols-outlined text-2xl">menu_book</span>
+                        <span className="material-icons-round text-2xl">menu_book</span>
                     </button>
                     <button
                         onClick={() => navigate('/recipes')}
                         className="flex flex-col items-center gap-1 w-12 text-text-muted-light dark:text-text-muted-dark hover:text-primary transition-colors"
                     >
-                        <span className="material-symbols-outlined">pie_chart</span>
+                        <span className="material-icons-round">pie_chart</span>
                     </button>
                     <button
                         onClick={() => navigate('/profile')}
                         className="flex flex-col items-center gap-1 w-12 text-text-muted-light dark:text-text-muted-dark hover:text-primary transition-colors"
                     >
-                        <span className="material-symbols-outlined">person</span>
+                        <span className="material-icons-round">person</span>
                     </button>
                 </div>
             </nav>

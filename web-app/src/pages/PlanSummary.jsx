@@ -88,7 +88,7 @@ export default function PlanSummary() {
                 <header className="px-6 pt-12 pb-4 flex justify-between items-center bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md sticky top-0 z-50">
                     <div className="flex items-center gap-3">
                         <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full flex items-center justify-center text-text-muted-light dark:text-text-muted-dark hover:bg-gray-100 dark:hover:bg-surface-dark transition-colors">
-                            <span className="material-symbols-outlined text-lg">arrow_back</span>
+                            <span className="material-icons-round text-lg">arrow_back</span>
                         </button>
                         <div className="space-y-2">
                             <Skeleton className="h-5 w-40" />
@@ -141,14 +141,14 @@ export default function PlanSummary() {
                 <header className="px-6 pt-12 pb-4 flex justify-between items-center bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md sticky top-0 z-50">
                     <div className="flex items-center gap-3">
                         <Link to="/" className="w-10 h-10 rounded-full flex items-center justify-center text-text-muted-light dark:text-text-muted-dark hover:bg-gray-100 dark:hover:bg-surface-dark transition-colors">
-                            <span className="material-symbols-outlined text-lg">arrow_back</span>
+                            <span className="material-icons-round text-lg">arrow_back</span>
                         </Link>
                         <h1 className="text-xl font-bold">专属计划</h1>
                     </div>
                 </header>
                 <main className="px-6 flex flex-col items-center justify-center min-h-[60vh]">
                     <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-6">
-                        <span className="material-symbols-outlined text-primary text-4xl">restaurant_menu</span>
+                        <span className="material-icons-round text-primary text-4xl">restaurant_menu</span>
                     </div>
                     <h2 className="font-bold text-xl mb-3 text-text-main-light dark:text-text-main-dark">暂无计划数据</h2>
                     <p className="text-sm text-text-muted-light dark:text-text-muted-dark text-center mb-8 max-w-xs">
@@ -158,7 +158,7 @@ export default function PlanSummary() {
                         onClick={() => navigate('/plan/create')}
                         className="px-8 py-3 bg-primary text-white rounded-2xl font-bold shadow-glow hover:brightness-110 transition-all flex items-center gap-2"
                     >
-                        <span className="material-symbols-outlined">add</span>
+                        <span className="material-icons-round">add</span>
                         创建计划
                     </button>
                 </main>
@@ -171,7 +171,7 @@ export default function PlanSummary() {
             <header className="px-6 pt-12 pb-4 flex justify-between items-center bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md sticky top-0 z-50">
                 <div className="flex items-center gap-3">
                     <Link to="/" className="w-10 h-10 rounded-full flex items-center justify-center text-text-muted-light dark:text-text-muted-dark hover:bg-gray-100 dark:hover:bg-surface-dark transition-colors">
-                        <span className="material-symbols-outlined text-lg">arrow_back</span>
+                        <span className="material-icons-round text-lg">arrow_back</span>
                     </Link>
                     <div>
                         <h1 className="text-xl font-bold">{petName} 的专属计划</h1>
@@ -182,7 +182,7 @@ export default function PlanSummary() {
                 </div>
                 <div className="flex gap-2">
                     <button className="w-10 h-10 rounded-full flex items-center justify-center text-text-main-light dark:text-text-main-dark bg-white dark:bg-surface-dark shadow-sm hover:text-primary transition-colors">
-                        <span className="material-symbols-outlined">share</span>
+                        <span className="material-icons-round">share</span>
                     </button>
                 </div>
             </header>
@@ -199,7 +199,7 @@ export default function PlanSummary() {
                             <div className="absolute top-0 right-0 w-24 h-24 bg-secondary/10 rounded-full -mr-8 -mt-8 transition-transform group-hover:scale-110"></div>
                             <div className="relative z-10">
                                 <div className="flex items-center gap-2 mb-3">
-                                    <span className="material-symbols-outlined text-xl text-yellow-500">local_fire_department</span>
+                                    <span className="material-icons-round text-xl text-yellow-500">local_fire_department</span>
                                     <span className="text-xs font-bold uppercase tracking-wider text-text-muted-light">每日热量</span>
                                 </div>
                                 <div className="flex items-baseline gap-1">
@@ -255,11 +255,11 @@ export default function PlanSummary() {
                                     className="w-full flex items-center justify-between p-5"
                                 >
                                     <div className="flex items-center gap-2">
-                                        <span className="material-symbols-outlined text-primary text-lg">event_note</span>
+                                        <span className="material-icons-round text-primary text-lg">event_note</span>
                                         <h4 className="font-bold text-base">第 {currentWeek.week} 周 饮食原则</h4>
                                     </div>
                                     <motion.span
-                                        className="material-symbols-outlined text-text-muted-light dark:text-text-muted-dark text-lg"
+                                        className="material-icons-round text-text-muted-light dark:text-text-muted-dark text-lg"
                                         animate={{ rotate: isPrincipleExpanded ? 180 : 0 }}
                                         transition={{ duration: 0.2 }}
                                     >
@@ -281,7 +281,7 @@ export default function PlanSummary() {
                                                 </p>
                                                 {currentWeek.dailyCalories > 0 && (
                                                     <div className="mt-3 flex items-center gap-2">
-                                                        <span className="material-symbols-outlined text-yellow-500 text-sm">local_fire_department</span>
+                                                        <span className="material-icons-round text-yellow-500 text-sm">local_fire_department</span>
                                                         <span className="text-xs font-semibold text-text-muted-light">
                                                             每日目标: {currentWeek.dailyCalories} kcal
                                                         </span>
@@ -313,7 +313,7 @@ export default function PlanSummary() {
                                             onClick={() => setSelectedMeal({ meal, weekNumber: currentWeek.week })}
                                         >
                                             <div className={`w-10 h-10 rounded-full ${mealColors[idx % 4]} flex items-center justify-center shadow-sm shrink-0 z-10 ring-4 ring-background-light dark:ring-background-dark`}>
-                                                <span className="material-symbols-outlined text-lg">{mealIcons[idx % 4]}</span>
+                                                <span className="material-icons-round text-lg">{mealIcons[idx % 4]}</span>
                                             </div>
                                             <div className="flex-1 bg-white dark:bg-surface-dark rounded-2xl p-4 shadow-soft border border-gray-100 dark:border-gray-800 hover:border-secondary/50 hover:shadow-medium transition-all duration-300">
                                                 <div className="flex justify-between items-start mb-2">
@@ -339,7 +339,7 @@ export default function PlanSummary() {
                                                 {/* 烹饪方式 */}
                                                 {meal.cookMethod && (
                                                     <div className="flex items-center gap-2 text-xs text-text-muted-light dark:text-text-muted-dark mb-2">
-                                                        <span className="material-symbols-outlined text-sm text-primary">soup_kitchen</span>
+                                                        <span className="material-icons-round text-sm text-primary">soup_kitchen</span>
                                                         <span>{meal.cookMethod}</span>
                                                     </div>
                                                 )}
@@ -355,7 +355,7 @@ export default function PlanSummary() {
                                                 {/* 查看详情提示 */}
                                                 <div className="flex items-center justify-end mt-2">
                                                     <span className="text-xs text-primary font-medium flex items-center gap-0.5">
-                                                        查看详情 <span className="material-symbols-outlined text-sm">chevron_right</span>
+                                                        查看详情 <span className="material-icons-round text-sm">chevron_right</span>
                                                     </span>
                                                 </div>
                                             </div>
@@ -376,11 +376,11 @@ export default function PlanSummary() {
                                 className="w-full flex items-center justify-between p-5"
                             >
                                 <div className="flex items-center gap-2">
-                                    <span className="material-symbols-outlined text-primary">verified</span>
+                                    <span className="material-icons-round text-primary">verified</span>
                                     <h3 className="font-bold text-text-main-light dark:text-text-main-dark">第 {currentWeek.week} 周建议</h3>
                                 </div>
                                 <motion.span
-                                    className="material-symbols-outlined text-text-muted-light dark:text-text-muted-dark text-lg"
+                                    className="material-icons-round text-text-muted-light dark:text-text-muted-dark text-lg"
                                     animate={{ rotate: isSuggestionsExpanded ? 180 : 0 }}
                                     transition={{ duration: 0.2 }}
                                 >
@@ -406,7 +406,7 @@ export default function PlanSummary() {
                                             )}
                                             {currentWeek.specialNote && (
                                                 <div className="flex items-start gap-2 text-sm text-text-muted-light dark:text-text-muted-dark bg-white/50 dark:bg-white/5 p-3 rounded-xl">
-                                                    <span className="material-symbols-outlined text-sm mt-0.5 text-yellow-500">warning</span>
+                                                    <span className="material-icons-round text-sm mt-0.5 text-yellow-500">warning</span>
                                                     <p>{currentWeek.specialNote}</p>
                                                 </div>
                                             )}
@@ -461,7 +461,7 @@ export default function PlanSummary() {
                                     : 'bg-primary text-white dark:text-gray-900 shadow-glow hover:brightness-110 hover:-translate-y-0.5 active:scale-[0.98]'
                             }`}
                         >
-                            <span className="material-symbols-outlined text-lg">
+                            <span className="material-icons-round text-lg">
                                 {isCurrentPlanActive || isSaved ? 'check_circle' : 'bookmark_add'}
                             </span>
                             {isCurrentPlanActive || isSaved ? '已保存为当前食谱' : '保存食谱'}
@@ -477,7 +477,7 @@ export default function PlanSummary() {
                             }}
                             className="w-full py-3 rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700 text-text-muted-light dark:text-text-muted-dark font-medium hover:border-primary/50 hover:text-primary transition-all flex items-center justify-center gap-2"
                         >
-                            <span className="material-symbols-outlined text-lg">refresh</span>
+                            <span className="material-icons-round text-lg">refresh</span>
                             重新生成计划
                         </button>
                     )}

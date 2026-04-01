@@ -71,7 +71,7 @@ export default function PlanDetails({ meal, weekNumber, onClose }) {
                     className="relative w-full max-w-sm bg-surface-light dark:bg-surface-dark rounded-3xl shadow-popup p-8 text-center"
                     onClick={(e) => e.stopPropagation()}
                 >
-                    <span className="material-symbols-outlined text-4xl text-text-muted-light mb-4 block">info</span>
+                    <span className="material-icons-round text-4xl text-text-muted-light mb-4 block">info</span>
                     <h2 className="font-bold text-lg mb-2 text-text-main-light dark:text-text-main-dark">暂无餐食数据</h2>
                     <p className="text-sm text-text-muted-light dark:text-text-muted-dark mb-6">
                         请从计划概览页面选择一餐查看详情
@@ -123,11 +123,11 @@ export default function PlanDetails({ meal, weekNumber, onClose }) {
                         aria-label="关闭"
                         className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-white/50 dark:bg-black/20 text-text-muted-light hover:bg-white dark:hover:bg-surface-dark transition-all z-10"
                     >
-                        <span className="material-symbols-outlined text-lg">close</span>
+                        <span className="material-icons-round text-lg">close</span>
                     </button>
                     <div className="flex items-center gap-4">
                         <div className="w-14 h-14 rounded-2xl bg-white dark:bg-surface-dark shadow-sm flex items-center justify-center shrink-0">
-                            <span className={`material-symbols-outlined text-2xl ${getMealIcon(meal.order).color}`}>
+                            <span className={`material-icons-round text-2xl ${getMealIcon(meal.order).color}`}>
                                 {getMealIcon(meal.order).icon}
                             </span>
                         </div>
@@ -138,13 +138,13 @@ export default function PlanDetails({ meal, weekNumber, onClose }) {
                             <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                                 {cookMethod && (
                                     <span className="px-2 py-0.5 rounded-lg bg-white/60 dark:bg-white/10 text-xs font-semibold text-text-muted-light backdrop-blur-sm border border-white/20">
-                                        <span className="material-symbols-outlined align-middle text-[14px] mr-0.5">soup_kitchen</span>
+                                        <span className="material-icons-round align-middle text-[14px] mr-0.5">soup_kitchen</span>
                                         {cookMethod}
                                     </span>
                                 )}
                                 {time && (
                                     <span className="px-2 py-0.5 rounded-lg bg-white/60 dark:bg-white/10 text-xs font-semibold text-text-muted-light backdrop-blur-sm border border-white/20">
-                                        <span className="material-symbols-outlined align-middle text-[14px] mr-0.5">schedule</span>
+                                        <span className="material-icons-round align-middle text-[14px] mr-0.5">schedule</span>
                                         {time}
                                     </span>
                                 )}
@@ -163,7 +163,7 @@ export default function PlanDetails({ meal, weekNumber, onClose }) {
                     {/* 食材明细 */}
                     <section>
                         <h3 className="flex items-center gap-2 text-xs font-bold text-text-muted-light uppercase tracking-wider mb-4">
-                            <span className="material-symbols-outlined text-sm">kitchen</span>
+                            <span className="material-icons-round text-sm">kitchen</span>
                             食材明细 & 推荐理由
                         </h3>
                         <div className="space-y-3">
@@ -191,7 +191,7 @@ export default function PlanDetails({ meal, weekNumber, onClose }) {
                     {/* 宏量营养素 */}
                     <section>
                         <h3 className="flex items-center gap-2 text-xs font-bold text-text-muted-light uppercase tracking-wider mb-4">
-                            <span className="material-symbols-outlined text-sm">pie_chart</span>
+                            <span className="material-icons-round text-sm">pie_chart</span>
                             宏观营养 (Macronutrients)
                         </h3>
                         <div className="grid grid-cols-3 gap-3">
@@ -229,7 +229,7 @@ export default function PlanDetails({ meal, weekNumber, onClose }) {
                     {micronutrients.length > 0 && (
                         <section className="pb-2">
                             <h3 className="flex items-center gap-2 text-xs font-bold text-text-muted-light uppercase tracking-wider mb-4">
-                                <span className="material-symbols-outlined text-sm">science</span>
+                                <span className="material-icons-round text-sm">science</span>
                                 微量元素亮点
                             </h3>
                             <div className="flex flex-wrap gap-2">
