@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Toast } from '@capacitor/toast';
+import { showToast } from '../utils/toast';
 import { pageTransitions } from '../utils/animations';
 import { usePets } from '../hooks/usePets';
 import { plansApi } from '../api';
@@ -58,7 +58,7 @@ export default function RecipesPage() {
         try {
             const res = await plansApi.applyPlan(plan.id);
             if (res.code !== 0) {
-                try { await Toast.show({ text: res.message || '应用失败', duration: 'short' }); } catch { /* web */ }
+                try { await showToast(res.message || '应用失败'); } catch { /* */ }
                 return;
             }
 
@@ -70,12 +70,12 @@ export default function RecipesPage() {
             try {
                 const linkedPet = plan.pet_id ? pets.find(p => p.id === plan.pet_id) : null;
                 const petName = linkedPet?.name || '宠物';
-                await Toast.show({ text: `已应用「${petName}」的食谱，已生成${res.data?.meals_created || 0}天餐食`, duration: 'short' });
-            } catch { /* web 环境 */ }
+                await showToast(`已应用「${petName}」的食谱，已生成${res.data?.meals_created || 0}天餐食`);
+            } catch { /* */ }
         } catch (err) {
             console.error('Failed to apply plan:', err);
             try {
-                await Toast.show({ text: '应用食谱失败，请重试', duration: 'short' });
+                await showToast('应用食谱失败，请重试');
             } catch { /* web 环境 */ }
         } finally {
             setApplyingId(null);
@@ -101,15 +101,15 @@ export default function RecipesPage() {
                 throw new Error(res.message || '删除失败');
             }
             try {
-                await Toast.show({ text: '食谱已删除', duration: 'short' });
-            } catch { /* web 环境 */ }
+                await showToast('食谱已删除');
+            } catch { /* */ }
         } catch (err) {
             console.error('Failed to delete plan:', err);
             // 回滚乐观删除
             if (planToDelete) setPlans(prev => [planToDelete, ...prev]);
             try {
-                await Toast.show({ text: '删除失败，请重试', duration: 'short' });
-            } catch { /* web 环境 */ }
+                await showToast('删除失败，请重试');
+            } catch { /* */ }
         }
         setDeletingId(null);
     };

@@ -90,11 +90,15 @@ export default function Profile() {
         >
             <header className="px-6 pt-12 pb-2 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md sticky top-0 z-50">
                 <div className="flex justify-end gap-3">
-                    <button className="w-10 h-10 rounded-full bg-white dark:bg-surface-dark shadow-sm flex items-center justify-center text-text-muted-light dark:text-text-muted-dark hover:text-primary transition-all active:scale-[0.95]">
-                        <span className="material-icons-round">settings</span>
-                    </button>
-                    <button className="w-10 h-10 rounded-full bg-white dark:bg-surface-dark shadow-sm flex items-center justify-center text-text-muted-light dark:text-text-muted-dark hover:text-primary transition-all active:scale-[0.95]" title="Toggle Theme">
-                        <span className="material-icons-round">dark_mode</span>
+                    <button
+                        onClick={() => {
+                            document.documentElement.classList.toggle('dark');
+                        }}
+                        className="w-10 h-10 rounded-full bg-white dark:bg-surface-dark shadow-sm flex items-center justify-center text-text-muted-light dark:text-text-muted-dark hover:text-primary transition-all active:scale-[0.95]"
+                        title="切换主题"
+                    >
+                        <span className="material-icons-round hidden dark:inline">light_mode</span>
+                        <span className="material-icons-round dark:hidden">dark_mode</span>
                     </button>
                 </div>
             </header>
@@ -145,15 +149,23 @@ export default function Profile() {
                         </span>
                     </div>
                     <div className="space-y-4">
-                        {/* 使用 PetCard 组件渲染宠物列表 */}
-                        {pets.map(pet => (
-                            <PetCard
-                                key={pet.id}
-                                pet={pet}
-                                onDelete={handleDeletePet}
-                                showActions={true}
-                            />
-                        ))}
+                        {pets.length === 0 ? (
+                            <div className="flex flex-col items-center py-8 text-center">
+                                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                                    <span className="material-icons-round text-primary text-3xl">pets</span>
+                                </div>
+                                <p className="text-sm text-text-muted-light dark:text-text-muted-dark mb-4">还没有添加宠物，快来创建吧</p>
+                            </div>
+                        ) : (
+                            pets.map(pet => (
+                                <PetCard
+                                    key={pet.id}
+                                    pet={pet}
+                                    onDelete={handleDeletePet}
+                                    showActions={true}
+                                />
+                            ))
+                        )}
 
                         {/* 新增宠物按钮 */}
                         <Link

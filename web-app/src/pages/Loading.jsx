@@ -1,7 +1,9 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion'; // eslint-disable-line no-unused-vars -- motion used via JSX <motion.div>
 import SecureImage from '../components/SecureImage';
+import PageHeader from '../components/layout/PageHeader';
+import ConfirmDialog from '../components/ui/ConfirmDialog';
 import { usePlanGeneration } from '../hooks/usePlanGeneration';
 import { usePets } from '../hooks/usePets';
 import { flipTransitions } from '../utils/animations';
@@ -203,7 +205,17 @@ export default function Loading() {
     }, [status, navigate, currentPet, setPetHasPlan]);
 
     // 强制返回处理
+    const [showBackConfirm, setShowBackConfirm] = useState(false);
     const handleForceBack = () => {
+        if (status === 'generating') {
+            setShowBackConfirm(true);
+            return;
+        }
+        resetGeneration();
+        navigate(-1);
+    };
+    const confirmForceBack = () => {
+        setShowBackConfirm(false);
         resetGeneration();
         navigate(-1);
     };
@@ -212,25 +224,16 @@ export default function Loading() {
 
     return (
         <div className="bg-background-light dark:bg-background-dark font-display text-text-main-light dark:text-text-main-dark transition-colors duration-300 antialiased selection:bg-primary selection:text-white pb-32 min-h-[max(884px,100dvh)]">
-            <header className="px-6 pt-12 pb-2 flex justify-between items-center bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-md sticky top-0 z-50 transition-all duration-300">
-                <div className="flex items-center gap-2">
-                    <button
-                        onClick={handleForceBack}
-                        className="w-8 h-8 rounded-full flex items-center justify-center text-text-muted-light dark:text-text-muted-dark hover:bg-gray-100 dark:hover:bg-surface-dark transition-colors"
-                    >
-                        <span className="material-icons-round text-lg">arrow_back</span>
-                    </button>
-                    <h1 className="text-xl font-bold">专属计划生成中...</h1>
-                </div>
-                <div className="flex gap-3">
-                    <div className="w-8 h-8 flex items-center justify-center">
-                        <span className="relative flex h-3 w-3">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
-                        </span>
-                    </div>
-                </div>
-            </header>
+            <PageHeader
+                title="专属计划生成中..."
+                onBack={handleForceBack}
+                rightAction={
+                    <span className="relative flex h-3 w-3">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
+                        <span className="relative inline-flex rounded-full h-3 w-3 bg-primary" />
+                    </span>
+                }
+            />
 
             <main className="px-6 pt-6 pb-24 max-w-lg mx-auto">
                 {/* 宠物信息卡 */}
@@ -311,7 +314,7 @@ export default function Loading() {
 
                                 {/* 底部旋转图标 */}
                                 <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-12 h-12 rounded-full bg-secondary text-yellow-900 flex items-center justify-center ring-4 ring-white dark:ring-background-dark z-40 transform translate-y-1/2">
-                                    <span className="material-icons-round text-2xl animate-spin-slow">sync</span>
+                                    <span className="material-icons-round text-2xl animate-pulse">sync</span>
                                 </div>
                             </div>
                         </motion.div>
@@ -336,7 +339,7 @@ export default function Loading() {
                         {steps.map((step, idx) => (
                             <li key={idx} className="flex items-start gap-3">
                                 <span className={`material-icons-round text-sm mt-1 ${idx < currentStepIndex ? 'text-primary' :
-                                    idx === currentStepIndex ? 'text-secondary animate-spin-slow' : 'text-gray-400 dark:text-gray-600'
+                                    idx === currentStepIndex ? 'text-secondary animate-pulse' : 'text-gray-400 dark:text-gray-600'
                                     }`}>
                                     {idx < currentStepIndex ? 'check_circle' :
                                         idx === currentStepIndex ? 'radio_button_checked' : 'radio_button_unchecked'}
@@ -390,6 +393,17 @@ export default function Loading() {
                     </button>
                 </div>
             </nav>
+
+            <ConfirmDialog
+                open={showBackConfirm}
+                onOpenChange={setShowBackConfirm}
+                title="取消生成？"
+                description="当前的饮食计划生成进度将丢失，确定要离开吗？"
+                confirmText="确定离开"
+                cancelText="继续等待"
+                onConfirm={confirmForceBack}
+                destructive
+            />
         </div>
     );
 }

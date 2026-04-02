@@ -180,11 +180,6 @@ export default function PlanSummary() {
                         </p>
                     </div>
                 </div>
-                <div className="flex gap-2">
-                    <button className="w-10 h-10 rounded-full flex items-center justify-center text-text-main-light dark:text-text-main-dark bg-white dark:bg-surface-dark shadow-sm hover:text-primary transition-colors">
-                        <span className="material-icons-round">share</span>
-                    </button>
-                </div>
             </header>
 
             <main className="px-6 space-y-6">
@@ -345,7 +340,7 @@ export default function PlanSummary() {
                                                 )}
                                                 {/* 单餐营养概要 */}
                                                 {meal.totalCalories > 0 && (
-                                                    <div className="flex items-center gap-3 text-[11px] text-text-muted-light dark:text-text-muted-dark bg-background-light dark:bg-background-dark px-3 py-2 rounded-xl">
+                                                    <div className="flex items-center gap-3 text-xs text-text-muted-light dark:text-text-muted-dark bg-background-light dark:bg-background-dark px-3 py-2 rounded-xl">
                                                         <span>{meal.totalCalories} kcal</span>
                                                         <span className="text-primary">P {meal.totalProtein}g</span>
                                                         <span className="text-yellow-500">F {meal.totalFat}g</span>

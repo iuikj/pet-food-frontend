@@ -12,6 +12,7 @@ import PlanDetails from './PlanDetails';
 import { usePets } from '../hooks/usePets';
 import { useMeals } from '../hooks/useMeals';
 import { weightsApi, calendarApi, mealsApi } from '../api';
+import { usePlanGeneration } from '../hooks/usePlanGeneration';
 import { WEEK_DAY_LABELS } from '../utils/calendarConstants';
 
 /** YYYY-MM-DD 格式化 */
@@ -40,6 +41,7 @@ export default function HomePage() {
     const [isPetMenuOpen, setIsPetMenuOpen] = useState(false);
     const { pets, currentPet, setCurrentPet, activePlanData, isLoading: petsLoading } = usePets();
     const { meals, nutritionSummary, isLoading: mealsLoading, toggleMealComplete } = useMeals();
+    const { status: genStatus } = usePlanGeneration();
 
     // 餐食详情弹窗状态
     const [selectedMeal, setSelectedMeal] = useState(null);
@@ -127,19 +129,18 @@ export default function HomePage() {
             return `${x},${y}`;
         });
         return (
-            <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="overflow-visible">
+            <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="overflow-visible text-primary">
                 <polyline
                     points={points.join(' ')}
                     fill="none"
-                    stroke="#A3D9A5"
+                    stroke="currentColor"
                     strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
                 />
-                {/* 最后一个点高亮 */}
                 {(() => {
                     const last = points[points.length - 1].split(',');
-                    return <circle cx={last[0]} cy={last[1]} r="3" fill="#A3D9A5" />;
+                    return <circle cx={last[0]} cy={last[1]} r="3" fill="currentColor" />;
                 })()}
             </svg>
         );
@@ -212,15 +213,6 @@ export default function HomePage() {
                         {!hasPets && <span className="material-icons-round text-primary text-sm">arrow_forward_ios</span>}
                     </button>
                 </div>
-            </div>
-            <div className="flex gap-3">
-                <button className="w-10 h-10 rounded-full bg-white dark:bg-surface-dark shadow-sm flex items-center justify-center text-text-muted-light dark:text-text-muted-dark hover:text-primary transition-colors">
-                    <span className="material-icons-round">search</span>
-                </button>
-                <button className="w-10 h-10 rounded-full bg-white dark:bg-surface-dark shadow-sm flex items-center justify-center text-text-muted-light dark:text-text-muted-dark hover:text-primary transition-colors relative">
-                    <span className="material-icons-round">notifications_none</span>
-                    <span className="absolute top-2 right-2.5 w-2 h-2 bg-red-400 rounded-full"></span>
-                </button>
             </div>
         </header>
     );
@@ -402,7 +394,7 @@ export default function HomePage() {
                                     ${day.isToday ? 'text-primary' : 'text-text-muted-light dark:text-text-muted-dark'}`}>
                                     {day.label}
                                 </span>
-                                <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-medium transition-all
+                                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium transition-all
                                     ${day.isToday
                                         ? 'bg-primary text-white dark:text-gray-900 font-bold shadow-glow'
                                         : day.isSelected
@@ -601,10 +593,12 @@ export default function HomePage() {
                                 {caloriePercent > 0 ? `已完成${selectedDate ? '' : '每日'}目标的${caloriePercent}%` : `${selectedDate ? '当日' : '今日'}尚未开始打卡`}
                             </p>
                         </div>
+                        {genStatus === 'generating' && (
                         <div className="bg-white/50 dark:bg-white/10 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
                             <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
                             AI优化中
                         </div>
+                        )}
                     </div>
                     <div className="flex items-center gap-6">
                         <div className="relative w-32 h-32 flex-shrink-0">
@@ -612,7 +606,8 @@ export default function HomePage() {
                                 <circle className="text-white/40 dark:text-white/10" cx="50" cy="50" fill="transparent" r="40" stroke="currentColor" strokeWidth="8"></circle>
                                 <circle
                                     cx="50" cy="50" fill="transparent" r="40"
-                                    stroke="#A3D9A5"
+                                    className="text-primary"
+                                    stroke="currentColor"
                                     strokeDasharray={circumference}
                                     strokeDashoffset={strokeDashoffset}
                                     strokeLinecap="round"

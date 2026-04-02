@@ -265,9 +265,6 @@ export default function Home() {
                                     : '例如：我的宠物最近有点超重，我想给它制定一个减肥计划...'
                                 }
                             ></textarea>
-                            <button className="absolute bottom-3 right-3 p-2 rounded-full bg-white dark:bg-surface-dark shadow-sm text-primary hover:bg-primary hover:text-white transition-colors">
-                                <span className="material-icons-round text-lg">mic</span>
-                            </button>
                         </div>
                         <div className="space-y-2">
                             <p className="text-xs font-semibold text-text-muted-light dark:text-text-muted-dark uppercase tracking-wide">推荐标签</p>
@@ -284,15 +281,13 @@ export default function Home() {
                                         <button
                                             key={tag}
                                             onClick={() => toggleTag(tag)}
-                                            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${colors[i]} ${isActive ? 'ring-2 ring-primary/50 scale-105' : ''}`}
+                                            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${colors[i]} ${isActive ? 'ring-2 ring-primary/50 scale-105 bg-primary/20 dark:bg-primary/30' : ''}`}
                                         >
+                                            {isActive && <span className="material-icons-round text-[10px] mr-0.5 align-middle">check</span>}
                                             {tag}
                                         </button>
                                     )
                                 })}
-                                <button className="px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 text-xs font-medium border border-gray-200 dark:border-gray-700 hover:bg-gray-200 transition-colors flex items-center gap-1">
-                                    <span className="material-icons-round text-[10px]">add</span> 更多
-                                </button>
                             </div>
                         </div>
                     </div>

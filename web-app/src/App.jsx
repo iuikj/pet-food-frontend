@@ -7,6 +7,7 @@ import { MealProvider } from './context/MealProvider';
 import { PetProvider } from './context/PetProvider';
 import { UserProvider } from './context/UserProvider';
 import { useUser } from './hooks/useUser';
+import { Toaster } from './components/ui/sonner';
 import Layout from './components/layout/Layout';
 import CreatePlan from './pages/CreatePlan';
 import Login from './pages/Login';
@@ -171,6 +172,7 @@ function App() {
           <MealProvider>
             <PlanGenerationProvider>
               <AnimatedRoutes />
+              <Toaster />
             </PlanGenerationProvider>
           </MealProvider>
         </PetProvider>

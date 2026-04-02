@@ -8,6 +8,7 @@ export default {
   theme: {
     extend: {
       colors: {
+        // --- 项目自定义颜色 ---
         primary: "#A3D9A5", // Soft sage green as primary
         secondary: "#FFE898", // Warm yellow for accents
         "accent-blue": "#B2EBF2", // Soft blue for hydration/mix
@@ -19,15 +20,32 @@ export default {
         "text-main-dark": "#F7FAFC",
         "text-muted-light": "#718096",
         "text-muted-dark": "#A0AEC0",
+        // --- shadcn/ui CSS 变量颜色 ---
+        background: "var(--background)",
+        foreground: "var(--foreground)",
+        card: { DEFAULT: "var(--card)", foreground: "var(--card-foreground)" },
+        popover: { DEFAULT: "var(--popover)", foreground: "var(--popover-foreground)" },
+        "sh-primary": { DEFAULT: "var(--primary)", foreground: "var(--primary-foreground)" },
+        "sh-secondary": { DEFAULT: "var(--secondary)", foreground: "var(--secondary-foreground)" },
+        muted: { DEFAULT: "var(--muted)", foreground: "var(--muted-foreground)" },
+        accent: { DEFAULT: "var(--accent)", foreground: "var(--accent-foreground)" },
+        destructive: { DEFAULT: "var(--destructive)" },
+        border: "var(--border)",
+        input: "var(--input)",
+        ring: "var(--ring)",
       },
       fontFamily: {
         display: ["'Plus Jakarta Sans'", "sans-serif"],
+        sans: ["'Geist Variable'", "sans-serif"],
       },
       borderRadius: {
         DEFAULT: "1rem",
+        lg: "var(--radius)",
+        md: "calc(var(--radius) - 2px)",
+        sm: "calc(var(--radius) - 4px)",
         'xl': '1.5rem',
         '2xl': '2rem',
-        '3xl': '2rem', // kept for compatibility if needed, though user asked for 2xl as 2rem
+        '3xl': '2rem',
       },
       boxShadow: {
         'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
@@ -52,7 +70,7 @@ export default {
         },
         'paw-step': {
           '0%': { opacity: '0', transform: 'scale(0.5) rotate(-15deg)' },
-          '50%': { opacity: '1', transform: 'scale(1) rotate(0deg)' },
+          '50%': { opacity: '1', transform: 'scale(0deg)' },
           '100%': { opacity: '0', transform: 'scale(0.5) rotate(15deg)' },
         },
       },
@@ -73,5 +91,5 @@ export default {
       },
     },
   },
-  plugins: [],
+  plugins: [require("tailwindcss-animate")],
 }

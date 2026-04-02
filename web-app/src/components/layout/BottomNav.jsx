@@ -93,7 +93,7 @@ export default function BottomNav() {
                                             ? 'bg-green-500'
                                             : isActive(item.path)
                                                 ? 'bg-primary shadow-glow'
-                                                : 'bg-surface-dark dark:bg-gray-700'
+                                                : 'bg-gray-800 dark:bg-gray-700'
                                     } text-white`}
                             >
                                 <span className={`material-icons-round text-2xl ${status === 'generating' ? 'animate-spin' : ''}`}>
