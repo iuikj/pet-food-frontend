@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion'; // eslint-disable-line no-unused-vars -- motion used via JSX <motion.div>
 import SecureImage from '../components/SecureImage';
+import PetIcon from '../components/icons/PetIcon';
 import PageHeader from '../components/layout/PageHeader';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
 import { usePlanGeneration } from '../hooks/usePlanGeneration';
@@ -247,7 +248,7 @@ export default function Loading() {
                             />
                         ) : (
                             <div className="w-full h-full rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-lg">
-                                {currentPet?.name?.charAt(0) || '🐾'}
+                                {currentPet?.name?.charAt(0) || <PetIcon size={16} />}
                             </div>
                         )}
                         <div className="absolute bottom-0 right-0 w-4 h-4 bg-secondary rounded-full border-2 border-white dark:border-surface-dark flex items-center justify-center">

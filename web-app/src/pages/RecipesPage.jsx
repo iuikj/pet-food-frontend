@@ -6,6 +6,7 @@ import { pageTransitions } from '../utils/animations';
 import { usePets } from '../hooks/usePets';
 import { plansApi } from '../api';
 import SecureImage from '../components/SecureImage';
+import PetIcon from '../components/icons/PetIcon';
 import Skeleton from '../components/ui/Skeleton';
 
 export default function RecipesPage() {
@@ -155,7 +156,6 @@ export default function RecipesPage() {
         const isActive = plan.is_active === true;
         const isApplying = applyingId === plan.id;
         const petType = (plan.pet_type || 'dog') === 'dog' ? 'dog' : 'cat';
-        const petIcon = petType === 'dog' ? '🐕' : '🐱';
         const petBreed = plan.pet_breed || '';
         const petWeight = plan.pet_weight;
         // 通过 pet_id 从 PetContext 查找宠物名
@@ -178,7 +178,7 @@ export default function RecipesPage() {
                 {/* 卡片头部 */}
                 <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-3">
-                        <span className="text-2xl">{petIcon}</span>
+                        <PetIcon type={petType} size={28} className="text-primary" />
                         <div>
                             <h4 className="font-bold text-base text-text-main-light dark:text-text-main-dark">
                                 {petName} 的食谱

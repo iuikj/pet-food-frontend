@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import SecureImage from '../components/SecureImage';
+import PetIcon from '../components/icons/PetIcon';
 import { pageTransitions } from '../utils/animations';
 import { usePets } from '../hooks/usePets';
 import { formatPetAge } from '../utils/petUtils';
@@ -48,7 +49,7 @@ export default function Home() {
     };
 
     // 宠物类型显示
-    const getPetTypeLabel = (type) => type === 'dog' ? '🐶 犬' : '🐱 猫';
+    const getPetTypeLabel = (type) => type === 'dog' ? '犬' : '猫';
     const getGenderLabel = (gender) => {
         if (gender === 'male') return '♂ 公';
         if (gender === 'female') return '♀ 母';
@@ -150,7 +151,7 @@ export default function Home() {
                                                 />
                                             ) : (
                                                 <div className="w-full h-full rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-lg">
-                                                    {pet.name?.charAt(0) || '🐾'}
+                                                    {pet.name?.charAt(0) || <PetIcon type={pet.type} size={16} />}
                                                 </div>
                                             )}
                                         </div>
@@ -186,58 +187,48 @@ export default function Home() {
                             transition={{ duration: 0.35, ease: 'easeOut' }}
                         >
                             <div className="bg-white dark:bg-surface-dark p-5 rounded-2xl shadow-soft border border-gray-100 dark:border-gray-800 space-y-4">
-                                {/* 标题 */}
-                                <div className="flex items-center gap-2">
-                                    <span className="material-icons-round text-primary text-lg">info</span>
-                                    <h3 className="font-bold text-base">{selectedPet.name} 的档案</h3>
-                                </div>
-
-                                {/* 基本信息标签 */}
-                                <div className="flex flex-wrap gap-2">
-                                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 text-xs font-semibold border border-blue-100 dark:border-blue-900/30">
-                                        <span className="material-icons-round text-xs">pets</span>
-                                        {getPetTypeLabel(selectedPet.type)}
-                                    </span>
-                                    {selectedPet.breed && (
-                                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-300 text-xs font-semibold border border-purple-100 dark:border-purple-900/30">
-                                            <span className="material-icons-round text-xs">category</span>
-                                            {selectedPet.breed}
-                                        </span>
-                                    )}
-                                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-300 text-xs font-semibold border border-orange-100 dark:border-orange-900/30">
-                                        <span className="material-icons-round text-xs">cake</span>
-                                        {formatPetAge(selectedPet.age)}
-                                    </span>
-                                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-300 text-xs font-semibold border border-green-100 dark:border-green-900/30">
-                                        <span className="material-icons-round text-xs">monitor_weight</span>
-                                        {selectedPet.weight} kg
-                                    </span>
-                                    {selectedPet.gender && (
-                                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-300 text-xs font-semibold border border-pink-100 dark:border-pink-900/30">
-                                            {getGenderLabel(selectedPet.gender)}
-                                        </span>
-                                    )}
+                                {/* 头部：头像 + 名字 + 基本信息一行 */}
+                                <div className="flex items-center gap-4">
+                                    <div className="w-14 h-14 rounded-2xl bg-gray-100 dark:bg-gray-800 flex-shrink-0 overflow-hidden flex items-center justify-center">
+                                        {selectedPet.avatar_url ? (
+                                            <SecureImage src={selectedPet.avatar_url} alt={selectedPet.name} className="w-full h-full object-cover" />
+                                        ) : (
+                                            <PetIcon type={selectedPet.type} size={28} className="text-primary" />
+                                        )}
+                                    </div>
+                                    <div className="min-w-0">
+                                        <h3 className="font-bold text-base text-text-main-light dark:text-text-main-dark">{selectedPet.name} 的档案</h3>
+                                        <p className="text-sm text-text-muted-light dark:text-text-muted-dark truncate">
+                                            {[
+                                                getPetTypeLabel(selectedPet.type),
+                                                selectedPet.breed,
+                                                formatPetAge(selectedPet.age),
+                                                selectedPet.weight ? `${selectedPet.weight}kg` : null,
+                                                selectedPet.gender ? getGenderLabel(selectedPet.gender) : null,
+                                            ].filter(Boolean).join(' · ')}
+                                        </p>
+                                    </div>
                                 </div>
 
                                 {/* 健康状况 */}
                                 {selectedPet.health_status && (
-                                    <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/20">
-                                        <div className="flex items-center gap-2 mb-1.5">
+                                    <div className="pl-1 space-y-1">
+                                        <div className="flex items-center gap-2">
                                             <span className="material-icons-round text-amber-500 text-sm">medical_information</span>
-                                            <span className="text-xs font-bold text-amber-700 dark:text-amber-300">健康状况</span>
+                                            <span className="text-xs font-bold text-text-muted-light dark:text-text-muted-dark">健康状况</span>
                                         </div>
-                                        <p className="text-xs text-amber-800 dark:text-amber-200 leading-relaxed pl-6">{selectedPet.health_status}</p>
+                                        <p className="text-xs text-text-main-light dark:text-text-main-dark leading-relaxed pl-6">{selectedPet.health_status}</p>
                                     </div>
                                 )}
 
                                 {/* 特殊需求 */}
                                 {selectedPet.special_requirements && (
-                                    <div className="p-3 rounded-xl bg-sky-50 dark:bg-sky-900/10 border border-sky-100 dark:border-sky-900/20">
-                                        <div className="flex items-center gap-2 mb-1.5">
+                                    <div className="pl-1 space-y-1">
+                                        <div className="flex items-center gap-2">
                                             <span className="material-icons-round text-sky-500 text-sm">priority_high</span>
-                                            <span className="text-xs font-bold text-sky-700 dark:text-sky-300">特殊需求</span>
+                                            <span className="text-xs font-bold text-text-muted-light dark:text-text-muted-dark">特殊需求</span>
                                         </div>
-                                        <p className="text-xs text-sky-800 dark:text-sky-200 leading-relaxed pl-6">{selectedPet.special_requirements}</p>
+                                        <p className="text-xs text-text-main-light dark:text-text-main-dark leading-relaxed pl-6">{selectedPet.special_requirements}</p>
                                     </div>
                                 )}
                             </div>

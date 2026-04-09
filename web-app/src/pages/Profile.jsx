@@ -18,6 +18,9 @@ export default function Profile() {
     const [showLogoutModal, setShowLogoutModal] = useState(false);
     const [showDeletePetModal, setShowDeletePetModal] = useState(false);
     const [petToDelete, setPetToDelete] = useState(null);
+    const [themeIcon, setThemeIcon] = useState(
+        () => document.documentElement.classList.contains('dark') ? 'light_mode' : 'dark_mode'
+    );
 
     const handleDeletePet = (petId) => {
         const pet = pets.find(p => p.id === petId);
@@ -92,13 +95,13 @@ export default function Profile() {
                 <div className="flex justify-end gap-3">
                     <button
                         onClick={() => {
-                            document.documentElement.classList.toggle('dark');
+                            const isDark = document.documentElement.classList.toggle('dark');
+                            setThemeIcon(isDark ? 'light_mode' : 'dark_mode');
                         }}
                         className="w-10 h-10 rounded-full bg-white dark:bg-surface-dark shadow-sm flex items-center justify-center text-text-muted-light dark:text-text-muted-dark hover:text-primary transition-all active:scale-[0.95]"
                         title="切换主题"
                     >
-                        <span className="material-icons-round hidden dark:inline">light_mode</span>
-                        <span className="material-icons-round dark:hidden">dark_mode</span>
+                        <span className="material-icons-round">{themeIcon}</span>
                     </button>
                 </div>
             </header>

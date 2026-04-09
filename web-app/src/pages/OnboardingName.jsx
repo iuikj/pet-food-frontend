@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import usePhotoSelect from '../hooks/usePhotoSelect';
+import PetIcon from '../components/icons/PetIcon';
 import OnboardingLayout from '../components/OnboardingLayout';
 
 export default function OnboardingName() {
@@ -89,7 +90,7 @@ export default function OnboardingName() {
                                 type="text"
                                 maxLength={20}
                             />
-                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-2xl">🐾</span>
+                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-primary"><PetIcon size={24} /></span>
                         </div>
                     </div>
                 </div>

@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toMonths } from '../utils/petUtils';
 import OnboardingLayout from '../components/OnboardingLayout';
-import NumberPicker from '../components/NumberPicker';
+import PetIcon from '../components/icons/PetIcon';
+import WheelPicker from '../components/ui/WheelPicker';
+import WeightScale from '../components/ui/WeightScale';
 
 export default function OnboardingBasic() {
     const navigate = useNavigate();
@@ -46,8 +48,8 @@ export default function OnboardingBasic() {
                         <label className="text-sm font-semibold text-text-main-light dark:text-text-main-dark ml-1 mb-4 block">物种</label>
                         <div className="grid grid-cols-2 gap-3">
                             {[
-                                { value: 'Dog', icon: '🐕', label: '狗狗' },
-                                { value: 'Cat', icon: '🐈', label: '猫咪' }
+                                { value: 'Dog', type: 'dog', label: '狗狗' },
+                                { value: 'Cat', type: 'cat', label: '猫咪' }
                             ].map(item => (
                                 <button
                                     key={item.value}
@@ -57,7 +59,7 @@ export default function OnboardingBasic() {
                                             : 'bg-background-light dark:bg-background-dark text-text-main-light dark:text-text-main-dark hover:bg-gray-100 dark:hover:bg-gray-800'
                                         }`}
                                 >
-                                    <span className="text-2xl">{item.icon}</span>
+                                    <PetIcon type={item.type} size={28} />
                                     {item.label}
                                 </button>
                             ))}
@@ -79,45 +81,34 @@ export default function OnboardingBasic() {
                         </div>
                     </div>
 
-                    {/* 年龄输入 */}
+                    {/* 年龄输入 — 滚轮选择器 */}
                     <div className="bg-surface-light dark:bg-surface-dark rounded-2xl p-6 shadow-soft space-y-4">
                         <label className="text-sm font-semibold text-text-main-light dark:text-text-main-dark ml-1 block">年龄</label>
-                        <div className="grid grid-cols-2 gap-3">
-                            <NumberPicker
-                                value={ageYears}
-                                onChange={setAgeYears}
-                                min={0}
-                                max={30}
-                                step={1}
+                        <div className="grid grid-cols-2 gap-4">
+                            <WheelPicker
+                                items={Array.from({ length: 31 }, (_, i) => ({ value: i, label: String(i) }))}
+                                value={Number(ageYears) || 0}
+                                onChange={(v) => setAgeYears(v)}
                                 unit="岁"
-                                placeholder="0"
-                                compact
                             />
-                            <NumberPicker
-                                value={ageMonths}
-                                onChange={setAgeMonths}
-                                min={0}
-                                max={11}
-                                step={1}
+                            <WheelPicker
+                                items={Array.from({ length: 12 }, (_, i) => ({ value: i, label: String(i) }))}
+                                value={Number(ageMonths) || 0}
+                                onChange={(v) => setAgeMonths(v)}
                                 unit="月"
-                                placeholder="0"
-                                compact
                             />
                         </div>
                     </div>
 
-                    {/* 体重输入 */}
+                    {/* 体重输入 — 刻度尺 */}
                     <div className="bg-surface-light dark:bg-surface-dark rounded-2xl p-6 shadow-soft">
-                        <NumberPicker
-                            value={weight}
-                            onChange={setWeight}
+                        <label className="text-sm font-semibold text-text-main-light dark:text-text-main-dark ml-1 mb-3 block">体重</label>
+                        <WeightScale
+                            value={Number(weight) || 0}
+                            onChange={(v) => setWeight(v)}
                             min={0}
-                            max={200}
-                            step={0.5}
-                            unit="KG"
-                            label="体重"
-                            placeholder="0.0"
-                            allowDecimal={true}
+                            max={100}
+                            step={0.1}
                         />
                     </div>
                 </div>
