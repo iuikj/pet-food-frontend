@@ -87,7 +87,7 @@ export default function ProfileEdit() {
 
     if (isLoading) {
         return (
-            <div className="h-screen flex items-center justify-center">
+            <div className="min-h-[100dvh] flex items-center justify-center">
                 <span className="material-icons-round text-4xl text-primary animate-spin">refresh</span>
             </div>
         );
@@ -98,7 +98,7 @@ export default function ProfileEdit() {
             initial={{ opacity: 0, x: 50 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -50 }}
-            className="flex flex-col min-h-screen bg-background-light dark:bg-background-dark pb-safe"
+            className="flex flex-col min-h-[100dvh] bg-background-light dark:bg-background-dark pb-safe"
         >
             <header className="px-6 pt-12 pb-4 flex items-center justify-between bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-md sticky top-0 z-50">
                 <Link

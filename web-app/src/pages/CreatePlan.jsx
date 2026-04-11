@@ -274,7 +274,7 @@ export default function Home() {
                                             onClick={() => toggleTag(tag)}
                                             className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${colors[i]} ${isActive ? 'ring-2 ring-primary/50 scale-105 bg-primary/20 dark:bg-primary/30' : ''}`}
                                         >
-                                            {isActive && <span className="material-icons-round text-[10px] mr-0.5 align-middle">check</span>}
+                                            {isActive && <span className="material-icons-round text-xs mr-0.5 align-middle">check</span>}
                                             {tag}
                                         </button>
                                     )

@@ -167,7 +167,7 @@ export function deriveTodayMealsFromPlan(planResult, planCreatedAt) {
     cardMeals.push({
       id: cardId,
       type,
-      name: foodItems.length > 0 ? foodItems.map((item) => item.name).join(' + ') : `第${meal.order}餐`,
+      name: foodItems.length > 0 ? foodItems.map((item) => item.name).join(' + ') : `第${meal.order ?? (cardMeals.length + 1)}餐`,
       time: meal.time || getDefaultMealTime(meal.order),
       description: meal.cookMethod || '',
       calories: meal.totalCalories || 0,

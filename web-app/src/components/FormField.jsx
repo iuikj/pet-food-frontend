@@ -129,7 +129,8 @@ export default function FormField({
                     <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="text-text-muted-light hover:text-text-main-light focus:outline-none transition-colors ml-2 active:scale-95"
+                        aria-label={showPassword ? '隐藏密码' : '显示密码'}
+                        className="text-text-muted-light hover:text-text-main-light focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded transition-colors ml-2 active:scale-95 cursor-pointer"
                     >
                         <span className="material-icons-round">
                             {showPassword ? 'visibility' : 'visibility_off'}

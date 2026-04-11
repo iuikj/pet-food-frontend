@@ -17,6 +17,7 @@ import realCalendarApi from './calendar';
 import realAnalysisApi from './analysis';
 import realPlansApi from './plans';
 import realWeightsApi from './weights';
+import realTodosApi from './todos';
 
 // Mock API modules
 import {
@@ -26,6 +27,7 @@ import {
   mockCalendarApi,
   mockAnalysisApi,
   mockPlansApi,
+  mockTodosApi,
 } from '../mock';
 
 /**
@@ -46,6 +48,7 @@ export const mealsApi = proxyApi(realMealsApi, mockMealsApi);
 export const calendarApi = proxyApi(realCalendarApi, mockCalendarApi);
 export const analysisApi = proxyApi(realAnalysisApi, mockAnalysisApi);
 export const plansApi = proxyApi(realPlansApi, mockPlansApi);
+export const todosApi = proxyApi(realTodosApi, mockTodosApi);
 
 // weightsApi 无 mock 模式，直接导出
 export const weightsApi = realWeightsApi;

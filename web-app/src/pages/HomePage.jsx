@@ -390,7 +390,7 @@ export default function HomePage() {
                                 onClick={() => handleDayClick(day.fullDate)}
                                 className="flex flex-col items-center gap-1 flex-1 py-1 rounded-xl transition-all duration-150"
                             >
-                                <span className={`text-[10px] font-semibold
+                                <span className={`text-xs font-semibold
                                     ${day.isToday ? 'text-primary' : 'text-text-muted-light dark:text-text-muted-dark'}`}>
                                     {day.label}
                                 </span>
@@ -617,7 +617,7 @@ export default function HomePage() {
                             </svg>
                             <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
                                 <span className="text-3xl font-bold leading-none">{Math.round(remainingCalories)}</span>
-                                <span className="text-[10px] uppercase font-medium tracking-wide opacity-70">剩余卡路里</span>
+                                <span className="text-xs uppercase font-medium tracking-wide opacity-70">剩余卡路里</span>
                             </div>
                         </div>
                         <div className="flex-1 space-y-4">

@@ -92,7 +92,7 @@ export default function PlanDetails({ meal, weekNumber, onClose }) {
     // 标题：食材拼接
     const mealTitle = foodItems.length > 0
         ? foodItems.map(f => f.name).join(' + ')
-        : `第 ${meal.order} 餐`;
+        : `第 ${meal.order ?? '?'} 餐`;
 
     // 微量元素
     const micronutrients = extractMicronutrients(foodItems);
@@ -196,7 +196,7 @@ export default function PlanDetails({ meal, weekNumber, onClose }) {
                         </h3>
                         <div className="grid grid-cols-3 gap-3">
                             <div className="bg-surface-light dark:bg-surface-dark border border-gray-100 dark:border-gray-800 p-3 rounded-2xl text-center shadow-sm">
-                                <div className="text-[10px] text-text-muted-light uppercase tracking-wide mb-1">蛋白质</div>
+                                <div className="text-xs text-text-muted-light uppercase tracking-wide mb-1">蛋白质</div>
                                 <div className="font-bold text-lg text-text-main-light dark:text-text-main-dark">
                                     {totalProtein || 0}<span className="text-xs font-normal text-text-muted-light ml-0.5">g</span>
                                 </div>
@@ -205,7 +205,7 @@ export default function PlanDetails({ meal, weekNumber, onClose }) {
                                 </div>
                             </div>
                             <div className="bg-surface-light dark:bg-surface-dark border border-gray-100 dark:border-gray-800 p-3 rounded-2xl text-center shadow-sm">
-                                <div className="text-[10px] text-text-muted-light uppercase tracking-wide mb-1">脂肪</div>
+                                <div className="text-xs text-text-muted-light uppercase tracking-wide mb-1">脂肪</div>
                                 <div className="font-bold text-lg text-text-main-light dark:text-text-main-dark">
                                     {totalFat || 0}<span className="text-xs font-normal text-text-muted-light ml-0.5">g</span>
                                 </div>
@@ -214,7 +214,7 @@ export default function PlanDetails({ meal, weekNumber, onClose }) {
                                 </div>
                             </div>
                             <div className="bg-surface-light dark:bg-surface-dark border border-gray-100 dark:border-gray-800 p-3 rounded-2xl text-center shadow-sm">
-                                <div className="text-[10px] text-text-muted-light uppercase tracking-wide mb-1">碳水</div>
+                                <div className="text-xs text-text-muted-light uppercase tracking-wide mb-1">碳水</div>
                                 <div className="font-bold text-lg text-text-main-light dark:text-text-main-dark">
                                     {totalCarbs || 0}<span className="text-xs font-normal text-text-muted-light ml-0.5">g</span>
                                 </div>

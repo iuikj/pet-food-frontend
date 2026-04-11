@@ -25,10 +25,42 @@ import ProfileEdit from './pages/ProfileEdit';
 import PetEdit from './pages/PetEdit';
 import { useBackButton } from './hooks/useBackButton';
 import ScrollToTop from './components/ScrollToTop';
+import React from 'react';
+
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch(error, info) {
+    console.error('[ErrorBoundary]', error, info);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-[100dvh] flex flex-col items-center justify-center px-6 text-center">
+          <span className="material-icons-round text-5xl text-red-400 mb-4">error_outline</span>
+          <h2 className="text-lg font-bold mb-2">页面出了点问题</h2>
+          <p className="text-sm text-text-muted-light mb-6">请尝试刷新页面，如果问题持续请联系客服</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-6 py-2.5 rounded-xl bg-primary text-white font-bold text-sm cursor-pointer"
+          >
+            刷新页面
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 function SplashScreen() {
   return (
-    <div className="h-screen flex flex-col items-center justify-center bg-gradient-to-br from-primary/20 via-background-light to-secondary/20 dark:from-primary/10 dark:via-background-dark dark:to-secondary/10 overflow-hidden relative">
+    <div className="min-h-[100dvh] flex flex-col items-center justify-center bg-gradient-to-br from-primary/20 via-background-light to-secondary/20 dark:from-primary/10 dark:via-background-dark dark:to-secondary/10 overflow-hidden relative">
       {/* Floating decorative bubbles */}
       <div className="absolute top-[15%] left-[12%] w-16 h-16 rounded-full bg-primary/20 animate-float" />
       <div className="absolute top-[25%] right-[15%] w-10 h-10 rounded-full bg-secondary/30 animate-float" style={{ animationDelay: '0.8s' }} />
@@ -171,7 +203,9 @@ function App() {
         <PetProvider>
           <MealProvider>
             <PlanGenerationProvider>
-              <AnimatedRoutes />
+              <ErrorBoundary>
+                <AnimatedRoutes />
+              </ErrorBoundary>
               <Toaster />
             </PlanGenerationProvider>
           </MealProvider>

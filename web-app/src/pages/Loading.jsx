@@ -138,10 +138,10 @@ function WeekStatusGrid({ weekStatuses }) {
                                 </motion.span>
                             </AnimatePresence>
                         </div>
-                        <p className="text-[10px] text-text-muted-light dark:text-text-muted-dark truncate">
+                        <p className="text-xs text-text-muted-light dark:text-text-muted-dark truncate">
                             {weekLabels[weekNum - 1]}
                         </p>
-                        <p className={`text-[10px] font-medium mt-0.5 ${config.color}`}>
+                        <p className={`text-xs font-medium mt-0.5 ${config.color}`}>
                             {ws.label}
                         </p>
 
@@ -252,7 +252,7 @@ export default function Loading() {
                             </div>
                         )}
                         <div className="absolute bottom-0 right-0 w-4 h-4 bg-secondary rounded-full border-2 border-white dark:border-surface-dark flex items-center justify-center">
-                            <span className="material-icons-round text-[10px] text-yellow-900 font-bold">bolt</span>
+                            <span className="material-icons-round text-xs text-yellow-900 font-bold">bolt</span>
                         </div>
                     </div>
                     <div>
@@ -307,10 +307,10 @@ export default function Loading() {
                                     ></motion.div>
                                 </div>
                                 <div className="flex justify-between mt-1.5">
-                                    <span className="text-[10px] text-text-muted-light dark:text-text-muted-dark">
+                                    <span className="text-xs text-text-muted-light dark:text-text-muted-dark">
                                         {steps[currentStepIndex].description}
                                     </span>
-                                    <span className="text-[10px] font-semibold text-secondary">{Math.round(progress)}%</span>
+                                    <span className="text-xs font-semibold text-secondary">{Math.round(progress)}%</span>
                                 </div>
 
                                 {/* 底部旋转图标 */}

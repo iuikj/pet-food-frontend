@@ -87,7 +87,8 @@ export default function BottomNav() {
                             <button
                                 key={item.name}
                                 onClick={handleFabClick}
-                                className={`relative -top-6 w-14 h-14 rounded-full shadow-sm flex items-center justify-center transform transition-all hover:scale-105 active:scale-95 ${status === 'generating'
+                                aria-label={status === 'generating' ? '正在生成计划' : status === 'completed' ? '查看已完成计划' : '创建饮食计划'}
+                                className={`relative -top-6 w-14 h-14 rounded-full shadow-sm flex items-center justify-center transform transition-all hover:scale-105 active:scale-95 cursor-pointer ${status === 'generating'
                                         ? 'bg-secondary animate-pulse'
                                         : status === 'completed'
                                             ? 'bg-green-500'
@@ -106,6 +107,7 @@ export default function BottomNav() {
                         <Link
                             key={item.name}
                             to={item.path}
+                            aria-label={item.name}
                             className={`flex flex-col items-center gap-1 w-12 transition-colors ${isActive(item.path)
                                 ? 'text-primary'
                                 : 'text-text-muted-light dark:text-text-muted-dark hover:text-primary'

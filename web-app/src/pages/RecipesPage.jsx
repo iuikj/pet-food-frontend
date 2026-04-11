@@ -169,10 +169,10 @@ export default function RecipesPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, x: -100 }}
-                className={`bg-white dark:bg-surface-dark rounded-2xl p-5 shadow-soft border transition-all duration-300 ${
+                className={`bg-white dark:bg-surface-dark rounded-2xl p-5 border transition-all duration-300 ${
                     isActive
-                        ? 'border-primary/40 ring-2 ring-primary/20'
-                        : 'border-gray-100 dark:border-gray-800 hover:shadow-medium'
+                        ? 'border-primary/40'
+                        : 'border-gray-100 dark:border-gray-800'
                 }`}
             >
                 {/* 卡片头部 */}
@@ -311,7 +311,7 @@ export default function RecipesPage() {
                                         onClick={() => togglePetCollapse(petId)}
                                         className="w-full flex items-center gap-3 mb-3 px-1 group"
                                     >
-                                        <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden flex-shrink-0 border-2 border-white dark:border-surface-dark shadow-sm">
+                                        <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden flex-shrink-0">
                                             {pet?.avatar_url ? (
                                                 <SecureImage
                                                     src={pet.avatar_url}

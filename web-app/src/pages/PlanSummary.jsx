@@ -315,7 +315,7 @@ export default function PlanSummary() {
                                                     <h4 className="font-bold text-base">
                                                         {meal.foodItems?.length > 0
                                                             ? meal.foodItems.map(f => f.name).join(' + ')
-                                                            : `第 ${meal.order} 餐`}
+                                                            : `第 ${meal.order ?? idx + 1} 餐`}
                                                     </h4>
                                                     {meal.time && (
                                                         <span className="text-xs font-semibold bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-lg shrink-0 ml-2">{meal.time}</span>

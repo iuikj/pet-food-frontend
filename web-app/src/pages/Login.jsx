@@ -303,7 +303,7 @@ export default function Login() {
 
                     {!isRegister && (
                         <div className="flex justify-end">
-                            <a className="text-xs font-bold text-primary hover:text-primary-dark transition-colors" href="#">忘记密码？</a>
+                            <button type="button" className="text-xs font-bold text-primary hover:text-primary-dark transition-colors cursor-pointer">忘记密码？</button>
                         </div>
                     )}
 

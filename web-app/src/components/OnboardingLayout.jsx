@@ -21,7 +21,7 @@ export default function OnboardingLayout({
     const location = useLocation();
 
     return (
-        <div className="flex flex-col h-screen bg-background-light dark:bg-background-dark overflow-hidden">
+        <div className="flex flex-col min-h-[100dvh] bg-background-light dark:bg-background-dark overflow-hidden">
             <header className="flex-shrink-0 px-6 pt-12 pb-4 flex items-center justify-between bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-md z-50">
                 <Link
                     to={backLink}
