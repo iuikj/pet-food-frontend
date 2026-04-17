@@ -6,6 +6,10 @@
 @tailwind utilities;
 
 @layer base {
+  /* 统一移除浏览器默认蓝色 outline，所有 focus 样式由 Tailwind ring/border 接管 */
+  input, textarea, select, button {
+    @apply outline-none;
+  }
   body {
     @apply bg-background-light dark:bg-background-dark text-text-main-light dark:text-text-main-dark transition-colors duration-300 antialiased font-display;
   }
