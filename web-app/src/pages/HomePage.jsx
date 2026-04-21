@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import SecureImage from '../components/SecureImage';
 import Calendar from 'react-calendar';
@@ -11,9 +11,11 @@ import Skeleton from '../components/ui/Skeleton';
 import PlanDetails from './PlanDetails';
 import { usePets } from '../hooks/usePets';
 import { useMeals } from '../hooks/useMeals';
-import { weightsApi, calendarApi, mealsApi } from '../api';
+import { useWeights } from '../hooks/useWeights';
+import { calendarApi, mealsApi } from '../api';
 import { usePlanGeneration } from '../hooks/usePlanGeneration';
 import { WEEK_DAY_LABELS } from '../utils/calendarConstants';
+import WeightRecordSheet from '../components/WeightRecordSheet';
 
 /** YYYY-MM-DD 格式化 */
 function formatDate(date) {
@@ -38,6 +40,7 @@ const getMealTypeName = (type) => {
 };
 
 export default function HomePage() {
+    const navigate = useNavigate();
     const [isPetMenuOpen, setIsPetMenuOpen] = useState(false);
     const { pets, currentPet, setCurrentPet, activePlanData, isLoading: petsLoading } = usePets();
     const { meals, nutritionSummary, isLoading: mealsLoading, toggleMealComplete } = useMeals();
@@ -46,14 +49,20 @@ export default function HomePage() {
     // 餐食详情弹窗状态
     const [selectedMeal, setSelectedMeal] = useState(null);
 
-    // 体重输入弹窗状态
-    const [showWeightModal, setShowWeightModal] = useState(false);
-    const [weightInput, setWeightInput] = useState('');
-    const [weightSaving, setWeightSaving] = useState(false);
+    // 体重最新记录（首页卡片展示）
     const [latestWeight, setLatestWeight] = useState(null);
 
     // 体重历史数据（趋势图用）
     const [weightHistory, setWeightHistory] = useState([]);
+
+    // 跳转到体重曲线详情页（需先选中宠物）
+    const goToWeightTrend = useCallback(() => {
+        if (!currentPet?.id) {
+            setIsPetMenuOpen(true);
+            return;
+        }
+        navigate(`/pet/${currentPet.id}/weight`);
+    }, [currentPet?.id, navigate]);
 
     // 获取最新体重
     const fetchLatestWeight = useCallback(async () => {
@@ -86,25 +95,6 @@ export default function HomePage() {
     }, [currentPet?.id]);
 
     useEffect(() => { fetchLatestWeight(); fetchWeightHistory(); }, [fetchLatestWeight, fetchWeightHistory]);
-
-    // 保存体重
-    const handleSaveWeight = async () => {
-        const value = parseFloat(weightInput);
-        if (!value || value <= 0 || value > 500 || !currentPet?.id) return;
-        setWeightSaving(true);
-        try {
-            const res = await weightsApi.recordWeight({ pet_id: currentPet.id, weight: value });
-            if (res.code === 0) {
-                setLatestWeight(res.data);
-                setShowWeightModal(false);
-                setWeightInput('');
-            }
-        } catch (err) {
-            console.error('Failed to record weight:', err);
-        } finally {
-            setWeightSaving(false);
-        }
-    };
 
     // 计算距上次记录天数
     const getDaysAgo = () => {
@@ -517,11 +507,7 @@ export default function HomePage() {
     const renderLockedCards = () => (
         <section className="grid grid-cols-2 gap-4">
             <button
-                onClick={() => {
-                    if (!hasPets) return;
-                    setWeightInput(latestWeight ? String(latestWeight.weight) : String(currentPet?.weight || ''));
-                    setShowWeightModal(true);
-                }}
+                onClick={goToWeightTrend}
                 className="bg-primary/10 dark:bg-primary/5 p-5 rounded-2xl flex flex-col justify-between h-36 relative overflow-hidden text-left hover:shadow-soft active:scale-[0.98] transition-all duration-300 group"
             >
                 <div>
@@ -537,11 +523,7 @@ export default function HomePage() {
                 </div>
             </button>
             <button
-                onClick={() => {
-                    if (!hasPets) return;
-                    setWeightInput(latestWeight ? String(latestWeight.weight) : String(currentPet?.weight || ''));
-                    setShowWeightModal(true);
-                }}
+                onClick={goToWeightTrend}
                 className="bg-secondary/20 dark:bg-secondary/10 p-5 rounded-2xl flex flex-col justify-center items-center h-36 relative overflow-hidden text-center hover:shadow-soft hover:bg-secondary/30 active:scale-[0.98] transition-all duration-300 group"
             >
                 <span className="material-icons-round text-4xl text-secondary/70 mb-2 group-hover:scale-110 transition-transform">monitor_weight</span>
@@ -716,7 +698,7 @@ export default function HomePage() {
         return (
             <section className="grid grid-cols-2 gap-4">
                 <button
-                    onClick={() => { setWeightInput(latestWeight ? String(latestWeight.weight) : String(currentPet?.weight || '')); setShowWeightModal(true); }}
+                    onClick={goToWeightTrend}
                     className="bg-primary/10 dark:bg-primary/5 p-5 rounded-2xl flex flex-col justify-between h-36 relative overflow-hidden hover:shadow-medium hover:scale-105 transition-all duration-300 text-left"
                 >
                     <div>
@@ -737,7 +719,7 @@ export default function HomePage() {
                     </div>
                 </button>
                 <button
-                    onClick={() => { setWeightInput(latestWeight ? String(latestWeight.weight) : String(currentPet?.weight || '')); setShowWeightModal(true); }}
+                    onClick={goToWeightTrend}
                     className="bg-secondary/30 dark:bg-secondary/10 p-5 rounded-2xl flex flex-col justify-between h-36 relative overflow-hidden hover:shadow-medium hover:scale-105 transition-all duration-300 text-left"
                 >
                     <span className="material-icons-round absolute -right-2 -bottom-4 text-6xl text-secondary opacity-50">monitor_weight</span>
@@ -801,66 +783,6 @@ export default function HomePage() {
                         weekNumber={selectedMeal.weekNumber}
                         onClose={() => setSelectedMeal(null)}
                     />
-                )}
-            </AnimatePresence>
-
-            {/* 体重输入弹窗 */}
-            <AnimatePresence>
-                {showWeightModal && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center px-8"
-                        onClick={() => setShowWeightModal(false)}
-                    >
-                        <motion.div
-                            initial={{ scale: 0.9, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0.9, opacity: 0 }}
-                            onClick={(e) => e.stopPropagation()}
-                            className="bg-white dark:bg-surface-dark rounded-3xl p-6 w-full max-w-sm shadow-xl"
-                        >
-                            <div className="flex flex-col items-center text-center">
-                                <div className="w-14 h-14 rounded-full bg-secondary/20 flex items-center justify-center mb-4">
-                                    <span className="material-icons-round text-yellow-600 text-2xl">monitor_weight</span>
-                                </div>
-                                <h3 className="font-bold text-lg mb-2">记录体重</h3>
-                                <p className="text-sm text-text-muted-light dark:text-text-muted-dark mb-4">
-                                    为 {currentPet?.name || '宠物'} 记录今日体重
-                                </p>
-                                <div className="flex items-center gap-2 mb-6 w-full max-w-[200px]">
-                                    <input
-                                        type="number"
-                                        step="0.1"
-                                        min="0.1"
-                                        max="500"
-                                        value={weightInput}
-                                        onChange={(e) => setWeightInput(e.target.value)}
-                                        placeholder="0.0"
-                                        className="w-full text-center text-3xl font-bold bg-gray-50 dark:bg-gray-800 rounded-2xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-primary"
-                                        autoFocus
-                                    />
-                                    <span className="text-lg font-medium text-text-muted-light dark:text-text-muted-dark shrink-0">kg</span>
-                                </div>
-                                <div className="flex gap-3 w-full">
-                                    <button
-                                        onClick={() => setShowWeightModal(false)}
-                                        className="flex-1 py-3 rounded-xl bg-gray-100 dark:bg-gray-700 text-text-main-light dark:text-text-main-dark font-medium hover:bg-gray-200 transition-colors"
-                                    >
-                                        取消
-                                    </button>
-                                    <button
-                                        onClick={handleSaveWeight}
-                                        disabled={weightSaving || !weightInput || parseFloat(weightInput) <= 0}
-                                        className="flex-1 py-3 rounded-xl bg-primary text-white dark:text-gray-900 font-bold hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                        {weightSaving ? '保存中...' : '保存'}
-                                    </button>
-                                </div>
-                            </div>
-                        </motion.div>
-                    </motion.div>
                 )}
             </AnimatePresence>
         </motion.div>

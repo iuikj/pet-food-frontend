@@ -288,6 +288,21 @@ export default function PetEdit() {
                                 placeholder="kg"
                             />
                         </div>
+                        <Link
+                            to={`/pet/${id}/weight`}
+                            className="flex items-center justify-between bg-primary/10 dark:bg-primary/5 rounded-2xl px-4 py-3 mt-2 hover:bg-primary/20 active:scale-[0.98] transition-all"
+                        >
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center text-primary">
+                                    <span className="material-icons-round text-lg">show_chart</span>
+                                </div>
+                                <div>
+                                    <p className="text-sm font-bold text-text-main-light dark:text-text-main-dark">查看体重曲线</p>
+                                    <p className="text-xs text-text-muted-light dark:text-text-muted-dark">查看历史记录与趋势</p>
+                                </div>
+                            </div>
+                            <span className="material-icons-round text-text-muted-light dark:text-text-muted-dark">chevron_right</span>
+                        </Link>
                     </div>
 
                     <div className="space-y-2">

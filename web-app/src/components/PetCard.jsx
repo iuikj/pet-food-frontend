@@ -19,6 +19,11 @@ export default function PetCard({ pet, onDelete, showActions = true, variant = '
         navigate(`/pet/edit/${pet.id}`);
     };
 
+    const handleWeightTrend = () => {
+        setMenuOpen(false);
+        navigate(`/pet/${pet.id}/weight`);
+    };
+
     const handleDelete = () => {
         setMenuOpen(false);
         onDelete?.(pet.id);
@@ -26,6 +31,7 @@ export default function PetCard({ pet, onDelete, showActions = true, variant = '
 
     const menuItems = [
         { icon: 'edit', label: '编辑资料', onClick: handleEdit },
+        { icon: 'show_chart', label: '体重曲线', onClick: handleWeightTrend },
         { icon: 'assignment', label: 'AI 档案', onClick: () => { } },
         { icon: 'delete_outline', label: '删除宠物', onClick: handleDelete, danger: true }
     ];
