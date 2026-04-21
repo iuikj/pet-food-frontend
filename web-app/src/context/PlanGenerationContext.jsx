@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { App as CapacitorApp } from '@capacitor/app';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { Capacitor } from '@capacitor/core';
@@ -7,6 +8,12 @@ import realPlansApi from '../api/plans';
 import { mockPlansApi } from '../mock';
 import { isMockMode } from '../mock/mockMode';
 import { transformCompletedEventToResult, transformPetDietPlan } from '../models/dietPlan';
+import {
+    clearPendingPlanTask,
+    getAccessToken,
+    loadPendingPlanTask,
+    savePendingPlanTask,
+} from '../utils/storage';
 import PlanGenerationContext from './PlanGenerationContextValue';
 
 const INITIAL_WEEK_STATUSES = {
@@ -100,6 +107,7 @@ function extractWeekNumber(data) {
 }
 
 export const PlanGenerationProvider = ({ children }) => {
+    const navigate = useNavigate();
     const [status, setStatus] = useState('idle');
     const [progress, setProgress] = useState(0);
     const [currentStepIndex, setCurrentStepIndex] = useState(0);
@@ -281,6 +289,7 @@ export const PlanGenerationProvider = ({ children }) => {
         setCurrentStepIndex(STEPS.length - 1);
         setIsBackgroundRunning(false);
         setError(null);
+        clearPendingPlanTask();
 
         if (completedPlanId) {
             setPlanId(completedPlanId);
@@ -313,6 +322,7 @@ export const PlanGenerationProvider = ({ children }) => {
         setStatus('error');
         setError(message || '生成失败');
         setIsBackgroundRunning(false);
+        clearPendingPlanTask();
         addLog(message || '生成失败');
         await disableBackgroundMode();
     }, [addLog, disableBackgroundMode, stopPolling]);
@@ -363,7 +373,26 @@ export const PlanGenerationProvider = ({ children }) => {
             switch (eventType) {
                 case 'task_created':
                     setTaskId(data.task_id);
+                    // 持久化 taskId 以支持杀进程/清后台恢复
+                    try {
+                        savePendingPlanTask({
+                            taskId: data.task_id,
+                            startedAt: Date.now(),
+                        });
+                    } catch (storageError) {
+                        console.warn('Failed to persist pending task:', storageError);
+                    }
                     addLog('任务创建成功');
+                    return;
+                case 'resumed':
+                    // 后端 resume 端点确认连接成功
+                    if (data.progress !== undefined && data.progress !== null) {
+                        setProgress(data.progress);
+                    }
+                    if (data.current_node) {
+                        setCurrentNode(data.current_node);
+                    }
+                    addLog(`已恢复连接（任务状态：${data.status || 'running'}）`);
                     return;
                 case 'task_completed':
                     if (!data.plan_id && (data.node || data.task_name)) {
@@ -485,7 +514,8 @@ export const PlanGenerationProvider = ({ children }) => {
                 (streamError) => {
                     console.error('SSE connection error:', streamError);
                     addLog(`连接异常: ${streamError.message}`);
-                }
+                },
+                abortControllerRef.current?.signal,
             );
         } catch (streamError) {
             console.error('Unexpected stream error:', streamError);
@@ -501,7 +531,8 @@ export const PlanGenerationProvider = ({ children }) => {
                     handleSSEEvent,
                     (resumeError) => {
                         console.error('SSE resume error:', resumeError);
-                    }
+                    },
+                    abortControllerRef.current?.signal,
                 );
             } catch (resumeError) {
                 console.error('SSE resume failed:', resumeError);
@@ -531,6 +562,7 @@ export const PlanGenerationProvider = ({ children }) => {
         setLogs([]);
         setWeekStatuses(INITIAL_WEEK_STATUSES);
         storeResult(null);
+        clearPendingPlanTask();
 
         stopPolling();
 
@@ -584,7 +616,8 @@ export const PlanGenerationProvider = ({ children }) => {
                     handleSSEEvent,
                     (resumeError) => {
                         console.error('SSE resume error in restore:', resumeError);
-                    }
+                    },
+                    abortControllerRef.current?.signal,
                 );
             } catch (resumeError) {
                 console.error('SSE resume failed in restore:', resumeError);
@@ -600,6 +633,121 @@ export const PlanGenerationProvider = ({ children }) => {
             startPolling();
         }
     }, [addLog, completeGeneration, failGeneration, handleSSEEvent, startPolling]);
+
+    /**
+     * 冷启动恢复：从 localStorage 读取未完成的 taskId，
+     * 主动查询任务状态 + 订阅事件流回放。
+     *
+     * 覆盖场景：
+     * - 清后台/杀进程 → 重新打开应用
+     * - 设备重启
+     * - 网络切换导致的长时间断连
+     */
+    const resumePendingTask = useCallback(async () => {
+        const pending = loadPendingPlanTask();
+        if (!pending) {
+            return;
+        }
+
+        // 未登录 — 留存 pending 待登录后再试
+        if (!getAccessToken()) {
+            return;
+        }
+
+        if (statusRef.current === 'generating') {
+            // 正在生成中，不触发恢复（避免与主生成流程竞争）
+            return;
+        }
+
+        const useMock = isMockMode();
+        lockedApiRef.current = useMock ? mockPlansApi : realPlansApi;
+
+        // 立即检查后端任务状态，决定是"接回生成"还是"短路到完成/失败"
+        let taskResponse;
+        try {
+            taskResponse = await lockedApiRef.current.getTask(pending.taskId);
+        } catch (err) {
+            console.warn('恢复时查询任务失败：', err);
+            clearPendingPlanTask();
+            return;
+        }
+
+        if (taskResponse.code !== 0 || !taskResponse.data) {
+            // 任务已不存在（超 24h 或数据库清理）
+            clearPendingPlanTask();
+            return;
+        }
+
+        const task = taskResponse.data;
+
+        // 已进入终态 — 直接清除持久化，不打扰用户
+        if (task.status === 'failed' || task.status === 'cancelled') {
+            clearPendingPlanTask();
+            return;
+        }
+
+        // 已完成 — 把结果恢复到 context（用户回到 summary 页即可看到）
+        if (task.status === 'completed') {
+            clearPendingPlanTask();
+            const resultData = await fetchTaskResult(pending.taskId);
+            if (resultData) {
+                setStatus('completed');
+                setTaskId(pending.taskId);
+                setProgress(100);
+                setCurrentStepIndex(STEPS.length - 1);
+                storeResult(resultData);
+                addLog('已恢复上次生成的完整结果');
+            }
+            return;
+        }
+
+        // pending / running — 真正触发"重连链路"
+        setStatus('generating');
+        setTaskId(pending.taskId);
+        setProgress(task.progress || 0);
+        setCurrentNode(task.current_node || null);
+        setLogs([]);
+        setWeekStatuses(INITIAL_WEEK_STATUSES);
+        storeResult(null);
+        addLog(`检测到未完成的生成任务（${pending.taskId.slice(0, 8)}…），正在恢复`);
+
+        // 把用户带到生成页，确保他们能看到恢复进度
+        try {
+            navigate('/planning', { replace: true });
+        } catch (navError) {
+            console.warn('自动跳转 /planning 失败：', navError);
+        }
+
+        await enableBackgroundMode();
+
+        abortControllerRef.current = new AbortController();
+
+        try {
+            await lockedApiRef.current.resumePlanStreamFetch(
+                pending.taskId,
+                handleSSEEvent,
+                (resumeError) => {
+                    console.error('Cold-start SSE resume error:', resumeError);
+                    addLog(`恢复连接异常: ${resumeError.message}`);
+                },
+                abortControllerRef.current?.signal,
+            );
+        } catch (resumeError) {
+            console.error('Cold-start SSE resume failed:', resumeError);
+        }
+
+        // 若订阅已结束但任务仍未终态，启动轮询兜底
+        if (statusRef.current === 'generating') {
+            addLog('恢复订阅结束，启动轮询兜底');
+            startPolling();
+        }
+    }, [addLog, enableBackgroundMode, fetchTaskResult, handleSSEEvent, navigate, startPolling, storeResult]);
+
+    // 冷启动自动检测（挂载后仅执行一次）
+    useEffect(() => {
+        void resumePendingTask();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     useEffect(() => {
         if (!Capacitor.isNativePlatform()) {
@@ -649,6 +797,7 @@ export const PlanGenerationProvider = ({ children }) => {
         startGeneration,
         resetGeneration,
         restoreFromBackground,
+        resumePendingTask,
     }), [
         status,
         progress,
@@ -664,6 +813,7 @@ export const PlanGenerationProvider = ({ children }) => {
         startGeneration,
         resetGeneration,
         restoreFromBackground,
+        resumePendingTask,
     ]);
 
     return (

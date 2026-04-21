@@ -37,9 +37,24 @@ export function createPlanStream(
 async function consumeSSEStream(
     reader: ReadableStreamDefaultReader<Uint8Array>,
     onEvent: (event: any) => void,
+    signal?: AbortSignal,
 ): Promise<void> {
     const decoder = new TextDecoder();
     let buffer = '';
+
+    const onAbort = () => {
+        try {
+            reader.cancel();
+        } catch {
+        }
+    };
+    if (signal) {
+        if (signal.aborted) {
+            onAbort();
+            return;
+        }
+        signal.addEventListener('abort', onAbort, { once: true });
+    }
 
     try {
         while (true) {
@@ -64,6 +79,9 @@ async function consumeSSEStream(
             }
         }
     } finally {
+        if (signal) {
+            signal.removeEventListener('abort', onAbort);
+        }
         try {
             reader.cancel();
         } catch {
@@ -74,7 +92,8 @@ async function consumeSSEStream(
 export async function createPlanStreamFetch(
     data: CreatePlanRequest,
     onEvent: (event: any) => void,
-    onError?: (error: Error) => void
+    onError?: (error: Error) => void,
+    signal?: AbortSignal,
 ): Promise<void> {
     const token = getAccessToken();
 
@@ -88,6 +107,7 @@ export async function createPlanStreamFetch(
             },
             body: JSON.stringify(data),
             keepalive: false,
+            signal,
         });
 
         if (!response.ok) {
@@ -99,8 +119,12 @@ export async function createPlanStreamFetch(
             throw new Error('No reader available');
         }
 
-        await consumeSSEStream(reader, onEvent);
+        await consumeSSEStream(reader, onEvent, signal);
     } catch (error) {
+        if ((error as Error).name === 'AbortError') {
+            // 主动中断不视为错误
+            return;
+        }
         if (onError) {
             onError(error as Error);
         }
@@ -110,7 +134,8 @@ export async function createPlanStreamFetch(
 export async function resumePlanStreamFetch(
     taskId: string,
     onEvent: (event: any) => void,
-    onError?: (error: Error) => void
+    onError?: (error: Error) => void,
+    signal?: AbortSignal,
 ): Promise<void> {
     const token = getAccessToken();
 
@@ -123,6 +148,7 @@ export async function resumePlanStreamFetch(
                     Authorization: `Bearer ${token}`,
                     Connection: 'keep-alive',
                 },
+                signal,
             }
         );
 
@@ -135,8 +161,11 @@ export async function resumePlanStreamFetch(
             throw new Error('No reader available');
         }
 
-        await consumeSSEStream(reader, onEvent);
+        await consumeSSEStream(reader, onEvent, signal);
     } catch (error) {
+        if ((error as Error).name === 'AbortError') {
+            return;
+        }
         if (onError) {
             onError(error as Error);
         }
