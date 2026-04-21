@@ -49,11 +49,15 @@ export default function HomePage() {
     // 餐食详情弹窗状态
     const [selectedMeal, setSelectedMeal] = useState(null);
 
-    // 体重最新记录（首页卡片展示）
-    const [latestWeight, setLatestWeight] = useState(null);
+    // 体重记录抽屉
+    const [weightSheetOpen, setWeightSheetOpen] = useState(false);
 
-    // 体重历史数据（趋势图用）
-    const [weightHistory, setWeightHistory] = useState([]);
+    // 体重数据（通过 useWeights 统一管理）
+    const {
+        latest: latestWeight,
+        history: weightHistory,
+        record: recordWeight,
+    } = useWeights(currentPet?.id, 7);
 
     // 跳转到体重曲线详情页（需先选中宠物）
     const goToWeightTrend = useCallback(() => {
@@ -64,37 +68,14 @@ export default function HomePage() {
         navigate(`/pet/${currentPet.id}/weight`);
     }, [currentPet?.id, navigate]);
 
-    // 获取最新体重
-    const fetchLatestWeight = useCallback(async () => {
-        if (!currentPet?.id) return;
-        try {
-            const res = await weightsApi.getLatestWeight(currentPet.id);
-            if (res.code === 0 && res.data) {
-                setLatestWeight(res.data);
-            } else {
-                setLatestWeight(null);
-            }
-        } catch {
-            setLatestWeight(null);
+    // 快速打开记录抽屉（需先选中宠物）
+    const openWeightSheet = useCallback(() => {
+        if (!currentPet?.id) {
+            setIsPetMenuOpen(true);
+            return;
         }
+        setWeightSheetOpen(true);
     }, [currentPet?.id]);
-
-    // 获取体重历史
-    const fetchWeightHistory = useCallback(async () => {
-        if (!currentPet?.id) return;
-        try {
-            const res = await weightsApi.getWeightHistory(currentPet.id, 7);
-            if (res.code === 0 && Array.isArray(res.data)) {
-                setWeightHistory(res.data);
-            } else {
-                setWeightHistory([]);
-            }
-        } catch {
-            setWeightHistory([]);
-        }
-    }, [currentPet?.id]);
-
-    useEffect(() => { fetchLatestWeight(); fetchWeightHistory(); }, [fetchLatestWeight, fetchWeightHistory]);
 
     // 计算距上次记录天数
     const getDaysAgo = () => {
@@ -513,7 +494,7 @@ export default function HomePage() {
                 <div>
                     <h4 className="font-bold text-green-900/80 dark:text-green-100/80 mb-1">体重趋势</h4>
                     <p className="text-xs text-green-800/60 dark:text-green-200/60 font-medium">
-                        {weightHistory.length >= 2 ? `${weightHistory.length}条记录` : '点击开始记录'}
+                        {weightHistory.length >= 2 ? `${weightHistory.length}条记录 · 查看曲线` : '暂无记录'}
                     </p>
                 </div>
                 <div className="mt-auto">
@@ -523,13 +504,13 @@ export default function HomePage() {
                 </div>
             </button>
             <button
-                onClick={goToWeightTrend}
+                onClick={openWeightSheet}
                 className="bg-secondary/20 dark:bg-secondary/10 p-5 rounded-2xl flex flex-col justify-center items-center h-36 relative overflow-hidden text-center hover:shadow-soft hover:bg-secondary/30 active:scale-[0.98] transition-all duration-300 group"
             >
                 <span className="material-icons-round text-4xl text-secondary/70 mb-2 group-hover:scale-110 transition-transform">monitor_weight</span>
-                <h4 className="font-bold text-yellow-900/80 dark:text-yellow-100/80 mb-1">当前体重</h4>
+                <h4 className="font-bold text-yellow-900/80 dark:text-yellow-100/80 mb-1">记录体重</h4>
                 <p className="text-xs text-yellow-800/60 dark:text-yellow-200/60 font-medium px-2">
-                    {latestWeight ? `${latestWeight.weight} kg` : '点击开始记录'}
+                    {latestWeight ? `当前 ${latestWeight.weight} kg` : '点击开始记录'}
                 </p>
             </button>
         </section>
@@ -709,7 +690,7 @@ export default function HomePage() {
                             )}
                         </div>
                         <p className="text-xs text-green-700 dark:text-green-300 mt-1">
-                            {trend ? trend.text : `${weightHistory.length}条记录`}
+                            {trend ? `${trend.text} · 查看详情` : `${weightHistory.length}条记录`}
                         </p>
                     </div>
                     <div className="mt-auto pt-1">
@@ -719,12 +700,12 @@ export default function HomePage() {
                     </div>
                 </button>
                 <button
-                    onClick={goToWeightTrend}
+                    onClick={openWeightSheet}
                     className="bg-secondary/30 dark:bg-secondary/10 p-5 rounded-2xl flex flex-col justify-between h-36 relative overflow-hidden hover:shadow-medium hover:scale-105 transition-all duration-300 text-left"
                 >
-                    <span className="material-icons-round absolute -right-2 -bottom-4 text-6xl text-secondary opacity-50">monitor_weight</span>
+                    <span className="material-icons-round absolute -right-2 -bottom-4 text-6xl text-secondary opacity-50">add_circle</span>
                     <div>
-                        <h4 className="font-bold text-yellow-900 dark:text-yellow-100">当前体重</h4>
+                        <h4 className="font-bold text-yellow-900 dark:text-yellow-100">记录体重</h4>
                         <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
                             {getDaysAgo() ? `上次：${getDaysAgo()}` : '点击记录'}
                         </p>
@@ -774,6 +755,14 @@ export default function HomePage() {
                 isOpen={isPetMenuOpen}
                 onClose={() => setIsPetMenuOpen(false)}
                 onSelectPet={handlePetSelect}
+            />
+
+            <WeightRecordSheet
+                isOpen={weightSheetOpen}
+                onClose={() => setWeightSheetOpen(false)}
+                onSubmit={recordWeight}
+                petName={currentPet?.name}
+                defaultWeight={latestWeight?.weight ?? currentPet?.weight ?? 0}
             />
 
             <AnimatePresence>

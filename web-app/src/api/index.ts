@@ -18,6 +18,7 @@ import realAnalysisApi from './analysis';
 import realPlansApi from './plans';
 import realWeightsApi from './weights';
 import realTodosApi from './todos';
+import realIngredientsApi from './ingredients';
 
 // Mock API modules
 import {
@@ -52,6 +53,9 @@ export const todosApi = proxyApi(realTodosApi, mockTodosApi);
 
 // weightsApi 无 mock 模式，直接导出
 export const weightsApi = realWeightsApi;
+
+// ingredientsApi 无 mock 模式，直接导出
+export const ingredientsApi = realIngredientsApi;
 
 // 透传不需要 proxy 的导出
 export { default as apiClient } from './client';

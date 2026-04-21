@@ -492,3 +492,95 @@ export interface RecordWeightRequest {
   recorded_date?: string;
   notes?: string;
 }
+
+// ==================== 食材库类型 ====================
+
+/** 归属范围：全部 / 仅系统 / 仅自定义 */
+export type IngredientScope = 'all' | 'system' | 'custom';
+
+/** 食材营养字段（全部可选） */
+export interface IngredientNutrition {
+  calories?: number | null;
+  carbohydrates?: number | null;
+  protein?: number | null;
+  fat?: number | null;
+  dietary_fiber?: number | null;
+
+  iron?: number | null;
+  zinc?: number | null;
+  manganese?: number | null;
+  magnesium?: number | null;
+  sodium?: number | null;
+  calcium?: number | null;
+  phosphorus?: number | null;
+  copper?: number | null;
+  iodine?: number | null;
+  potassium?: number | null;
+  selenium?: number | null;
+
+  vitamin_a?: number | null;
+  vitamin_d?: number | null;
+  vitamin_e?: number | null;
+  vitamin_b1?: number | null;
+
+  epa?: number | null;
+  dha?: number | null;
+  epa_dha?: number | null;
+
+  bone_content?: number | null;
+  water?: number | null;
+  choline?: number | null;
+  taurine?: number | null;
+  cholesterol?: number | null;
+}
+
+/** 单条食材 */
+export interface Ingredient extends IngredientNutrition {
+  id: string;
+  name: string;
+  category: string;
+  sub_category: string;
+  note?: string | null;
+  has_nutrition_data: boolean;
+  user_id?: string | null;
+  is_system: boolean;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+/** 列表响应 */
+export interface IngredientListResponse {
+  total: number;
+  limit: number;
+  offset: number;
+  items: Ingredient[];
+}
+
+/** 分类聚合项 */
+export interface IngredientCategoryItem {
+  category: string;
+  sub_category: string;
+  count: number;
+}
+
+/** 列表查询参数 */
+export interface IngredientListParams {
+  keyword?: string;
+  category?: string;
+  sub_category?: string;
+  scope?: IngredientScope;
+  limit?: number;
+  offset?: number;
+}
+
+/** 创建请求（主要字段必填 + 次要可选） */
+export interface CreateIngredientRequest extends IngredientNutrition {
+  name: string;
+  category: string;
+  sub_category: string;
+  note?: string | null;
+  has_nutrition_data?: boolean;
+}
+
+/** 更新请求（全部可选） */
+export type UpdateIngredientRequest = Partial<CreateIngredientRequest>;
