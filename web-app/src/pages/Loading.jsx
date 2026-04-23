@@ -190,7 +190,9 @@ export default function Loading() {
     useEffect(() => {
         if (status === 'idle' && !hasStartedRef.current) {
             hasStartedRef.current = true;
-            startGeneration(currentPet);
+            const specialRequirements = sessionStorage.getItem('pending_special_requirements') || null;
+            sessionStorage.removeItem('pending_special_requirements');
+            startGeneration(currentPet, { specialRequirements });
         }
     }, [status, startGeneration, currentPet]);
 

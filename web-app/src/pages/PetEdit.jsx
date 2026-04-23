@@ -4,7 +4,18 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { usePets } from '../hooks/usePets';
 import usePhotoSelect from '../hooks/usePhotoSelect';
 import SecureImage from '../components/SecureImage';
+import PetIcon from '../components/icons/PetIcon';
 import { fromMonths, toMonths } from '../utils/petUtils';
+
+const GENDER_OPTIONS = [
+    { value: 'male', label: '♂ 公' },
+    { value: 'female', label: '♀ 母' },
+];
+
+const TYPE_OPTIONS = [
+    { value: 'dog', iconType: 'dog', label: '狗狗' },
+    { value: 'cat', iconType: 'cat', label: '猫咪' },
+];
 
 export default function PetEdit() {
     const navigate = useNavigate();
@@ -18,13 +29,19 @@ export default function PetEdit() {
     const [photoFile, setPhotoFile] = useState(null);
     const [formData, setFormData] = useState({
         name: '',
+        type: 'dog',
         breed: '',
         ageYears: '',
         ageMonths: '',
         weight: '',
+        gender: '',
         health_status: '',
         special_requirements: '',
     });
+    const [allergens, setAllergens] = useState([]);
+    const [allergenInput, setAllergenInput] = useState('');
+    const [healthIssues, setHealthIssues] = useState([]);
+    const [issueInput, setIssueInput] = useState('');
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -35,13 +52,17 @@ export default function PetEdit() {
             const { years, months } = fromMonths(petData.age || 0);
             setFormData({
                 name: petData.name || '',
+                type: petData.type || 'dog',
                 breed: petData.breed || '',
                 ageYears: years > 0 ? years.toString() : '',
                 ageMonths: months > 0 ? months.toString() : '',
                 weight: petData.weight?.toString() || '',
+                gender: petData.gender || '',
                 health_status: petData.health_status || '',
                 special_requirements: petData.special_requirements || '',
             });
+            setAllergens(Array.isArray(petData.allergens) ? petData.allergens : []);
+            setHealthIssues(Array.isArray(petData.health_issues) ? petData.health_issues : []);
         }
     }, [petData]);
 
@@ -73,6 +94,18 @@ export default function PetEdit() {
         }));
     };
 
+    const addTag = (list, setList, value) => {
+        const trimmed = value.trim();
+        if (!trimmed || list.includes(trimmed)) {
+            return;
+        }
+        setList([...list, trimmed]);
+    };
+
+    const removeTag = (list, setList, value) => {
+        setList(list.filter((item) => item !== value));
+    };
+
     const handleSave = async () => {
         if (!formData.name.trim()) {
             setError('请输入宠物名称');
@@ -88,11 +121,15 @@ export default function PetEdit() {
 
             const updateResult = await updatePet(id, {
                 name: formData.name.trim(),
+                type: formData.type || undefined,
                 breed: formData.breed || undefined,
                 age: ageInMonths > 0 ? ageInMonths : undefined,
                 weight: Number.isFinite(parsedWeight) ? parsedWeight : undefined,
+                gender: formData.gender || undefined,
                 health_status: formData.health_status || undefined,
                 special_requirements: formData.special_requirements || undefined,
+                allergens,
+                health_issues: healthIssues,
             });
 
             if (!updateResult.success) {
@@ -217,6 +254,52 @@ export default function PetEdit() {
 
                     <div className="space-y-2">
                         <label className="block text-sm font-semibold text-text-main-light dark:text-text-main-dark">
+                            物种
+                        </label>
+                        <div className="grid grid-cols-2 gap-3">
+                            {TYPE_OPTIONS.map(item => (
+                                <button
+                                    key={item.value}
+                                    type="button"
+                                    onClick={() => setFormData(prev => ({ ...prev, type: item.value }))}
+                                    className={`py-3 rounded-2xl text-base font-bold transition-all duration-200 flex items-center justify-center gap-2 ${formData.type === item.value
+                                        ? 'bg-primary text-white shadow-glow scale-[1.02]'
+                                        : 'bg-white dark:bg-surface-dark text-text-main-light dark:text-text-main-dark shadow-soft hover:bg-gray-50 dark:hover:bg-gray-800'
+                                        }`}
+                                >
+                                    <PetIcon type={item.iconType} size={24} />
+                                    {item.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="block text-sm font-semibold text-text-main-light dark:text-text-main-dark">
+                            性别（可选）
+                        </label>
+                        <div className="grid grid-cols-2 gap-3">
+                            {GENDER_OPTIONS.map(item => (
+                                <button
+                                    key={item.value}
+                                    type="button"
+                                    onClick={() => setFormData(prev => ({
+                                        ...prev,
+                                        gender: prev.gender === item.value ? '' : item.value,
+                                    }))}
+                                    className={`py-3 rounded-2xl text-base font-bold transition-all duration-200 ${formData.gender === item.value
+                                        ? 'bg-primary text-white shadow-glow scale-[1.02]'
+                                        : 'bg-white dark:bg-surface-dark text-text-main-light dark:text-text-main-dark shadow-soft hover:bg-gray-50 dark:hover:bg-gray-800'
+                                        }`}
+                                >
+                                    {item.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="block text-sm font-semibold text-text-main-light dark:text-text-main-dark">
                             品种
                         </label>
                         <div className="relative bg-white dark:bg-surface-dark rounded-2xl shadow-soft transition-all focus-within:ring-2 focus-within:ring-primary/50 focus-within:shadow-glow">
@@ -307,7 +390,79 @@ export default function PetEdit() {
 
                     <div className="space-y-2">
                         <label className="block text-sm font-semibold text-text-main-light dark:text-text-main-dark">
-                            健康状态
+                            过敏原
+                        </label>
+                        <div className="bg-white dark:bg-surface-dark rounded-2xl p-4 shadow-soft">
+                            <div className="flex flex-wrap gap-2 items-center min-h-[40px]">
+                                {allergens.map((item) => (
+                                    <span key={item} className="inline-flex items-center px-3 py-1 rounded-full bg-primary/20 text-green-900 dark:text-green-100 text-sm font-medium">
+                                        {item}
+                                        <button
+                                            onClick={() => removeTag(allergens, setAllergens, item)}
+                                            className="ml-1 -mr-1 h-4 w-4 rounded-full flex items-center justify-center text-green-700 dark:text-green-200 hover:bg-primary/30"
+                                            type="button"
+                                        >
+                                            <span className="material-icons-round text-xs">close</span>
+                                        </button>
+                                    </span>
+                                ))}
+                                <input
+                                    className="flex-1 min-w-[120px] border-none focus:ring-0 bg-transparent text-sm text-text-main-light dark:text-text-main-dark p-0"
+                                    placeholder="输入过敏原后按回车添加"
+                                    type="text"
+                                    value={allergenInput}
+                                    onChange={(e) => setAllergenInput(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' && allergenInput.trim()) {
+                                            addTag(allergens, setAllergens, allergenInput);
+                                            setAllergenInput('');
+                                            e.preventDefault();
+                                        }
+                                    }}
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="block text-sm font-semibold text-text-main-light dark:text-text-main-dark">
+                            健康问题
+                        </label>
+                        <div className="bg-white dark:bg-surface-dark rounded-2xl p-4 shadow-soft">
+                            <div className="flex flex-wrap gap-2 items-center min-h-[40px]">
+                                {healthIssues.map((item) => (
+                                    <span key={item} className="inline-flex items-center px-3 py-1 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-900 dark:text-amber-100 text-sm font-medium">
+                                        {item}
+                                        <button
+                                            onClick={() => removeTag(healthIssues, setHealthIssues, item)}
+                                            className="ml-1 -mr-1 h-4 w-4 rounded-full flex items-center justify-center text-amber-700 dark:text-amber-200 hover:bg-amber-200/50"
+                                            type="button"
+                                        >
+                                            <span className="material-icons-round text-xs">close</span>
+                                        </button>
+                                    </span>
+                                ))}
+                                <input
+                                    className="flex-1 min-w-[120px] border-none focus:ring-0 bg-transparent text-sm text-text-main-light dark:text-text-main-dark p-0"
+                                    placeholder="输入健康问题后按回车添加"
+                                    type="text"
+                                    value={issueInput}
+                                    onChange={(e) => setIssueInput(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' && issueInput.trim()) {
+                                            addTag(healthIssues, setHealthIssues, issueInput);
+                                            setIssueInput('');
+                                            e.preventDefault();
+                                        }
+                                    }}
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="block text-sm font-semibold text-text-main-light dark:text-text-main-dark">
+                            健康状态（补充描述，可选）
                         </label>
                         <div className="relative bg-white dark:bg-surface-dark rounded-2xl shadow-soft transition-all focus-within:ring-2 focus-within:ring-primary/50 focus-within:shadow-glow">
                             <span className="absolute left-4 top-1/2 -translate-y-1/2 material-icons-round text-text-muted-light dark:text-text-muted-dark text-xl">
@@ -319,14 +474,14 @@ export default function PetEdit() {
                                 value={formData.health_status}
                                 onChange={handleInputChange}
                                 className="w-full bg-transparent border-none py-4 pl-12 pr-4 text-text-main-light dark:text-text-main-dark focus:ring-0 rounded-2xl"
-                                placeholder="例如：过敏、肠胃敏感、术后恢复"
+                                placeholder="例如：术后恢复中、活泼好动"
                             />
                         </div>
                     </div>
 
                     <div className="space-y-2">
                         <label className="block text-sm font-semibold text-text-main-light dark:text-text-main-dark">
-                            特殊需求
+                            特殊需求（可选）
                         </label>
                         <div className="relative bg-white dark:bg-surface-dark rounded-2xl shadow-soft transition-all focus-within:ring-2 focus-within:ring-primary/50 focus-within:shadow-glow">
                             <textarea
@@ -335,7 +490,7 @@ export default function PetEdit() {
                                 onChange={handleInputChange}
                                 rows={3}
                                 className="w-full bg-transparent border-none py-4 px-4 text-text-main-light dark:text-text-main-dark focus:ring-0 rounded-2xl resize-none"
-                                placeholder="例如：需要低脂饮食、挑食、不能吃鸡肉等"
+                                placeholder="例如：需要低脂饮食、挑食、偏好湿粮"
                             />
                         </div>
                     </div>

@@ -1,5 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import IngredientIcon from './IngredientIcon';
+import {
+    EMOJI_MAP,
+    listEmojiKeys,
+    listMaterialIconKeys,
+} from '../utils/ingredientIcons';
 
 /**
  * 食材表单抽屉
@@ -72,6 +78,7 @@ const EMPTY_FORM = {
     category: '',
     sub_category: '',
     note: '',
+    icon_key: '',
 };
 
 export default function IngredientFormSheet({
@@ -98,6 +105,7 @@ export default function IngredientFormSheet({
                 category: initial.category || '',
                 sub_category: initial.sub_category || '',
                 note: initial.note || '',
+                icon_key: initial.icon_key || '',
             });
             const nut = {};
             for (const [key] of ALL_NUM_FIELDS) {
@@ -153,7 +161,13 @@ export default function IngredientFormSheet({
         }
 
         // 营养字段：空字符串 → null；否则转 float 校验
-        const payload = { name, category, sub_category, note: basic.note.trim() || null };
+        const payload = {
+            name,
+            category,
+            sub_category,
+            note: basic.note.trim() || null,
+            icon_key: basic.icon_key ? basic.icon_key.trim() : null,
+        };
         for (const [key] of ALL_NUM_FIELDS) {
             const raw = (nutrients[key] ?? '').trim();
             if (!raw) {
@@ -224,6 +238,21 @@ export default function IngredientFormSheet({
                             className="flex-1 overflow-y-auto px-6 pb-4 space-y-4 no-scrollbar"
                             style={{ overscrollBehavior: 'contain' }}
                         >
+                            {/* 图标选择 */}
+                            <Section title="图标">
+                                <IconPicker
+                                    value={basic.icon_key}
+                                    onChange={(k) => setBasic((prev) => ({ ...prev, icon_key: k }))}
+                                    previewIngredient={{
+                                        ...(initial || {}),
+                                        name: basic.name,
+                                        category: basic.category,
+                                        sub_category: basic.sub_category,
+                                        icon_key: basic.icon_key,
+                                    }}
+                                />
+                            </Section>
+
                             {/* 基础信息 */}
                             <Section title="基础信息" required>
                                 <TextField
@@ -457,6 +486,111 @@ function NumberGrid({ fields, values, onChange }) {
                     />
                 </div>
             ))}
+        </div>
+    );
+}
+
+// ─────────────────────── Icon Picker ───────────────────────
+
+function IconPicker({ value, onChange, previewIngredient }) {
+    const [tab, setTab] = useState('emoji'); // emoji | mi
+
+    const emojiKeys = useMemo(() => listEmojiKeys(), []);
+    const miKeys = useMemo(() => listMaterialIconKeys(), []);
+
+    const isSelected = (libName, key) => value === `${libName}:${key}`;
+
+    return (
+        <div className="space-y-3">
+            {/* 当前预览 + 清除按钮 */}
+            <div className="flex items-center gap-3">
+                <IngredientIcon
+                    ingredient={previewIngredient}
+                    size={56}
+                    bgClassName="bg-primary/10 dark:bg-primary/15"
+                />
+                <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-text-main-light dark:text-text-main-dark">
+                        当前图标
+                    </p>
+                    <p className="text-[11px] text-text-muted-light dark:text-text-muted-dark truncate">
+                        {value || '未设置（按名称/分类自动推断）'}
+                    </p>
+                </div>
+                {value && (
+                    <button
+                        type="button"
+                        onClick={() => onChange('')}
+                        className="text-xs text-red-500 font-semibold px-2 py-1 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20"
+                    >
+                        清除
+                    </button>
+                )}
+            </div>
+
+            {/* 库切换 tab */}
+            <div className="flex items-center gap-1 bg-gray-50 dark:bg-gray-800 p-1 rounded-xl">
+                <button
+                    type="button"
+                    onClick={() => setTab('emoji')}
+                    className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                        tab === 'emoji'
+                            ? 'bg-white dark:bg-surface-dark text-primary shadow-sm'
+                            : 'text-text-muted-light dark:text-text-muted-dark'
+                    }`}
+                >
+                    Emoji ({emojiKeys.length})
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setTab('mi')}
+                    className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                        tab === 'mi'
+                            ? 'bg-white dark:bg-surface-dark text-primary shadow-sm'
+                            : 'text-text-muted-light dark:text-text-muted-dark'
+                    }`}
+                >
+                    Icons ({miKeys.length})
+                </button>
+            </div>
+
+            {/* 候选 grid */}
+            <div
+                className="grid grid-cols-6 gap-2 max-h-48 overflow-y-auto no-scrollbar p-1 bg-gray-50 dark:bg-gray-800/50 rounded-xl"
+                style={{ overscrollBehavior: 'contain' }}
+            >
+                {tab === 'emoji'
+                    ? emojiKeys.map((k) => (
+                        <button
+                            key={k}
+                            type="button"
+                            title={k}
+                            onClick={() => onChange(`emoji:${k}`)}
+                            className={`aspect-square rounded-lg flex items-center justify-center text-xl transition-all active:scale-95 ${
+                                isSelected('emoji', k)
+                                    ? 'bg-primary/20 ring-2 ring-primary'
+                                    : 'bg-white dark:bg-surface-dark hover:bg-primary/10'
+                            }`}
+                        >
+                            {EMOJI_MAP[k]}
+                        </button>
+                    ))
+                    : miKeys.map((k) => (
+                        <button
+                            key={k}
+                            type="button"
+                            title={k}
+                            onClick={() => onChange(`mi:${k}`)}
+                            className={`aspect-square rounded-lg flex items-center justify-center transition-all active:scale-95 ${
+                                isSelected('mi', k)
+                                    ? 'bg-primary/20 ring-2 ring-primary text-primary'
+                                    : 'bg-white dark:bg-surface-dark hover:bg-primary/10 text-text-main-light dark:text-text-main-dark'
+                            }`}
+                        >
+                            <span className="material-icons-round text-xl">{k}</span>
+                        </button>
+                    ))}
+            </div>
         </div>
     );
 }

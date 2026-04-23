@@ -6,6 +6,7 @@ import type {
     IngredientCategoryItem,
     IngredientListParams,
     IngredientListResponse,
+    ResolveIconsResponse,
     UpdateIngredientRequest,
 } from './types';
 
@@ -59,6 +60,15 @@ export async function deleteIngredient(
     return apiClient.delete<any, ApiResponse<{ id: string }>>(`/ingredients/${ingredientId}`);
 }
 
+/** 批量按食材名解析图标（给 FoodItem.name 用） */
+export async function resolveIcons(
+    names: string[],
+): Promise<ApiResponse<ResolveIconsResponse>> {
+    return apiClient.post<any, ApiResponse<ResolveIconsResponse>>('/ingredients/resolve-icons', {
+        names,
+    });
+}
+
 export const ingredientsApi = {
     getIngredients,
     getIngredientCategories,
@@ -66,6 +76,7 @@ export const ingredientsApi = {
     createIngredient,
     updateIngredient,
     deleteIngredient,
+    resolveIcons,
 };
 
 export default ingredientsApi;

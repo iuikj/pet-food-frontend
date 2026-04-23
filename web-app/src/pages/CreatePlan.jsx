@@ -44,6 +44,20 @@ export default function Home() {
             setCurrentPet(selectedPetId);
         }
 
+        // 合并用户自定义需求 + 推荐标签 → special_requirements，交给 Loading 页消费
+        const requirementText = requirement.trim();
+        const tagsText = selectedTags.join('、');
+        const mergedRequirements = [
+            tagsText ? `关注维度：${tagsText}` : null,
+            requirementText || null,
+        ].filter(Boolean).join('\n').slice(0, 500);
+
+        if (mergedRequirements) {
+            sessionStorage.setItem('pending_special_requirements', mergedRequirements);
+        } else {
+            sessionStorage.removeItem('pending_special_requirements');
+        }
+
         // 导航到loading页面
         navigate('/planning');
     };

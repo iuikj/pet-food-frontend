@@ -110,6 +110,8 @@ export interface CreatePetRequest {
   gender?: PetGender;
   health_status?: string;
   special_requirements?: string;
+  allergens?: string[];
+  health_issues?: string[];
 }
 
 export interface UpdatePetRequest {
@@ -121,6 +123,8 @@ export interface UpdatePetRequest {
   gender?: PetGender;
   health_status?: string;
   special_requirements?: string;
+  allergens?: string[];
+  health_issues?: string[];
 }
 
 export interface PetResponse {
@@ -135,6 +139,8 @@ export interface PetResponse {
   avatar_url?: string;
   health_status?: string;
   special_requirements?: string;
+  allergens?: string[];
+  health_issues?: string[];
   is_active: boolean;
   has_plan: boolean;
   created_at: string;
@@ -544,6 +550,10 @@ export interface Ingredient extends IngredientNutrition {
   has_nutrition_data: boolean;
   user_id?: string | null;
   is_system: boolean;
+  /** 图标 key，格式 <library>:<name>，如 emoji:fish / mi:restaurant */
+  icon_key?: string | null;
+  /** 缩略图 URL（后端返回 HTTP 代理地址，前端可直接消费） */
+  image_url?: string | null;
   created_at?: string | null;
   updated_at?: string | null;
 }
@@ -580,7 +590,16 @@ export interface CreateIngredientRequest extends IngredientNutrition {
   sub_category: string;
   note?: string | null;
   has_nutrition_data?: boolean;
+  icon_key?: string | null;
 }
 
 /** 更新请求（全部可选） */
 export type UpdateIngredientRequest = Partial<CreateIngredientRequest>;
+
+/** 批量图标解析结果：null 表示未命中 */
+export interface ResolvedIcon {
+  icon_key: string | null;
+  image_url: string | null;
+}
+
+export type ResolveIconsResponse = Record<string, ResolvedIcon | null>;

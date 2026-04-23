@@ -1,6 +1,9 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { extractMicronutrients } from '../models/dietPlan';
+import IngredientIcon from '../components/IngredientIcon';
+import { getMealOrderConfig } from '../utils/mealTypeIcon';
+import { ingredientsApi } from '../api';
 
 // 微量元素颜色映射
 const MICRO_COLORS = {
@@ -14,45 +17,42 @@ const MICRO_COLORS = {
     '胆固醇': 'bg-pink-400',
 };
 
-// 食材 emoji 猜测
-function getFoodEmoji(name) {
-    const map = {
-        '鱼': '🐟', '鳕鱼': '🐟', '三文鱼': '🐟', '鲑鱼': '🐟',
-        '鸡': '🍗', '鸡肉': '🍗', '鸡胸': '🍗', '火鸡': '🦃',
-        '牛': '🥩', '牛肉': '🥩', '牛腱': '🥩',
-        '鸭': '🦆', '鸭肉': '🦆', '羊': '🍖', '羊肉': '🍖',
-        '南瓜': '🎃', '胡萝卜': '🥕', '西兰花': '🥦', '菠菜': '🥬',
-        '红薯': '🍠', '土豆': '🥔', '豌豆': '🫘', '青豆': '🫘',
-        '燕麦': '🌾', '糙米': '🍚', '小米': '🌾', '米': '🍚',
-        '蛋': '🥚', '鸡蛋': '🥚', '西葫芦': '🥒',
-    };
-    for (const [key, emoji] of Object.entries(map)) {
-        if (name.includes(key)) return emoji;
-    }
-    return '🥘';
-}
-
-// 餐食类型图标映射（按 meal.order）
-function getMealIcon(order) {
-    const map = {
-        1: { icon: 'wb_sunny', color: 'text-secondary-600 dark:text-secondary' },
-        2: { icon: 'restaurant', color: 'text-text-muted-light' },
-        3: { icon: 'dark_mode', color: 'text-slate-600 dark:text-slate-300' },
-        4: { icon: 'brunch_dining', color: 'text-primary' },
-    };
-    return map[order] || map[1];
-}
-
-// 食材标签背景颜色循环
+// 食材标签背景颜色循环（用于 IngredientIcon 容器底色）
 const ITEM_BG_COLORS = [
-    'bg-blue-50 dark:bg-blue-900/20 text-blue-500',
-    'bg-orange-50 dark:bg-orange-900/20 text-orange-500',
-    'bg-green-50 dark:bg-green-900/20 text-green-500',
-    'bg-red-50 dark:bg-red-900/20 text-red-500',
-    'bg-purple-50 dark:bg-purple-900/20 text-purple-500',
+    'bg-blue-50 dark:bg-blue-900/20',
+    'bg-orange-50 dark:bg-orange-900/20',
+    'bg-green-50 dark:bg-green-900/20',
+    'bg-red-50 dark:bg-red-900/20',
+    'bg-purple-50 dark:bg-purple-900/20',
 ];
 
 export default function PlanDetails({ meal, weekNumber, onClose }) {
+    // 按食材名批量解析 icon_key / image_url
+    const [iconMap, setIconMap] = useState({});
+
+    useEffect(() => {
+        const names = (meal?.foodItems || [])
+            .map((fi) => fi?.name)
+            .filter((n) => typeof n === 'string' && n.trim());
+        if (names.length === 0) {
+            // 保留上一次 iconMap；IngredientIcon 会按 name 兜底，不影响视觉
+            return;
+        }
+        let cancelled = false;
+        ingredientsApi
+            .resolveIcons(names)
+            .then((res) => {
+                if (cancelled) return;
+                if (res?.code === 0 && res?.data) {
+                    setIconMap(res.data);
+                }
+            })
+            .catch(() => {
+                // 静默失败：IngredientIcon 会走 name 兜底
+            });
+        return () => { cancelled = true; };
+    }, [meal]);
+
     // 无数据 fallback
     if (!meal) {
         return (
@@ -127,8 +127,8 @@ export default function PlanDetails({ meal, weekNumber, onClose }) {
                     </button>
                     <div className="flex items-center gap-4">
                         <div className="w-14 h-14 rounded-2xl bg-white dark:bg-surface-dark shadow-sm flex items-center justify-center shrink-0">
-                            <span className={`material-icons-round text-2xl ${getMealIcon(meal.order).color}`}>
-                                {getMealIcon(meal.order).icon}
+                            <span className={`material-icons-round text-2xl ${getMealOrderConfig(meal.order).color}`}>
+                                {getMealOrderConfig(meal.order).icon}
                             </span>
                         </div>
                         <div>
@@ -169,9 +169,13 @@ export default function PlanDetails({ meal, weekNumber, onClose }) {
                         <div className="space-y-3">
                             {foodItems.map((fi, i) => (
                                 <div key={i} className="group flex gap-3 p-3 rounded-2xl bg-background-light dark:bg-white/5 border border-transparent hover:border-primary/20 transition-colors">
-                                    <div className={`w-10 h-10 rounded-xl ${ITEM_BG_COLORS[i % ITEM_BG_COLORS.length]} flex items-center justify-center shrink-0 text-xl`}>
-                                        {getFoodEmoji(fi.name)}
-                                    </div>
+                                    <IngredientIcon
+                                        ingredient={iconMap[fi.name] || undefined}
+                                        name={fi.name}
+                                        size={40}
+                                        bgClassName={ITEM_BG_COLORS[i % ITEM_BG_COLORS.length]}
+                                        className="shrink-0"
+                                    />
                                     <div className="flex-1 min-w-0">
                                         <div className="flex justify-between items-center mb-1">
                                             <span className="font-bold text-sm truncate">{fi.name}</span>

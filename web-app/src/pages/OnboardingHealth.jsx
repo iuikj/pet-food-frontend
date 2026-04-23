@@ -43,6 +43,7 @@ export default function OnboardingHealth() {
             const breed = sessionStorage.getItem('onboarding_pet_breed');
             const age = parseInt(sessionStorage.getItem('onboarding_pet_age') || '0', 10);
             const weight = parseFloat(sessionStorage.getItem('onboarding_pet_weight') || '0');
+            const gender = sessionStorage.getItem('onboarding_pet_gender') || undefined;
             const avatarBase64 = sessionStorage.getItem('onboarding_pet_photo');
 
             if (!name) {
@@ -57,8 +58,9 @@ export default function OnboardingHealth() {
                 breed,
                 age,
                 weight,
-                health_status: healthIssues.join(', ') || '暂无特殊健康问题',
-                special_requirements: allergens.length > 0 ? `过敏原: ${allergens.join(', ')}` : '',
+                gender,
+                allergens: allergens.length > 0 ? allergens : undefined,
+                health_issues: healthIssues.length > 0 ? healthIssues : undefined,
             };
 
             const result = await addPet(petData);
@@ -91,6 +93,7 @@ export default function OnboardingHealth() {
             sessionStorage.removeItem('onboarding_pet_age_years');
             sessionStorage.removeItem('onboarding_pet_age_months');
             sessionStorage.removeItem('onboarding_pet_weight');
+            sessionStorage.removeItem('onboarding_pet_gender');
             sessionStorage.removeItem('onboarding_pet_photo');
 
             const referrer = sessionStorage.getItem('onboarding_referrer') || '/';

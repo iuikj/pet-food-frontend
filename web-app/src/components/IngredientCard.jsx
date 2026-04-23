@@ -1,10 +1,11 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import IngredientIcon from './IngredientIcon';
 
 /**
  * 食材卡片
  *
- * 展示：名称、分类、关键营养（热量/蛋白/脂肪/碳水）、系统/自定义徽章
+ * 展示：统一图标、名称、分类、关键营养（热量/蛋白/脂肪/碳水）、系统/自定义徽章
  * 支持点击（详情）+ 编辑/删除（仅 is_system=false 显示）
  */
 export default function IngredientCard({ ingredient, onClick, onEdit, onDelete }) {
@@ -38,26 +39,34 @@ export default function IngredientCard({ ingredient, onClick, onEdit, onDelete }
             onClick={() => onClick?.(ingredient)}
             role="button"
         >
-            {/* 头部：名称 + 徽章 */}
-            <div className="flex items-start justify-between gap-2 mb-2">
+            {/* 头部：图标 + 名称 + 徽章 */}
+            <div className="flex items-start gap-3 mb-2">
+                <IngredientIcon
+                    ingredient={ingredient}
+                    size={44}
+                    bgClassName={isCustom ? 'bg-primary/10 dark:bg-primary/15' : 'bg-gray-100 dark:bg-gray-800'}
+                    className="shrink-0"
+                />
                 <div className="flex-1 min-w-0">
-                    <h4 className="font-bold text-base text-text-main-light dark:text-text-main-dark truncate">
-                        {ingredient.name}
-                    </h4>
+                    <div className="flex items-start justify-between gap-2">
+                        <h4 className="font-bold text-base text-text-main-light dark:text-text-main-dark truncate">
+                            {ingredient.name}
+                        </h4>
+                        <span
+                            className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                isCustom
+                                    ? 'bg-primary/15 text-primary'
+                                    : 'bg-gray-100 dark:bg-gray-800 text-text-muted-light dark:text-text-muted-dark'
+                            }`}
+                        >
+                            {isCustom ? '自定义' : '系统'}
+                        </span>
+                    </div>
                     <p className="text-xs text-text-muted-light dark:text-text-muted-dark mt-0.5 truncate">
                         {ingredient.category} · {ingredient.sub_category}
                         {ingredient.note ? ` · ${ingredient.note}` : ''}
                     </p>
                 </div>
-                <span
-                    className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                        isCustom
-                            ? 'bg-primary/15 text-primary'
-                            : 'bg-gray-100 dark:bg-gray-800 text-text-muted-light dark:text-text-muted-dark'
-                    }`}
-                >
-                    {isCustom ? '自定义' : '系统'}
-                </span>
             </div>
 
             {/* 营养 4 项 */}

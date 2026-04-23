@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getMealTypeConfig } from '../utils/mealTypeIcon';
 
 /**
  * 餐食卡片数据结构
@@ -17,28 +18,6 @@ import { motion, AnimatePresence } from 'framer-motion';
  * @property {string} [details.aiTip] - AI提示
  */
 
-// 餐食类型配置
-const mealTypeConfig = {
-    breakfast: {
-        icon: 'wb_sunny',
-        bgColor: 'bg-secondary/30',
-        textColor: 'text-yellow-700 dark:text-yellow-200',
-        label: '早餐'
-    },
-    lunch: {
-        icon: 'restaurant',
-        bgColor: 'bg-accent-blue',
-        textColor: 'text-blue-800',
-        label: '午餐'
-    },
-    dinner: {
-        icon: 'nights_stay',
-        bgColor: 'bg-purple-100 dark:bg-purple-900/30',
-        textColor: 'text-purple-600 dark:text-purple-300',
-        label: '晚餐'
-    }
-};
-
 /**
  * 可展开的餐食卡片组件
  */
@@ -49,7 +28,7 @@ export default function MealCard({
     onToggleComplete,
     readOnly = false,
 }) {
-    const config = mealTypeConfig[meal.type] || mealTypeConfig.lunch;
+    const config = getMealTypeConfig(meal.type);
 
     // 处理卡片点击
     const handleCardClick = (e) => {

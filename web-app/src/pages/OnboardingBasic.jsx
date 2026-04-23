@@ -13,6 +13,7 @@ export default function OnboardingBasic() {
     const [ageYears, setAgeYears] = useState(sessionStorage.getItem('onboarding_pet_age_years') || '');
     const [ageMonths, setAgeMonths] = useState(sessionStorage.getItem('onboarding_pet_age_months') || '');
     const [weight, setWeight] = useState(sessionStorage.getItem('onboarding_pet_weight') || '');
+    const [gender, setGender] = useState(sessionStorage.getItem('onboarding_pet_gender') || '');
 
     const handleNext = () => {
         if (breed && (ageYears || ageMonths) && weight) {
@@ -23,6 +24,11 @@ export default function OnboardingBasic() {
             sessionStorage.setItem('onboarding_pet_age_years', ageYears);
             sessionStorage.setItem('onboarding_pet_age_months', ageMonths);
             sessionStorage.setItem('onboarding_pet_weight', weight);
+            if (gender) {
+                sessionStorage.setItem('onboarding_pet_gender', gender);
+            } else {
+                sessionStorage.removeItem('onboarding_pet_gender');
+            }
             navigate('/onboarding/step3');
         }
     };
@@ -60,6 +66,28 @@ export default function OnboardingBasic() {
                                         }`}
                                 >
                                     <PetIcon type={item.type} size={28} />
+                                    {item.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* 性别选择 */}
+                    <div className="bg-surface-light dark:bg-surface-dark rounded-2xl p-6 shadow-soft">
+                        <label className="text-sm font-semibold text-text-main-light dark:text-text-main-dark ml-1 mb-4 block">性别（可选）</label>
+                        <div className="grid grid-cols-2 gap-3">
+                            {[
+                                { value: 'male', label: '♂ 公' },
+                                { value: 'female', label: '♀ 母' },
+                            ].map(item => (
+                                <button
+                                    key={item.value}
+                                    onClick={() => setGender(gender === item.value ? '' : item.value)}
+                                    className={`py-3 rounded-2xl text-base font-bold transition-all duration-200 ${gender === item.value
+                                            ? 'bg-primary text-white shadow-glow scale-[1.02]'
+                                            : 'bg-background-light dark:bg-background-dark text-text-main-light dark:text-text-main-dark hover:bg-gray-100 dark:hover:bg-gray-800'
+                                        }`}
+                                >
                                     {item.label}
                                 </button>
                             ))}

@@ -466,7 +466,7 @@ export const PlanGenerationProvider = ({ children }) => {
         })();
     }, [addLog, completeGeneration, failGeneration, storeResult, updateWeekStatus]);
 
-    const startGeneration = useCallback(async (petData) => {
+    const startGeneration = useCallback(async (petData, options = {}) => {
         if (statusRef.current === 'generating') {
             return;
         }
@@ -491,6 +491,8 @@ export const PlanGenerationProvider = ({ children }) => {
 
         abortControllerRef.current = new AbortController();
 
+        const specialRequirements = options.specialRequirements || undefined;
+
         let requestData;
         if (petData?.id) {
             requestData = { pet_id: petData.id };
@@ -505,6 +507,10 @@ export const PlanGenerationProvider = ({ children }) => {
         } else {
             await failGeneration('缺少宠物信息');
             return;
+        }
+
+        if (specialRequirements) {
+            requestData.special_requirements = specialRequirements;
         }
 
         try {
