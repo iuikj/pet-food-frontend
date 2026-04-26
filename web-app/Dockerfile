@@ -2,7 +2,7 @@
 # 原则：产物镜像只含静态文件，不含 node_modules
 
 # ============ 阶段 1: 构建 ============
-FROM node:20-alpine AS builder
+FROM node:24-alpine AS builder
 
 WORKDIR /app
 
