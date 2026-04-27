@@ -1,16 +1,48 @@
-# React + Vite
+# Web App
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## API base URL
 
-Currently, two official plugins are available:
+The frontend reads `VITE_API_BASE_URL` from Vite env files.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- Shared default: [`.env`](/E:/Graduate/frontend/web-app/.env:1)
+- Committable examples: [`.env.example`](/E:/Graduate/frontend/web-app/.env.example:1), [`.env.development.example`](/E:/Graduate/frontend/web-app/.env.development.example:1), [`.env.development.local.example`](/E:/Graduate/frontend/web-app/.env.development.local.example:1)
+- Machine-specific override: `.env.development.local`
 
-## React Compiler
+Recommended setup:
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+1. Keep the shared production-like default in `.env`.
+2. Copy `.env.development.local.example` to `.env.development.local`.
+3. Put your own local backend address in `.env.development.local`.
 
-## Expanding the ESLint configuration
+Examples:
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+```env
+VITE_API_BASE_URL=http://localhost:8000/api/v1
+```
+
+```env
+VITE_API_BASE_URL=http://192.168.1.23:8000/api/v1
+```
+
+Notes:
+
+- Browser local development can use `localhost`.
+- Real phones or other devices usually cannot use your computer's `localhost`; use your LAN IP instead.
+- `.env.development.local` is ignored by git and only affects local `development` mode.
+
+## Commands
+
+- `npm run dev`: start development mode
+- `npm run dev:local`: explicit local development command
+- `npm run build`: production build
+- `npm run build:prod`: explicit production build
+- `npm run build:local`: development-mode build using local overrides
+- `npm run mobile:build`: production build plus `cap sync`
+- `npm run mobile:build:local`: local development-mode build plus `cap sync`
+
+## CD impact
+
+These local overrides do not change the existing GitHub Actions production workflow.
+
+- CI frontend image builds still inject `VITE_API_BASE_URL` through workflow `build-args`.
+- The frontend Docker build still writes those values into `.env.production` before `npm run build`.

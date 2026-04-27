@@ -193,9 +193,11 @@ export default function CalendarPage() {
                     }
                     return next;
                 });
+            } else {
+                toast.error(res.message || '操作失败');
             }
-        } catch {
-            toast.error('操作失败');
+        } catch (error) {
+            toast.error(error instanceof Error && error.message ? error.message : '操作失败');
         }
     };
 
@@ -216,9 +218,11 @@ export default function CalendarPage() {
                     return next;
                 });
                 toast.success('已删除');
+            } else {
+                toast.error(res.message || '删除失败');
             }
-        } catch {
-            toast.error('删除失败');
+        } catch (error) {
+            toast.error(error instanceof Error && error.message ? error.message : '删除失败');
         }
     };
 
@@ -249,33 +253,32 @@ export default function CalendarPage() {
     const handleTodoSubmit = async (data) => {
         if (editingTodo) {
             const res = await todosApi.updateTodo(editingTodo.id, data);
-            if (res.code === 0) {
-                const updated = res.data;
-                setTodosByDate(prev => {
-                    const next = { ...prev };
-                    // 先从旧 key 移除
-                    for (const key of Object.keys(next)) {
-                        next[key] = next[key].filter(t => t.id !== updated.id);
-                    }
-                    // 加入新 key
-                    const dk = updated.due_date;
-                    next[dk] = [...(next[dk] || []), updated];
-                    return next;
-                });
-                toast.success('已更新');
+            if (res.code !== 0) {
+                throw new Error(res.message || '更新失败');
             }
+            const updated = res.data;
+            setTodosByDate(prev => {
+                const next = { ...prev };
+                for (const key of Object.keys(next)) {
+                    next[key] = next[key].filter(t => t.id !== updated.id);
+                }
+                const dk = updated.due_date;
+                next[dk] = [...(next[dk] || []), updated];
+                return next;
+            });
+            toast.success('已更新');
         } else {
             const res = await todosApi.createTodo(data);
-            if (res.code === 0) {
-                const created = res.data;
-                setTodosByDate(prev => {
-                    const dk = created.due_date;
-                    return { ...prev, [dk]: [...(prev[dk] || []), created] };
-                });
-                toast.success('已创建');
-                // 静默同步到系统日历，不再弹第二个 toast
-                autoSyncTodoToCalendar(created).catch(() => {});
+            if (res.code !== 0) {
+                throw new Error(res.message || '创建失败');
             }
+            const created = res.data;
+            setTodosByDate(prev => {
+                const dk = created.due_date;
+                return { ...prev, [dk]: [...(prev[dk] || []), created] };
+            });
+            toast.success('已创建');
+            autoSyncTodoToCalendar(created).catch(() => {});
         }
         setEditingTodo(null);
     };

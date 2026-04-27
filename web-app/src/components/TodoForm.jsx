@@ -82,7 +82,7 @@ export default function TodoForm({ isOpen, onClose, onSubmit, initialDate, editT
       });
       onClose();
     } catch (e) {
-      setError('提交失败，请重试');
+      setError(e instanceof Error && e.message ? e.message : '提交失败，请重试');
     } finally {
       setSubmitting(false);
     }

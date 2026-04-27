@@ -95,28 +95,33 @@ export default function Login() {
 
         setIsLoading(true);
         setError('');
-        const result = await sendCode(email, 'register');
-        setIsLoading(false);
+        try {
+            const result = await sendCode(email, 'register');
 
-        if (result.success) {
-            setCodeSent(true);
-            setCountdown(60);
-            if (countdownTimerRef.current) {
-                clearInterval(countdownTimerRef.current);
+            if (result.success) {
+                setCodeSent(true);
+                setCountdown(60);
+                if (countdownTimerRef.current) {
+                    clearInterval(countdownTimerRef.current);
+                }
+
+                countdownTimerRef.current = setInterval(() => {
+                    setCountdown(prev => {
+                        if (prev <= 1) {
+                            clearInterval(countdownTimerRef.current);
+                            countdownTimerRef.current = null;
+                            return 0;
+                        }
+                        return prev - 1;
+                    });
+                }, 1000);
+            } else {
+                setError(result.message || '发送验证码失败');
             }
-
-            countdownTimerRef.current = setInterval(() => {
-                setCountdown(prev => {
-                    if (prev <= 1) {
-                        clearInterval(countdownTimerRef.current);
-                        countdownTimerRef.current = null;
-                        return 0;
-                    }
-                    return prev - 1;
-                });
-            }, 1000);
-        } else {
-            setError(result.message || '发送验证码失败');
+        } catch {
+            setError('发送验证码失败');
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -130,13 +135,17 @@ export default function Login() {
 
         setIsLoading(true);
         setError('');
-        const result = await login(email, password);
-        setIsLoading(false);
-
-        if (result.success) {
-            navigate('/');
-        } else {
-            setError(result.message || '登录失败，请检查邮箱和密码');
+        try {
+            const result = await login(email, password);
+            if (result.success) {
+                navigate('/');
+            } else {
+                setError(result.message || '登录失败，请检查邮箱和密码');
+            }
+        } catch {
+            setError('登录失败，请检查邮箱和密码');
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -150,25 +159,26 @@ export default function Login() {
 
         setIsLoading(true);
         setError('');
-
-        if (codeSent && code) {
-            // 验证码注册
-            const result = await verifyRegister(email, code, username, password);
-            setIsLoading(false);
-            if (result.success) {
-                navigate('/');
+        try {
+            if (codeSent && code) {
+                const result = await verifyRegister(email, code, username, password);
+                if (result.success) {
+                    navigate('/');
+                } else {
+                    setError(result.message || '注册失败');
+                }
             } else {
-                setError(result.message || '注册失败');
+                const result = await register(username, email, password);
+                if (result.success) {
+                    navigate('/');
+                } else {
+                    setError(result.message || '注册失败');
+                }
             }
-        } else {
-            // 直接注册
-            const result = await register(username, email, password);
+        } catch {
+            setError('注册失败');
+        } finally {
             setIsLoading(false);
-            if (result.success) {
-                navigate('/');
-            } else {
-                setError(result.message || '注册失败');
-            }
         }
     };
 

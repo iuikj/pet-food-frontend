@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import MealContext from './MealContextValue';
 import { mealsApi } from '../api';
+import { getApiErrorMessage } from '../api/client';
 import { usePets } from '../hooks/usePets';
 import { calcMealNutrition } from '../models/dietPlan';
 
@@ -78,6 +79,7 @@ export function MealProvider({ children }) {
     const [meals, setMeals] = useState([]);
     const [nutritionSummary, setNutritionSummary] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState(null);
 
     // 记录上一次请求的 petId，避免竞态
     const lastPetIdRef = useRef(null);
@@ -86,12 +88,14 @@ export function MealProvider({ children }) {
         if (!currentPet?.id || !hasRecipe) {
             setMeals([]);
             setNutritionSummary(null);
+            setError(null);
             return;
         }
 
         const petId = currentPet.id;
         lastPetIdRef.current = petId;
         setIsLoading(true);
+        setError(null);
 
         try {
             const res = await mealsApi.getTodayMeals(petId);
@@ -102,15 +106,18 @@ export function MealProvider({ children }) {
                 const apiMeals = res.data.meals || [];
                 setMeals(apiMeals.map(transformApiMealToCard));
                 setNutritionSummary(res.data.nutrition_summary || null);
+                setError(null);
             } else {
                 setMeals([]);
                 setNutritionSummary(null);
+                setError(res.message || '获取餐食数据失败');
             }
         } catch (e) {
             console.error('fetchTodayMeals failed:', e);
             if (lastPetIdRef.current === petId) {
                 setMeals([]);
                 setNutritionSummary(null);
+                setError(getApiErrorMessage(e, '获取餐食数据失败'));
             }
         } finally {
             if (lastPetIdRef.current === petId) {
@@ -198,9 +205,10 @@ export function MealProvider({ children }) {
         meals,
         nutritionSummary,
         isLoading,
+        error,
         fetchTodayMeals,
         toggleMealComplete,
-    }), [meals, nutritionSummary, isLoading, fetchTodayMeals, toggleMealComplete]);
+    }), [meals, nutritionSummary, isLoading, error, fetchTodayMeals, toggleMealComplete]);
 
     return (
         <MealContext.Provider value={value}>

@@ -9,6 +9,7 @@ import PetSelectorMenu from '../components/PetSelectorMenu';
 import MealCard from '../components/MealCard';
 import Skeleton from '../components/ui/Skeleton';
 import PlanDetails from './PlanDetails';
+import ErrorAlert from '../components/ErrorAlert';
 import { usePets } from '../hooks/usePets';
 import { useMeals } from '../hooks/useMeals';
 import { useWeights } from '../hooks/useWeights';
@@ -43,7 +44,7 @@ export default function HomePage() {
     const navigate = useNavigate();
     const [isPetMenuOpen, setIsPetMenuOpen] = useState(false);
     const { pets, currentPet, setCurrentPet, activePlanData, isLoading: petsLoading } = usePets();
-    const { meals, nutritionSummary, isLoading: mealsLoading, toggleMealComplete } = useMeals();
+    const { meals, nutritionSummary, isLoading: mealsLoading, error: mealsError, toggleMealComplete } = useMeals();
     const { status: genStatus } = usePlanGeneration();
 
     // 餐食详情弹窗状态
@@ -639,6 +640,9 @@ export default function HomePage() {
                     已完成 {completedMealsCount}/{displayMeals.length} 餐
                 </span>
             </h3>
+            {mealsError && !selectedDate && (
+                <ErrorAlert error={mealsError} className="mb-4" />
+            )}
             {displayMealsLoading ? (
                 <div className="space-y-4">
                     {Array.from({ length: 3 }, (_, i) => (

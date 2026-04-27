@@ -13,6 +13,21 @@ export const apiClient = axios.create({
 
 export function getApiErrorMessage(error, fallback = '请求失败') {
     if (axios.isAxiosError(error)) {
+        // 网络超时
+        if (error.code === 'ECONNABORTED' && error.message?.includes('timeout')) {
+            return '请求超时，请检查网络连接';
+        }
+
+        // 网络断开
+        if (error.code === 'ERR_NETWORK' || !navigator.onLine) {
+            return '网络连接已断开，请检查网络设置';
+        }
+
+        // 服务器无响应
+        if (!error.response) {
+            return '无法连接到服务器，请稍后重试';
+        }
+
         const payload = error.response?.data;
 
         if (typeof payload?.message === 'string' && payload.message.trim()) {
@@ -107,7 +122,12 @@ apiClient.interceptors.response.use(
     async (error) => {
         const originalRequest = error.config;
 
-        if (error.response?.status === 401 && !originalRequest._retry) {
+        // 登录/注册接口的 401 不触发刷新逻辑
+        const isAuthEndpoint = originalRequest.url?.includes('/auth/login') ||
+                               originalRequest.url?.includes('/auth/register') ||
+                               originalRequest.url?.includes('/auth/verify-register');
+
+        if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
             if (isRefreshing) {
                 return new Promise((resolve, reject) => {
                     failedQueue.push({ resolve, reject });

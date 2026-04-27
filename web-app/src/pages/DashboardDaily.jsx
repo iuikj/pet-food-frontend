@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import SecureImage from '../components/SecureImage';
+import ErrorAlert from '../components/ErrorAlert';
 import { pageTransitions } from '../utils/animations';
 import { usePets } from '../hooks/usePets';
 import { useMeals } from '../hooks/useMeals';
@@ -9,13 +10,14 @@ import MealCard from '../components/MealCard';
 import PlanDetails from './PlanDetails';
 import Skeleton from '../components/ui/Skeleton';
 import { weightsApi, mealsApi } from '../api';
+import { getApiErrorMessage } from '../api/client';
 
 export default function DashboardDaily() {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const targetDate = searchParams.get('date'); // YYYY-MM-DD or null
     const { currentPet } = usePets();
-    const { meals: todayMeals, nutritionSummary: todayNutrition, isLoading: todayLoading, toggleMealComplete } = useMeals();
+    const { meals: todayMeals, nutritionSummary: todayNutrition, isLoading: todayLoading, error: todayError, toggleMealComplete } = useMeals();
 
     // 指定日期的餐食数据
     const [dateMeals, setDateMeals] = useState([]);
@@ -60,6 +62,7 @@ export default function DashboardDaily() {
     const [showWeightModal, setShowWeightModal] = useState(false);
     const [weightInput, setWeightInput] = useState('');
     const [weightSaving, setWeightSaving] = useState(false);
+    const [weightError, setWeightError] = useState('');
     const [weightHistory, setWeightHistory] = useState([]);
     const [latestWeight, setLatestWeight] = useState(null);
 
@@ -81,7 +84,11 @@ export default function DashboardDaily() {
 
     const handleSaveWeight = async () => {
         const value = parseFloat(weightInput);
-        if (!value || value <= 0 || !currentPet?.id) return;
+        if (!value || value <= 0 || !currentPet?.id) {
+            setWeightError('请输入有效体重');
+            return;
+        }
+        setWeightError('');
         setWeightSaving(true);
         try {
             const res = await weightsApi.recordWeight({ pet_id: currentPet.id, weight: value });
@@ -89,10 +96,14 @@ export default function DashboardDaily() {
                 setLatestWeight(res.data);
                 setShowWeightModal(false);
                 setWeightInput('');
+                setWeightError('');
                 await fetchWeightData(); // 刷新趋势图
+            } else {
+                setWeightError(res.message || '保存失败');
             }
         } catch (err) {
             console.error('Failed to record weight:', err);
+            setWeightError(getApiErrorMessage(err, '保存失败'));
         } finally {
             setWeightSaving(false);
         }
@@ -282,6 +293,13 @@ export default function DashboardDaily() {
                     </div>
                 </div>
                 <div className="flex gap-3">
+
+            {/* 错误提示 */}
+            {todayError && !targetDate && (
+                <div className="px-6 mb-4">
+                    <ErrorAlert error={todayError} />
+                </div>
+            )}
                     <button onClick={() => navigate(targetDate ? '/calendar' : '/')} className="w-10 h-10 rounded-full bg-white dark:bg-surface-dark shadow-sm flex items-center justify-center text-text-muted-light dark:text-text-muted-dark hover:text-primary transition-colors">
                         <span className="material-icons-round">arrow_back</span>
                     </button>
@@ -390,7 +408,11 @@ export default function DashboardDaily() {
                         </div>
                     </div>
                     <button
-                        onClick={() => { setWeightInput(latestWeight ? String(latestWeight.weight) : String(currentPet?.weight || '')); setShowWeightModal(true); }}
+                        onClick={() => {
+                            setWeightInput(latestWeight ? String(latestWeight.weight) : String(currentPet?.weight || ''));
+                            setWeightError('');
+                            setShowWeightModal(true);
+                        }}
                         className="bg-secondary/30 dark:bg-secondary/10 p-5 rounded-2xl flex flex-col justify-between h-36 relative overflow-hidden hover:shadow-medium hover:scale-105 transition-all duration-300 text-left"
                     >
                         <span className="material-icons-round absolute -right-2 -bottom-4 text-6xl text-secondary opacity-50">monitor_weight</span>
@@ -461,9 +483,15 @@ export default function DashboardDaily() {
                                     />
                                     <span className="text-lg font-medium text-text-muted-light dark:text-text-muted-dark shrink-0">kg</span>
                                 </div>
+                                {weightError && (
+                                    <p className="text-xs text-red-500 mb-4">{weightError}</p>
+                                )}
                                 <div className="flex gap-3 w-full">
                                     <button
-                                        onClick={() => setShowWeightModal(false)}
+                                        onClick={() => {
+                                            setShowWeightModal(false);
+                                            setWeightError('');
+                                        }}
                                         className="flex-1 py-3 rounded-xl bg-gray-100 dark:bg-gray-700 text-text-main-light dark:text-text-main-dark font-medium hover:bg-gray-200 transition-colors"
                                     >
                                         取消
