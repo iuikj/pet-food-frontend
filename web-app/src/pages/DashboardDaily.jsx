@@ -9,6 +9,7 @@ import { useMeals } from '../hooks/useMeals';
 import MealCard from '../components/MealCard';
 import PlanDetails from './PlanDetails';
 import Skeleton from '../components/ui/Skeleton';
+import { compareWeightRecordsAsc } from '../utils/weightRecords';
 import { weightsApi, mealsApi } from '../api';
 import { getApiErrorMessage } from '../api/client';
 
@@ -195,7 +196,7 @@ export default function DashboardDaily() {
     // 体重趋势迷你图（SVG polyline）
     const renderWeightTrend = () => {
         // 按日期升序
-        const sorted = [...weightHistory].sort((a, b) => a.recorded_date.localeCompare(b.recorded_date));
+        const sorted = [...weightHistory].sort(compareWeightRecordsAsc);
         if (sorted.length < 2) return null;
 
         const weights = sorted.map(r => r.weight);

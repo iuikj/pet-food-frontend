@@ -511,7 +511,7 @@ export default function HomePage() {
                 <span className="material-icons-round text-4xl text-secondary/70 mb-2 group-hover:scale-110 transition-transform">monitor_weight</span>
                 <h4 className="font-bold text-yellow-900/80 dark:text-yellow-100/80 mb-1">记录体重</h4>
                 <p className="text-xs text-yellow-800/60 dark:text-yellow-200/60 font-medium px-2">
-                    {latestWeight ? `当前 ${latestWeight.weight} kg` : '点击开始记录'}
+                    {latestWeight ? `当前 ${latestWeight.weight} kg` : (currentPet?.weight ? `当前 ${currentPet.weight} kg` : '点击开始记录')}
                 </p>
             </button>
         </section>

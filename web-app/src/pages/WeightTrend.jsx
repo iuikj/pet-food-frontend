@@ -12,6 +12,7 @@ import {
     ResponsiveContainer,
 } from 'recharts';
 import { pageTransitions } from '../utils/animations';
+import { compareWeightRecordsAsc, compareWeightRecordsDesc } from '../utils/weightRecords';
 import { usePets } from '../hooks/usePets';
 import { useWeights } from '../hooks/useWeights';
 import Skeleton from '../components/ui/Skeleton';
@@ -90,7 +91,7 @@ export default function WeightTrend() {
     // 图表用升序数据
     const chartData = useMemo(() => {
         return [...history]
-            .sort((a, b) => new Date(a.recorded_date) - new Date(b.recorded_date))
+            .sort(compareWeightRecordsAsc)
             .map((r) => ({
                 ...r,
                 weight: typeof r.weight === 'number' ? r.weight : Number(r.weight),
@@ -100,7 +101,7 @@ export default function WeightTrend() {
 
     // 列表用降序
     const listData = useMemo(() => {
-        return [...history].sort((a, b) => new Date(b.recorded_date) - new Date(a.recorded_date));
+        return [...history].sort(compareWeightRecordsDesc);
     }, [history]);
 
     // 趋势：首尾差

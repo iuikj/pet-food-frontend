@@ -125,7 +125,7 @@ export default function Profile() {
                         </div>
                         <Link
                             to="/profile/edit"
-                            className="absolute bottom-0 right-0 w-6 h-6 bg-primary rounded-full border-2 border-white dark:border-background-dark flex items-center justify-center text-white hover:bg-green-400 transition-all active:scale-[0.9]"
+                            className="absolute bottom-0 right-0 w-6 h-6 bg-primary rounded-full border-2 border-white dark:border-background-dark shadow-md flex items-center justify-center text-white hover:bg-green-400 transition-all active:scale-[0.9]"
                         >
                             <span className="material-icons-round text-[14px]">edit</span>
                         </Link>

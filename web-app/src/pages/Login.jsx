@@ -215,14 +215,12 @@ export default function Login() {
                         </p>
                     </motion.div>
 
-                    {/* 表单卡片 */}
-                    <div className="bg-white/80 dark:bg-surface-dark/80 backdrop-blur-xl rounded-3xl shadow-xl p-8 border border-gray-100 dark:border-gray-800">
+                    {/* 表单区域 */}
+                    <div className="space-y-6">
                         {/* 错误提示 */}
                         <AnimatePresence>
                             {error && (
-                                <div className="mb-6">
-                                    <ErrorAlert error={error} onClose={() => setError('')} />
-                                </div>
+                                <ErrorAlert error={error} onClose={() => setError('')} />
                             )}
                         </AnimatePresence>
 

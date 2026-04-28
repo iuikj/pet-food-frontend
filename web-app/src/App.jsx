@@ -167,11 +167,15 @@ function AnimatedRoutes() {
     };
   }, [navigate]);
 
+  // 底部导航页面（平级切换，无动效）
+  const tabRoutes = ['/', '/calendar', '/recipes', '/plan/create', '/plan/summary', '/profile'];
+  const isTabRoute = tabRoutes.includes(location.pathname);
+
   return (
     <>
       <ScrollToTop />
       <AnimatePresence mode="wait" initial={false}>
-        <Routes location={location} key={location.pathname}>
+        <Routes location={location} key={isTabRoute ? 'tab-routes' : location.pathname}>
           <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
             <Route path="/" element={<HomePage />} />
             <Route path="/calendar" element={<CalendarPage />} />

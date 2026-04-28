@@ -66,7 +66,7 @@ export function useWeights(petId, initialDays = 90) {
     }, [petId, days, fetchLatest, fetchHistory]);
 
     /**
-     * 记录一次体重（同日覆盖）
+     * 记录一次体重（允许同日多条）
      * @returns {Promise<{success: boolean, data?: object, message?: string}>}
      */
     const record = useCallback(async ({ weight, recorded_date, notes }) => {
