@@ -1,5 +1,6 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { createPortal } from 'react-dom';
 
 const menuVariants = {
     hidden: {
@@ -32,9 +33,49 @@ const menuVariants = {
  * @param {function} onClose - 关闭回调
  * @param {Array} items - 菜单项 [{icon, label, onClick, danger}]
  * @param {string} position - 位置 'left' | 'right'
+ * @param {React.RefObject<HTMLElement>} anchorRef - 锚点元素引用
  */
-export default function DropdownMenu({ isOpen, onClose, items = [], position = 'right' }) {
+export default function DropdownMenu({ isOpen, onClose, items = [], position = 'right', anchorRef = null }) {
     const menuRef = useRef(null);
+    const [portalStyle, setPortalStyle] = useState(null);
+    const MotionDiv = motion.div;
+
+    useEffect(() => {
+        if (!isOpen || !anchorRef?.current) {
+            return undefined;
+        }
+
+        const updatePosition = () => {
+            const rect = anchorRef.current.getBoundingClientRect();
+            const top = Math.min(rect.bottom + 4, window.innerHeight - 8);
+
+            if (position === 'left') {
+                setPortalStyle({
+                    position: 'fixed',
+                    top,
+                    left: Math.max(8, rect.left),
+                    zIndex: 60
+                });
+                return;
+            }
+
+            setPortalStyle({
+                position: 'fixed',
+                top,
+                right: Math.max(8, window.innerWidth - rect.right),
+                zIndex: 60
+            });
+        };
+
+        updatePosition();
+        window.addEventListener('resize', updatePosition);
+        window.addEventListener('scroll', updatePosition, true);
+
+        return () => {
+            window.removeEventListener('resize', updatePosition);
+            window.removeEventListener('scroll', updatePosition, true);
+        };
+    }, [anchorRef, isOpen, position]);
 
     // 点击外部关闭
     useEffect(() => {
@@ -72,18 +113,17 @@ export default function DropdownMenu({ isOpen, onClose, items = [], position = '
         };
     }, [isOpen, onClose]);
 
-    const positionClass = position === 'left' ? 'left-0' : 'right-0';
-
-    return (
+    const menuContent = (
         <AnimatePresence>
-            {isOpen && (
-                <motion.div
+            {isOpen && portalStyle && (
+                <MotionDiv
                     ref={menuRef}
                     variants={menuVariants}
                     initial="hidden"
                     animate="visible"
                     exit="exit"
-                    className={`absolute top-full mt-1 ${positionClass} z-50 min-w-[160px] bg-white dark:bg-surface-dark rounded-xl shadow-large border border-gray-100 dark:border-gray-800 py-1.5 overflow-hidden`}
+                    style={portalStyle}
+                    className="min-w-[160px] bg-white dark:bg-surface-dark rounded-xl shadow-large border border-gray-100 dark:border-gray-800 py-1.5 overflow-hidden"
                 >
                     {items.map((item, index) => (
                         <button
@@ -93,8 +133,8 @@ export default function DropdownMenu({ isOpen, onClose, items = [], position = '
                                 onClose();
                             }}
                             className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors ${item.danger
-                                    ? 'text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20'
-                                    : 'text-text-main-light dark:text-text-main-dark hover:bg-gray-50 dark:hover:bg-gray-800'
+                                ? 'text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20'
+                                : 'text-text-main-light dark:text-text-main-dark hover:bg-gray-50 dark:hover:bg-gray-800'
                                 }`}
                         >
                             {item.icon && (
@@ -105,8 +145,14 @@ export default function DropdownMenu({ isOpen, onClose, items = [], position = '
                             <span className="text-sm font-medium">{item.label}</span>
                         </button>
                     ))}
-                </motion.div>
+                </MotionDiv>
             )}
         </AnimatePresence>
     );
+
+    if (typeof document === 'undefined') {
+        return null;
+    }
+
+    return createPortal(menuContent, document.body);
 }

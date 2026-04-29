@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import DropdownMenu from './DropdownMenu';
 import SecureImage from './SecureImage';
@@ -9,11 +9,11 @@ import { formatPetAge } from '../utils/petUtils';
  * @param {Object} pet - 宠物数据
  * @param {function} onDelete - 删除回调（由父组件处理确认弹窗）
  * @param {boolean} showActions - 是否显示底部操作按钮
- * @param {string} variant - 样式变体 'default' | 'compact'
  */
-export default function PetCard({ pet, onDelete, showActions = true, variant = 'default' }) {
+export default function PetCard({ pet, onDelete, showActions = true }) {
     const navigate = useNavigate();
     const [menuOpen, setMenuOpen] = useState(false);
+    const menuButtonRef = useRef(null);
 
     const handleEdit = () => {
         navigate(`/pet/edit/${pet.id}`);
@@ -68,6 +68,7 @@ export default function PetCard({ pet, onDelete, showActions = true, variant = '
                         {/* 三点菜单按钮 */}
                         <div className="relative">
                             <button
+                                ref={menuButtonRef}
                                 onClick={() => setMenuOpen(!menuOpen)}
                                 className="w-8 h-8 -mr-2 -mt-2 flex items-center justify-center rounded-full text-text-muted-light hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                             >
@@ -80,6 +81,7 @@ export default function PetCard({ pet, onDelete, showActions = true, variant = '
                                 onClose={() => setMenuOpen(false)}
                                 items={menuItems}
                                 position="right"
+                                anchorRef={menuButtonRef}
                             />
                         </div>
                     </div>
