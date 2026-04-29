@@ -248,6 +248,49 @@ export default function DashboardDaily() {
         return target > today;
     })();
 
+    const handleToggleMealComplete = useCallback(async (mealId) => {
+        if (!targetDate) {
+            await toggleMealComplete(mealId);
+            return;
+        }
+
+        if (isDateInFuture || !currentPet?.id) {
+            return;
+        }
+
+        const prevMeals = dateMeals;
+        const targetMeal = dateMeals.find(m => m.id === mealId);
+        if (!targetMeal) return;
+
+        setDateMeals(prev => prev.map(m => (
+            m.id === mealId ? { ...m, isCompleted: !m.isCompleted } : m
+        )));
+
+        try {
+            if (targetMeal.isCompleted) {
+                await mealsApi.uncompleteMeal(mealId);
+            } else {
+                await mealsApi.completeMeal(mealId);
+            }
+
+            const res = await mealsApi.getMealsByDate(currentPet.id, targetDate);
+            if (res.code === 0 && res.data?.meals) {
+                setDateMeals(res.data.meals.map(m => ({
+                    id: m.id,
+                    type: m.meal_type,
+                    name: m.name || m.meal_type,
+                    time: m.scheduled_time || '',
+                    calories: m.calories || 0,
+                    isCompleted: m.is_completed || false,
+                    _raw: m,
+                })));
+            }
+        } catch (error) {
+            console.error('Failed to toggle dated meal completion:', error);
+            setDateMeals(prevMeals);
+        }
+    }, [targetDate, toggleMealComplete, isDateInFuture, currentPet?.id, dateMeals]);
+
     // 本周日历
     const getThisWeekDays = () => {
         const today = new Date();
@@ -387,7 +430,7 @@ export default function DashboardDaily() {
                                     meal={meal}
                                     isExpanded={false}
                                     onToggleExpand={handleMealCardClick}
-                                    onToggleComplete={toggleMealComplete}
+                                    onToggleComplete={handleToggleMealComplete}
                                     readOnly={isDateInFuture}
                                 />
                             ))}

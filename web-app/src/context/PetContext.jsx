@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { petsApi } from '../api';
 import { getApiErrorMessage } from '../api/client';
 import PetContext from './PetContextValue';
@@ -6,11 +6,12 @@ import { useUser } from '../hooks/useUser';
 import { readJSON, STORAGE_KEYS, writeJSON } from '../utils/storage';
 
 export const PetProvider = ({ children }) => {
-    const { isAuthenticated } = useUser();
+    const { isAuthenticated, user } = useUser();
     const [pets, setPets] = useState([]);
     const [currentPetId, setCurrentPetId] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
+    const currentPetIdRef = useRef(null);
     const [activePlanMap, setActivePlanMap] = useState(
         () => readJSON(STORAGE_KEYS.activePlanMap, {})
     );
@@ -26,6 +27,36 @@ export const PetProvider = ({ children }) => {
         writeJSON(STORAGE_KEYS.activePlanDataMap, activePlanDataMap);
     }, [activePlanDataMap]);
 
+    useEffect(() => {
+        currentPetIdRef.current = currentPetId;
+    }, [currentPetId]);
+
+    const readStoredSelectedPetId = useCallback(() => {
+        if (!user?.id) {
+            return null;
+        }
+
+        const selectedPetMap = readJSON(STORAGE_KEYS.selectedPetMap, {});
+        return selectedPetMap[user.id] ?? null;
+    }, [user?.id]);
+
+    const persistSelectedPetId = useCallback((petId) => {
+        if (!user?.id) {
+            return;
+        }
+
+        const selectedPetMap = readJSON(STORAGE_KEYS.selectedPetMap, {});
+        const nextSelectedPetMap = { ...selectedPetMap };
+
+        if (petId) {
+            nextSelectedPetMap[user.id] = petId;
+        } else {
+            delete nextSelectedPetMap[user.id];
+        }
+
+        writeJSON(STORAGE_KEYS.selectedPetMap, nextSelectedPetMap);
+    }, [user?.id]);
+
     const fetchPets = useCallback(async () => {
         setIsLoading(true);
         setError(null);
@@ -34,15 +65,23 @@ export const PetProvider = ({ children }) => {
             const res = await petsApi.getPets();
             if (res.code === 0) {
                 const petList = res.data.items || [];
-                setPets(petList);
-                setCurrentPetId((prev) => {
-                    if (petList.length === 0) {
-                        return null;
-                    }
+                const currentSelectedPetId = currentPetIdRef.current;
+                const storedSelectedPetId = readStoredSelectedPetId();
+                const hasCurrentPet = currentSelectedPetId
+                    && petList.some((pet) => pet.id === currentSelectedPetId);
+                const hasStoredPet = storedSelectedPetId
+                    && petList.some((pet) => pet.id === storedSelectedPetId);
+                const nextPetId = petList.length === 0
+                    ? null
+                    : hasCurrentPet
+                        ? currentSelectedPetId
+                        : hasStoredPet
+                            ? storedSelectedPetId
+                            : petList[0].id;
 
-                    const hasExistingPet = prev && petList.some((pet) => pet.id === prev);
-                    return hasExistingPet ? prev : petList[0].id;
-                });
+                setPets(petList);
+                setCurrentPetId(nextPetId);
+                persistSelectedPetId(nextPetId);
                 return { success: true, pets: petList };
             }
 
@@ -56,7 +95,7 @@ export const PetProvider = ({ children }) => {
         } finally {
             setIsLoading(false);
         }
-    }, []);
+    }, [persistSelectedPetId, readStoredSelectedPetId]);
 
     useEffect(() => {
         if (isAuthenticated) {
@@ -85,6 +124,7 @@ export const PetProvider = ({ children }) => {
                 const newPet = res.data;
                 setPets((prev) => [...prev, newPet]);
                 setCurrentPetId(newPet.id);
+                persistSelectedPetId(newPet.id);
                 return { success: true, pet: newPet };
             }
             return { success: false, message: res.message };
@@ -94,7 +134,7 @@ export const PetProvider = ({ children }) => {
         } finally {
             setIsLoading(false);
         }
-    }, []);
+    }, [persistSelectedPetId]);
 
     const updatePet = useCallback(async (id, updates) => {
         setIsLoading(true);
@@ -121,18 +161,14 @@ export const PetProvider = ({ children }) => {
         try {
             const res = await petsApi.deletePet(id);
             if (res.code === 0) {
-                setPets((prev) => {
-                    const filtered = prev.filter((pet) => pet.id !== id);
-                    if (filtered.length === 0) {
-                        setCurrentPetId(null);
-                        return filtered;
-                    }
+                const filteredPets = pets.filter((pet) => pet.id !== id);
+                const nextPetId = currentPetIdRef.current === id
+                    ? filteredPets[0]?.id ?? null
+                    : currentPetIdRef.current;
 
-                    setCurrentPetId((currentId) => (
-                        currentId === id ? filtered[0].id : currentId
-                    ));
-                    return filtered;
-                });
+                setPets(filteredPets);
+                setCurrentPetId(nextPetId);
+                persistSelectedPetId(nextPetId);
                 return { success: true };
             }
             return { success: false, message: res.message };
@@ -142,7 +178,7 @@ export const PetProvider = ({ children }) => {
         } finally {
             setIsLoading(false);
         }
-    }, []);
+    }, [pets, persistSelectedPetId]);
 
     const uploadPetAvatar = useCallback(async (petId, file) => {
         try {
@@ -163,8 +199,9 @@ export const PetProvider = ({ children }) => {
     const setCurrentPet = useCallback((id) => {
         if (pets.some((pet) => pet.id === id)) {
             setCurrentPetId(id);
+            persistSelectedPetId(id);
         }
-    }, [pets]);
+    }, [pets, persistSelectedPetId]);
 
     const setPetHasPlan = useCallback((id, hasPlan) => {
         setPets((prev) => prev.map((pet) => (

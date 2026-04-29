@@ -29,17 +29,19 @@ export default function MealCard({
     readOnly = false,
 }) {
     const config = getMealTypeConfig(meal.type);
+    const canToggleComplete = !readOnly && typeof onToggleComplete === 'function';
 
     // 处理卡片点击
     const handleCardClick = (e) => {
         // 如果点击的是完成按钮，不触发展开/折叠
         if (e.target.closest('[data-complete-btn]')) return;
-        onToggleExpand(meal.id);
+        onToggleExpand?.(meal.id);
     };
 
     // 处理完成按钮点击
     const handleCompleteClick = (e) => {
         e.stopPropagation();
+        if (!canToggleComplete) return;
         onToggleComplete(meal.id);
     };
 
@@ -97,18 +99,18 @@ export default function MealCard({
                 <button
                     data-complete-btn
                     onClick={handleCompleteClick}
-                    disabled={readOnly}
+                    disabled={!canToggleComplete}
                     className={`
                         w-10 h-10 rounded-full flex items-center justify-center shrink-0
                         transition-all duration-200
-                        ${readOnly
+                        ${!canToggleComplete
                             ? 'opacity-40 cursor-not-allowed border-2 border-gray-200 dark:border-gray-600 text-gray-300'
                             : meal.isCompleted
                                 ? 'bg-primary text-white dark:text-gray-900 shadow-glow'
                                 : 'border-2 border-gray-200 dark:border-gray-600 text-gray-400 hover:border-primary hover:text-primary hover:scale-110'
                         }
                     `}
-                    title={readOnly ? '未来日期不可编辑' : meal.isCompleted ? '标记为未完成' : '标记为已完成'}
+                    title={!canToggleComplete ? '当前视图不可编辑' : meal.isCompleted ? '标记为未完成' : '标记为已完成'}
                 >
                     <span className="material-icons-round text-lg">
                         {meal.isCompleted ? 'check' : 'check'}

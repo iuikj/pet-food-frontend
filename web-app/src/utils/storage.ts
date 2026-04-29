@@ -5,6 +5,7 @@ export const STORAGE_KEYS = {
   refreshToken: 'refresh_token',
   activePlanMap: 'activePlanMap',
   activePlanDataMap: 'activePlanDataMap',
+  selectedPetMap: 'selectedPetMap',
   mockMode: 'pet_app_mock_mode',
   mockOverride: 'pet_app_mock_override',
   mockPets: 'pet_app_mock_pets',

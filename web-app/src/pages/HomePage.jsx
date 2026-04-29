@@ -40,6 +40,18 @@ const getMealTypeName = (type) => {
     return names[type] || type;
 };
 
+function mapApiMealToCard(m) {
+    return {
+        id: m.id,
+        type: m.meal_type,
+        name: m.name || m.meal_type,
+        time: m.scheduled_time || '',
+        calories: m.calories || 0,
+        isCompleted: m.is_completed || false,
+        _raw: m,
+    };
+}
+
 export default function HomePage() {
     const navigate = useNavigate();
     const [isPetMenuOpen, setIsPetMenuOpen] = useState(false);
@@ -243,15 +255,7 @@ export default function HomePage() {
             .then(res => {
                 if (cancelled) return;
                 if (res.code === 0 && res.data?.meals) {
-                    setDateMeals(res.data.meals.map(m => ({
-                        id: m.id,
-                        type: m.meal_type,
-                        name: m.name || m.meal_type,
-                        time: m.scheduled_time || '',
-                        calories: m.calories || 0,
-                        isCompleted: m.is_completed || false,
-                        _raw: m,
-                    })));
+                    setDateMeals(res.data.meals.map(mapApiMealToCard));
                     setDateNutritionSummary(res.data.nutrition_summary || null);
                 } else {
                     setDateMeals([]);
@@ -274,6 +278,51 @@ export default function HomePage() {
     const displayDateLabel = selectedDate
         ? selectedDate.toLocaleDateString('zh-CN', { month: 'long', day: 'numeric', weekday: 'short' })
         : '今日';
+
+    const isSelectedDateInFuture = selectedDate instanceof Date
+        && selectedDate > new Date(new Date().setHours(0, 0, 0, 0));
+
+    const handleToggleMealComplete = useCallback(async (mealId) => {
+        if (!mealId) return;
+
+        // 今日视图：沿用 Provider 中的统一状态管理
+        if (!selectedDate) {
+            await toggleMealComplete(mealId);
+            return;
+        }
+
+        if (isSelectedDateInFuture || !currentPet?.id) {
+            return;
+        }
+
+        const prevMeals = dateMeals;
+        const prevSummary = dateNutritionSummary;
+        const targetMeal = dateMeals.find(m => m.id === mealId);
+        if (!targetMeal) return;
+
+        // 过去日期：本地列表先乐观更新，再用后端结果回填
+        setDateMeals(prev => prev.map(m => (
+            m.id === mealId ? { ...m, isCompleted: !m.isCompleted } : m
+        )));
+
+        try {
+            if (targetMeal.isCompleted) {
+                await mealsApi.uncompleteMeal(mealId);
+            } else {
+                await mealsApi.completeMeal(mealId);
+            }
+
+            const res = await mealsApi.getMealsByDate(currentPet.id, formatDate(selectedDate));
+            if (res.code === 0 && res.data?.meals) {
+                setDateMeals(res.data.meals.map(mapApiMealToCard));
+                setDateNutritionSummary(res.data.nutrition_summary || null);
+            }
+        } catch (error) {
+            console.error('Failed to toggle meal completion for selected date:', error);
+            setDateMeals(prevMeals);
+            setDateNutritionSummary(prevSummary);
+        }
+    }, [selectedDate, toggleMealComplete, isSelectedDateInFuture, currentPet?.id, dateMeals, dateNutritionSummary]);
 
     // --- react-calendar 回调 ---
     const handleActiveStartDateChange = ({ activeStartDate }) => {
@@ -669,7 +718,8 @@ export default function HomePage() {
                             meal={meal}
                             isExpanded={false}
                             onToggleExpand={handleMealCardClick}
-                            onToggleComplete={selectedDate ? undefined : toggleMealComplete}
+                            onToggleComplete={handleToggleMealComplete}
+                            readOnly={isSelectedDateInFuture}
                         />
                     ))}
                 </div>
