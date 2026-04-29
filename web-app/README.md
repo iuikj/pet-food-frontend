@@ -40,6 +40,26 @@ Notes:
 - `npm run mobile:build`: production build plus `cap sync`
 - `npm run mobile:build:local`: local development-mode build plus `cap sync`
 
+## Android coexistence
+
+The Android `release` build stays on the production package name `com.petcare.app`.
+The local `debug` build now uses `com.petcare.app.dev` with launcher label `宠物健康管家 Dev`,
+so it can be installed side by side with the production app from GitHub Workflow.
+
+Common commands:
+
+```powershell
+# Local sideloadable test build that can coexist with production
+npm run mobile:build:local
+cd android
+.\gradlew.bat assembleDebug
+
+# Production build path remains unchanged
+npm run mobile:build
+cd android
+.\gradlew.bat assembleRelease
+```
+
 ## CD impact
 
 These local overrides do not change the existing GitHub Actions production workflow.
