@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { usePets } from '../hooks/usePets';
 import usePhotoSelect from '../hooks/usePhotoSelect';
 import SecureImage from '../components/SecureImage';
 import PetIcon from '../components/icons/PetIcon';
+import Modal from '../components/Modal';
 import { fromMonths, toMonths } from '../utils/petUtils';
 
 const GENDER_OPTIONS = [
@@ -16,6 +17,8 @@ const TYPE_OPTIONS = [
     { value: 'dog', iconType: 'dog', label: '狗狗' },
     { value: 'cat', iconType: 'cat', label: '猫咪' },
 ];
+
+const MotionDiv = motion.div;
 
 export default function PetEdit() {
     const navigate = useNavigate();
@@ -160,8 +163,15 @@ export default function PetEdit() {
             navigate('/profile');
         } else {
             setError(result.message || '删除宠物失败');
-            setShowDeleteConfirm(false);
         }
+    };
+
+    const handleOpenDeleteConfirm = (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        requestAnimationFrame(() => {
+            setShowDeleteConfirm(true);
+        });
     };
 
     if (isLoading || !petData) {
@@ -173,7 +183,7 @@ export default function PetEdit() {
     }
 
     return (
-        <motion.div
+        <MotionDiv
             initial={{ opacity: 0, x: 50 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -50 }}
@@ -188,7 +198,8 @@ export default function PetEdit() {
                 </Link>
                 <h1 className="text-xl font-bold text-center flex-1">编辑宠物资料</h1>
                 <button
-                    onClick={() => setShowDeleteConfirm(true)}
+                    type="button"
+                    onClick={handleOpenDeleteConfirm}
                     className="w-10 h-10 rounded-full bg-white dark:bg-surface-dark shadow-sm flex items-center justify-center text-text-muted-light dark:text-text-muted-dark hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                 >
                     <span className="material-icons-round">delete_outline</span>
@@ -517,49 +528,16 @@ export default function PetEdit() {
                 </button>
             </div>
 
-            <AnimatePresence>
-                {showDeleteConfirm && (
-                    <>
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
-                            onClick={() => setShowDeleteConfirm(false)}
-                        />
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.9 }}
-                            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-sm bg-white dark:bg-surface-dark rounded-3xl shadow-large z-50 p-6"
-                        >
-                            <div className="text-center">
-                                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
-                                    <span className="material-icons-round text-red-500 text-3xl">delete_forever</span>
-                                </div>
-                                <h3 className="text-xl font-bold mb-2">确认删除宠物？</h3>
-                                <p className="text-text-muted-light dark:text-text-muted-dark mb-6">
-                                    删除后将无法恢复，确定要删除 {formData.name || '这只宠物'} 吗？
-                                </p>
-                                <div className="flex gap-3">
-                                    <button
-                                        onClick={() => setShowDeleteConfirm(false)}
-                                        className="flex-1 py-3 rounded-xl bg-gray-100 dark:bg-gray-800 text-text-main-light dark:text-text-main-dark font-semibold hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-                                    >
-                                        取消
-                                    </button>
-                                    <button
-                                        onClick={handleDelete}
-                                        className="flex-1 py-3 rounded-xl bg-red-500 text-white font-semibold hover:bg-red-600 transition-colors"
-                                    >
-                                        删除
-                                    </button>
-                                </div>
-                            </div>
-                        </motion.div>
-                    </>
-                )}
-            </AnimatePresence>
-        </motion.div>
+            <Modal
+                isOpen={showDeleteConfirm}
+                onClose={() => setShowDeleteConfirm(false)}
+                onConfirm={handleDelete}
+                title="删除宠物"
+                message={`确定要删除 "${formData.name || '这只宠物'}" 吗？此操作无法撤销。`}
+                confirmText="删除"
+                cancelText="取消"
+                type="danger"
+            />
+        </MotionDiv>
     );
 }
