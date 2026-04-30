@@ -5,14 +5,176 @@ import { useUser } from '../hooks/useUser';
 import FormField from '../components/FormField';
 import ErrorAlert from '../components/ErrorAlert';
 import AppIcon from '../components/AppIcon';
+import { showToast } from '../utils/toast';
 import { isMockMode, setMockMode, isManualOverride } from '../mock/mockMode';
+
+const USERNAME_REGEX = /^[\u4e00-\u9fffA-Za-z0-9_-]+$/;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PASSWORD_MAX_BYTES = 72;
+const PASSWORD_HELPER_TEXT = '密码至少 6 个字符。支持中文、英文和符号；若包含中文或表情，可用长度会更短。';
+const MotionDiv = motion.div;
+
+function normalizeEmail(value) {
+    return value.trim().toLowerCase();
+}
+
+function getUtf8ByteLength(value) {
+    return new TextEncoder().encode(value).length;
+}
+
+function validateUsername(value) {
+    const normalized = value.trim();
+
+    if (!normalized) {
+        return '请输入用户名';
+    }
+
+    if (normalized.length < 3 || normalized.length > 50) {
+        return '用户名需为 3-50 个字符';
+    }
+
+    if (!USERNAME_REGEX.test(normalized)) {
+        return '用户名只能包含中文、字母、数字、下划线和连字符';
+    }
+
+    return '';
+}
+
+function validateEmail(value) {
+    const normalized = normalizeEmail(value);
+
+    if (!normalized) {
+        return '请输入邮箱地址';
+    }
+
+    if (!EMAIL_REGEX.test(normalized)) {
+        return '请输入有效的邮箱地址';
+    }
+
+    return '';
+}
+
+function validateLoginIdentity(value) {
+    const normalized = value.trim();
+
+    if (!normalized) {
+        return '请输入用户名或邮箱';
+    }
+
+    if (normalized.includes('@') && !EMAIL_REGEX.test(normalizeEmail(value))) {
+        return '请输入有效的邮箱地址';
+    }
+
+    return '';
+}
+
+function validateRegisterPassword(value) {
+    if (!value) {
+        return '请输入密码';
+    }
+
+    if (value.length < 6) {
+        return '密码至少需要 6 个字符';
+    }
+
+    if (getUtf8ByteLength(value) > PASSWORD_MAX_BYTES) {
+        return '密码最多支持 72 字节（UTF-8）';
+    }
+
+    return '';
+}
+
+function validateVerificationCode(value, required = false) {
+    const normalized = value.trim();
+
+    if (!normalized) {
+        return required ? '请输入 6 位验证码' : '';
+    }
+
+    if (!/^\d{6}$/.test(normalized)) {
+        return '验证码需为 6 位数字';
+    }
+
+    return '';
+}
+
+function mapRegisterErrorToFields(message) {
+    if (!message) {
+        return null;
+    }
+
+    if (message.includes('用户名')) {
+        return { username: message };
+    }
+
+    if (message.includes('邮箱')) {
+        return { email: message };
+    }
+
+    if (message.includes('密码')) {
+        return { password: message };
+    }
+
+    if (message.includes('验证码')) {
+        return { code: message };
+    }
+
+    return null;
+}
+
+function mapLoginErrorToFields(message) {
+    if (!message) {
+        return null;
+    }
+
+    if (message.includes('用户名或密码错误')) {
+        return { password: message };
+    }
+
+    if (message.includes('邮箱') || message.includes('用户名')) {
+        return { email: message };
+    }
+
+    if (message.includes('密码')) {
+        return { password: message };
+    }
+
+    return null;
+}
+
+function mapResetErrorToFields(message) {
+    if (!message) {
+        return null;
+    }
+
+    if (message.includes('邮箱')) {
+        return { email: message };
+    }
+
+    if (message.includes('验证码')) {
+        return { code: message };
+    }
+
+    if (message.includes('密码')) {
+        return { newPassword: message };
+    }
+
+    return null;
+}
 
 export default function Login() {
     const navigate = useNavigate();
-    const { login, register, sendCode, verifyRegister } = useUser();
+    const {
+        login,
+        register,
+        sendCode,
+        verifyRegister,
+        sendPasswordResetCode,
+        resetPassword,
+    } = useUser();
 
     const [isRegister, setIsRegister] = useState(false);
-    const [email, setEmail] = useState('');
+    const [identity, setIdentity] = useState('');
     const [password, setPassword] = useState('');
     const [username, setUsername] = useState('');
     const [code, setCode] = useState('');
@@ -22,6 +184,18 @@ export default function Login() {
     const [countdown, setCountdown] = useState(0);
     const [fieldErrors, setFieldErrors] = useState({});
 
+    const [resetModalOpen, setResetModalOpen] = useState(false);
+    const [resetForm, setResetForm] = useState({
+        email: '',
+        code: '',
+        newPassword: '',
+    });
+    const [resetFieldErrors, setResetFieldErrors] = useState({});
+    const [resetError, setResetError] = useState('');
+    const [resetSubmitting, setResetSubmitting] = useState(false);
+    const [resetCodeSent, setResetCodeSent] = useState(false);
+    const [resetCountdown, setResetCountdown] = useState(0);
+
     // Mock 模式状态
     const [mockEnabled, setMockEnabled] = useState(() => isMockMode());
     const [showMockOverride] = useState(() => isManualOverride());
@@ -29,6 +203,7 @@ export default function Login() {
     // 键盘状态
     const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
     const countdownTimerRef = useRef(null);
+    const resetCountdownTimerRef = useRef(null);
 
     useEffect(() => {
         const handleResize = () => {
@@ -39,76 +214,184 @@ export default function Login() {
         if (window.visualViewport) {
             window.visualViewport.addEventListener('resize', handleResize);
             return () => window.visualViewport.removeEventListener('resize', handleResize);
-        } else {
-            window.addEventListener('resize', handleResize);
-            return () => window.removeEventListener('resize', handleResize);
         }
+
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    useEffect(() => {
-        return () => {
+    useEffect(() => (
+        () => {
             if (countdownTimerRef.current) {
                 clearInterval(countdownTimerRef.current);
             }
-        };
-    }, []);
+            if (resetCountdownTimerRef.current) {
+                clearInterval(resetCountdownTimerRef.current);
+            }
+        }
+    ), []);
+
+    const startCountdown = (setCountdownState, timerRef) => {
+        setCountdownState(60);
+        if (timerRef.current) {
+            clearInterval(timerRef.current);
+        }
+
+        timerRef.current = setInterval(() => {
+            setCountdownState((prev) => {
+                if (prev <= 1) {
+                    clearInterval(timerRef.current);
+                    timerRef.current = null;
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+    };
+
+    const resetRegisterVerificationState = () => {
+        setCode('');
+        setCodeSent(false);
+        setCountdown(0);
+        setFieldErrors((prev) => {
+            if (!prev.code) {
+                return prev;
+            }
+
+            const next = { ...prev };
+            delete next.code;
+            return next;
+        });
+        if (countdownTimerRef.current) {
+            clearInterval(countdownTimerRef.current);
+            countdownTimerRef.current = null;
+        }
+    };
+
+    const resetResetCountdownState = () => {
+        setResetCodeSent(false);
+        setResetCountdown(0);
+        if (resetCountdownTimerRef.current) {
+            clearInterval(resetCountdownTimerRef.current);
+            resetCountdownTimerRef.current = null;
+        }
+    };
+
+    const resetResetFlowState = (email = '') => {
+        setResetForm({
+            email,
+            code: '',
+            newPassword: '',
+        });
+        setResetFieldErrors({});
+        setResetError('');
+        resetResetCountdownState();
+    };
+
+    const clearFieldError = (field) => {
+        setFieldErrors((prev) => {
+            const next = { ...prev };
+            delete next[field];
+            return next;
+        });
+    };
+
+    const clearResetFieldError = (field) => {
+        setResetFieldErrors((prev) => {
+            const next = { ...prev };
+            delete next[field];
+            return next;
+        });
+    };
 
     const validateForm = () => {
         const errors = {};
 
-        if (!email.trim()) {
-            errors.email = '请输入邮箱地址';
-        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-            errors.email = '请输入有效的邮箱地址';
+        if (isRegister) {
+            const emailError = validateEmail(identity);
+            if (emailError) {
+                errors.email = emailError;
+            }
+        } else {
+            const identityError = validateLoginIdentity(identity);
+            if (identityError) {
+                errors.email = identityError;
+            }
         }
 
         if (!password.trim()) {
             errors.password = '请输入密码';
         } else if (password.length < 6) {
             errors.password = '密码至少需要 6 个字符';
+        } else if (isRegister) {
+            const passwordError = validateRegisterPassword(password);
+            if (passwordError) {
+                errors.password = passwordError;
+            }
         }
 
-        if (isRegister && !username.trim()) {
-            errors.username = '请输入用户名';
+        if (isRegister) {
+            const usernameError = validateUsername(username);
+            if (usernameError) {
+                errors.username = usernameError;
+            }
+
+            if (code.trim()) {
+                const codeError = validateVerificationCode(code, false);
+                if (codeError) {
+                    errors.code = codeError;
+                }
+            }
         }
 
         setFieldErrors(errors);
         return Object.keys(errors).length === 0;
     };
 
-    const handleSendCode = async () => {
-        if (!email || countdown > 0) return;
+    const validateResetForm = () => {
+        const errors = {};
 
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-            setFieldErrors(prev => ({ ...prev, email: '请输入有效的邮箱地址' }));
+        const emailError = validateEmail(resetForm.email);
+        if (emailError) {
+            errors.email = emailError;
+        }
+
+        const codeError = validateVerificationCode(resetForm.code, true);
+        if (codeError) {
+            errors.code = codeError;
+        }
+
+        const passwordError = validateRegisterPassword(resetForm.newPassword);
+        if (passwordError) {
+            errors.newPassword = passwordError;
+        }
+
+        setResetFieldErrors(errors);
+        return Object.keys(errors).length === 0;
+    };
+
+    const handleSendCode = async () => {
+        const emailError = validateEmail(identity);
+        if (emailError || countdown > 0) {
+            if (emailError) {
+                setFieldErrors((prev) => ({ ...prev, email: emailError }));
+            }
             return;
         }
 
         setIsLoading(true);
         setError('');
         try {
-            const result = await sendCode(email, 'register');
+            const result = await sendCode(normalizeEmail(identity), 'register');
 
             if (result.success) {
                 setCodeSent(true);
-                setCountdown(60);
-                if (countdownTimerRef.current) {
-                    clearInterval(countdownTimerRef.current);
-                }
-
-                countdownTimerRef.current = setInterval(() => {
-                    setCountdown(prev => {
-                        if (prev <= 1) {
-                            clearInterval(countdownTimerRef.current);
-                            countdownTimerRef.current = null;
-                            return 0;
-                        }
-                        return prev - 1;
-                    });
-                }, 1000);
-            } else {
-                setError(result.message || '发送验证码失败');
+                startCountdown(setCountdown, countdownTimerRef);
+                await showToast(result.message || '验证码已发送，请注意查收邮箱');
+                return;
             }
+
+            setError(result.message || '发送验证码失败');
         } catch {
             setError('发送验证码失败');
         } finally {
@@ -126,14 +409,19 @@ export default function Login() {
         setIsLoading(true);
         setError('');
         try {
-            const result = await login(email, password);
+            const result = await login(identity, password);
             if (result.success) {
                 navigate('/');
             } else {
-                setError(result.message || '登录失败，请检查邮箱和密码');
+                const message = result.message || '登录失败，请检查用户名/邮箱和密码';
+                const mappedErrors = mapLoginErrorToFields(message);
+                if (mappedErrors) {
+                    setFieldErrors((prev) => ({ ...prev, ...mappedErrors }));
+                }
+                setError(message);
             }
         } catch {
-            setError('登录失败，请检查邮箱和密码');
+            setError('登录失败，请检查用户名/邮箱和密码');
         } finally {
             setIsLoading(false);
         }
@@ -146,24 +434,47 @@ export default function Login() {
             return;
         }
 
+        const normalizedCode = code.trim();
+        if (normalizedCode && !codeSent) {
+            setFieldErrors((prev) => ({
+                ...prev,
+                code: '请先发送验证码，再填写收到的 6 位数字验证码',
+            }));
+            return;
+        }
+
         setIsLoading(true);
         setError('');
         try {
-            if (codeSent && code) {
-                const result = await verifyRegister(email, code, username, password);
+            const normalizedEmail = normalizeEmail(identity);
+            const normalizedUsername = username.trim();
+
+            if (codeSent && normalizedCode) {
+                const result = await verifyRegister(normalizedEmail, normalizedCode, normalizedUsername, password);
                 if (result.success) {
                     navigate('/');
-                } else {
-                    setError(result.message || '注册失败');
+                    return;
                 }
-            } else {
-                const result = await register(username, email, password);
-                if (result.success) {
-                    navigate('/');
-                } else {
-                    setError(result.message || '注册失败');
+
+                const mappedErrors = mapRegisterErrorToFields(result.message);
+                if (mappedErrors) {
+                    setFieldErrors((prev) => ({ ...prev, ...mappedErrors }));
                 }
+                setError(result.message || '注册失败');
+                return;
             }
+
+            const result = await register(normalizedUsername, normalizedEmail, password);
+            if (result.success) {
+                navigate('/');
+                return;
+            }
+
+            const mappedErrors = mapRegisterErrorToFields(result.message);
+            if (mappedErrors) {
+                setFieldErrors((prev) => ({ ...prev, ...mappedErrors }));
+            }
+            setError(result.message || '注册失败');
         } catch {
             setError('注册失败');
         } finally {
@@ -171,38 +482,143 @@ export default function Login() {
         }
     };
 
-    const clearFieldError = (field) => {
-        setFieldErrors(prev => {
-            const newErrors = { ...prev };
-            delete newErrors[field];
-            return newErrors;
+    const handleToggleAuthMode = () => {
+        const nextIsRegister = !isRegister;
+        setIsRegister(nextIsRegister);
+        setError('');
+        setFieldErrors({});
+        setPassword('');
+        setIdentity((prev) => {
+            if (!nextIsRegister) {
+                return prev.trim();
+            }
+
+            return prev.includes('@') ? normalizeEmail(prev) : '';
         });
+        if (nextIsRegister) {
+            setUsername('');
+        }
+        resetRegisterVerificationState();
     };
+
+    const handleOpenResetModal = () => {
+        const presetEmail = identity.includes('@') ? normalizeEmail(identity) : '';
+        resetResetFlowState(presetEmail);
+        setResetModalOpen(true);
+    };
+
+    const handleCloseResetModal = () => {
+        resetResetFlowState();
+        setResetModalOpen(false);
+    };
+
+    const handleResetFormChange = (field, value) => {
+        if (field === 'email' && normalizeEmail(value) !== normalizeEmail(resetForm.email)) {
+            resetResetCountdownState();
+            setResetForm((prev) => ({
+                ...prev,
+                email: value,
+                code: '',
+            }));
+            clearResetFieldError('code');
+        } else {
+            setResetForm((prev) => ({ ...prev, [field]: value }));
+        }
+
+        setResetError('');
+        clearResetFieldError(field);
+    };
+
+    const handleSendResetCode = async () => {
+        const emailError = validateEmail(resetForm.email);
+        if (emailError || resetCountdown > 0) {
+            if (emailError) {
+                setResetFieldErrors((prev) => ({ ...prev, email: emailError }));
+            }
+            return;
+        }
+
+        setResetSubmitting(true);
+        setResetError('');
+        try {
+            const result = await sendPasswordResetCode(resetForm.email);
+            if (result.success) {
+                setResetCodeSent(true);
+                startCountdown(setResetCountdown, resetCountdownTimerRef);
+                await showToast(result.message || '重置验证码已发送，请注意查收邮箱');
+                return;
+            }
+
+            setResetError(result.message || '发送重置验证码失败');
+        } catch {
+            setResetError('发送重置验证码失败');
+        } finally {
+            setResetSubmitting(false);
+        }
+    };
+
+    const handleResetPasswordSubmit = async (e) => {
+        e.preventDefault();
+
+        if (!validateResetForm()) {
+            return;
+        }
+
+        setResetSubmitting(true);
+        setResetError('');
+        try {
+            const result = await resetPassword(
+                resetForm.email,
+                resetForm.code,
+                resetForm.newPassword,
+            );
+
+            if (result.success) {
+                await showToast(result.message || '密码重置成功，请使用新密码登录');
+                setIdentity(normalizeEmail(resetForm.email));
+                setPassword('');
+                setIsRegister(false);
+                setError('');
+                setFieldErrors({});
+                resetRegisterVerificationState();
+                handleCloseResetModal();
+                return;
+            }
+
+            const mappedErrors = mapResetErrorToFields(result.message);
+            if (mappedErrors) {
+                setResetFieldErrors((prev) => ({ ...prev, ...mappedErrors }));
+            }
+            setResetError(result.message || '密码重置失败');
+        } catch {
+            setResetError('密码重置失败');
+        } finally {
+            setResetSubmitting(false);
+        }
+    };
+
+    const registerSubmitText = isRegister && codeSent && code.trim() ? '校验并注册' : '注册';
 
     return (
         <div className="min-h-[100dvh] flex flex-col bg-gradient-to-br from-primary/5 via-background-light to-secondary/10 dark:from-gray-900 dark:via-background-dark dark:to-gray-800">
-            {/* 装饰性背景 */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute top-0 right-0 w-72 h-72 bg-primary/10 rounded-full blur-3xl"></div>
-                <div className="absolute bottom-0 left-0 w-96 h-96 bg-secondary/10 rounded-full blur-3xl"></div>
+                <div className="absolute top-0 right-0 w-72 h-72 bg-primary/10 rounded-full blur-3xl" />
+                <div className="absolute bottom-0 left-0 w-96 h-96 bg-secondary/10 rounded-full blur-3xl" />
             </div>
 
-            <motion.div
+            <MotionDiv
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="relative z-10 flex-1 flex flex-col justify-center px-6 py-8"
-                style={{
-                    paddingBottom: isKeyboardVisible ? '20px' : undefined
-                }}
+                style={{ paddingBottom: isKeyboardVisible ? '20px' : undefined }}
             >
                 <div className="w-full max-w-md mx-auto">
-                    {/* Logo 区域 */}
-                    <motion.div
+                    <MotionDiv
                         className="text-center mb-8"
                         animate={{
                             height: isKeyboardVisible ? 0 : 'auto',
                             opacity: isKeyboardVisible ? 0 : 1,
-                            marginBottom: isKeyboardVisible ? 0 : 32
+                            marginBottom: isKeyboardVisible ? 0 : 32,
                         }}
                         transition={{ duration: 0.2 }}
                     >
@@ -213,11 +629,9 @@ export default function Login() {
                         <p className="text-text-muted-light dark:text-text-muted-dark">
                             {isRegister ? '开始为您的爱宠定制营养计划' : '登录以继续管理您的宠物饮食'}
                         </p>
-                    </motion.div>
+                    </MotionDiv>
 
-                    {/* 表单区域 */}
                     <div className="space-y-6">
-                        {/* 错误提示 */}
                         <AnimatePresence>
                             {error && (
                                 <ErrorAlert error={error} onClose={() => setError('')} />
@@ -233,27 +647,35 @@ export default function Login() {
                                     value={username}
                                     onChange={(val) => {
                                         setUsername(val);
+                                        setError('');
                                         clearFieldError('username');
                                     }}
-                                    placeholder="您的用户名"
+                                    placeholder="支持中文、字母、数字、_-"
                                     icon="person"
                                     error={fieldErrors.username}
+                                    validate={validateUsername}
                                     required
                                 />
                             )}
 
                             <FormField
-                                id="email"
-                                label="电子邮箱"
-                                type="email"
-                                value={email}
+                                id="identity"
+                                label={isRegister ? '电子邮箱' : '用户名或邮箱'}
+                                type={isRegister ? 'email' : 'text'}
+                                value={identity}
                                 onChange={(val) => {
-                                    setEmail(val);
+                                    if (isRegister && codeSent && normalizeEmail(val) !== normalizeEmail(identity)) {
+                                        resetRegisterVerificationState();
+                                    }
+
+                                    setIdentity(val);
+                                    setError('');
                                     clearFieldError('email');
                                 }}
-                                placeholder="example@email.com"
+                                placeholder={isRegister ? 'example@email.com' : '请输入用户名或邮箱'}
                                 icon="email"
                                 error={fieldErrors.email}
+                                validate={isRegister ? validateEmail : validateLoginIdentity}
                                 required
                             />
 
@@ -264,14 +686,21 @@ export default function Login() {
                                 value={password}
                                 onChange={(val) => {
                                     setPassword(val);
+                                    setError('');
                                     clearFieldError('password');
                                 }}
-                                placeholder="至少 6 个字符"
+                                placeholder={isRegister ? '至少 6 个字符，最多 72 字节' : '请输入密码'}
                                 icon="lock"
                                 error={fieldErrors.password}
+                                validate={isRegister ? validateRegisterPassword : undefined}
                                 required
                                 showPasswordToggle
                             />
+                            {isRegister && (
+                                <p className="text-xs text-text-muted-light dark:text-text-muted-dark leading-5 -mt-2 px-1">
+                                    {PASSWORD_HELPER_TEXT}
+                                </p>
+                            )}
 
                             {isRegister && (
                                 <div className="space-y-2">
@@ -279,34 +708,55 @@ export default function Login() {
                                         验证码（可选）
                                     </label>
                                     <div className="flex gap-3">
-                                        <div className="flex-1 bg-surface-light dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all flex items-center px-4 py-3">
+                                        <div className={`flex-1 bg-surface-light dark:bg-gray-800 rounded-xl border transition-all flex items-center px-4 py-3 ${
+                                            fieldErrors.code
+                                                ? 'border-red-400 focus-within:border-red-500 focus-within:ring-2 focus-within:ring-red-500/10'
+                                                : 'border-gray-200 dark:border-gray-700 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20'
+                                        }`}>
                                             <span className="material-icons-round text-text-muted-light dark:text-text-muted-dark mr-3 text-xl">pin</span>
                                             <input
                                                 className="bg-transparent border-none p-0 w-full text-sm font-medium focus:ring-0 focus:outline-none placeholder-gray-400 dark:placeholder-gray-500"
                                                 id="code"
-                                                placeholder="6位验证码"
+                                                placeholder="6位数字验证码"
                                                 type="text"
+                                                inputMode="numeric"
                                                 maxLength={6}
                                                 value={code}
-                                                onChange={(e) => setCode(e.target.value)}
+                                                onChange={(e) => {
+                                                    setCode(e.target.value.replace(/[^\d]/g, ''));
+                                                    setError('');
+                                                    clearFieldError('code');
+                                                }}
                                             />
                                         </div>
                                         <button
                                             type="button"
                                             onClick={handleSendCode}
-                                            disabled={countdown > 0 || !email || isLoading}
+                                            disabled={countdown > 0 || !identity.trim() || isLoading}
                                             className="px-5 py-3 bg-primary hover:bg-primary/90 text-white dark:text-gray-900 rounded-xl font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap transition-all active:scale-95 shadow-sm"
                                         >
-                                            {countdown > 0 ? `${countdown}s` : '发送'}
+                                            {countdown > 0 ? `${countdown}s` : codeSent ? '重新发送' : '发送'}
                                         </button>
                                     </div>
+                                    <p className="text-xs text-text-muted-light dark:text-text-muted-dark leading-5">
+                                        {codeSent
+                                            ? '验证码已发送到当前邮箱。若修改邮箱地址，需要重新发送验证码。'
+                                            : '可直接注册；如需先完成邮箱校验，请先发送验证码，再填写 6 位数字验证码后提交。'}
+                                    </p>
+                                    {fieldErrors.code && (
+                                        <p className="text-xs text-red-500">{fieldErrors.code}</p>
+                                    )}
                                 </div>
                             )}
 
                             {!isRegister && (
-                                <div className="flex justify-end">
+                                <div className="flex justify-between items-center gap-4">
+                                    <p className="text-xs text-text-muted-light dark:text-text-muted-dark">
+                                        支持使用用户名或邮箱登录
+                                    </p>
                                     <button
                                         type="button"
+                                        onClick={handleOpenResetModal}
                                         className="text-sm font-semibold text-primary hover:text-primary/80 transition-colors"
                                     >
                                         忘记密码？
@@ -326,23 +776,18 @@ export default function Login() {
                                     </>
                                 ) : (
                                     <>
-                                        <span>{isRegister ? '注册' : '登录'}</span>
+                                        <span>{isRegister ? registerSubmitText : '登录'}</span>
                                         <span className="material-icons-round text-xl">arrow_forward</span>
                                     </>
                                 )}
                             </button>
                         </form>
 
-                        {/* 切换登录/注册 */}
                         <div className="mt-6 text-center">
                             <p className="text-sm text-text-muted-light dark:text-text-muted-dark">
                                 {isRegister ? '已有账号？' : '还没有账号？'}
                                 <button
-                                    onClick={() => {
-                                        setIsRegister(!isRegister);
-                                        setError('');
-                                        setFieldErrors({});
-                                    }}
+                                    onClick={handleToggleAuthMode}
                                     className="ml-2 font-bold text-primary hover:text-primary/80 transition-colors"
                                 >
                                     {isRegister ? '立即登录' : '立即注册'}
@@ -351,17 +796,16 @@ export default function Login() {
                         </div>
                     </div>
 
-                    {/* Mock 模式切换 */}
                     <div className="mt-6 space-y-3">
                         {mockEnabled && !showMockOverride && (
-                            <motion.div
+                            <MotionDiv
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 className="p-3 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 rounded-xl text-xs text-center backdrop-blur-sm"
                             >
                                 <span className="material-icons-round text-sm align-middle mr-1">info</span>
                                 未检测到后端服务，已自动切换为演示模式
-                            </motion.div>
+                            </MotionDiv>
                         )}
 
                         <div className="flex items-center justify-center gap-3 text-xs text-text-muted-light dark:text-text-muted-dark">
@@ -390,7 +834,145 @@ export default function Login() {
                         </div>
                     </div>
                 </div>
-            </motion.div>
+            </MotionDiv>
+
+            <AnimatePresence>
+                {resetModalOpen && (
+                    <MotionDiv
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-30 flex items-center justify-center p-4"
+                    >
+                        <div
+                            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+                            onClick={handleCloseResetModal}
+                        />
+
+                        <MotionDiv
+                            initial={{ opacity: 0, y: 20, scale: 0.96 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 20, scale: 0.96 }}
+                            transition={{ type: 'spring', damping: 24, stiffness: 260 }}
+                            className="relative w-full max-w-md rounded-3xl bg-white dark:bg-surface-dark shadow-2xl p-6"
+                        >
+                            <div className="flex items-start justify-between gap-4 mb-5">
+                                <div>
+                                    <h2 className="text-xl font-bold text-text-main-light dark:text-text-main-dark">
+                                        重置密码
+                                    </h2>
+                                    <p className="mt-2 text-sm text-text-muted-light dark:text-text-muted-dark leading-6">
+                                        请输入注册邮箱。若该邮箱已注册，系统会发送 6 位验证码；收到后再设置新密码。
+                                    </p>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={handleCloseResetModal}
+                                    className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-text-muted-light dark:text-text-muted-dark hover:text-primary transition-colors"
+                                >
+                                    <span className="material-icons-round">close</span>
+                                </button>
+                            </div>
+
+                            <AnimatePresence>
+                                {resetError && (
+                                    <ErrorAlert error={resetError} onClose={() => setResetError('')} />
+                                )}
+                            </AnimatePresence>
+
+                            <form onSubmit={handleResetPasswordSubmit} className="space-y-4 mt-4" noValidate>
+                                <FormField
+                                    id="reset-email"
+                                    label="注册邮箱"
+                                    type="email"
+                                    value={resetForm.email}
+                                    onChange={(val) => handleResetFormChange('email', val)}
+                                    placeholder="example@email.com"
+                                    icon="email"
+                                    error={resetFieldErrors.email}
+                                    validate={validateEmail}
+                                    required
+                                />
+
+                                <div className="space-y-2">
+                                    <label className="text-sm font-semibold text-text-main-light dark:text-text-main-dark" htmlFor="reset-code">
+                                        验证码
+                                    </label>
+                                    <div className="flex gap-3">
+                                        <div className={`flex-1 bg-surface-light dark:bg-gray-800 rounded-xl border transition-all flex items-center px-4 py-3 ${
+                                            resetFieldErrors.code
+                                                ? 'border-red-400 focus-within:border-red-500 focus-within:ring-2 focus-within:ring-red-500/10'
+                                                : 'border-gray-200 dark:border-gray-700 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20'
+                                        }`}>
+                                            <span className="material-icons-round text-text-muted-light dark:text-text-muted-dark mr-3 text-xl">mark_email_read</span>
+                                            <input
+                                                id="reset-code"
+                                                type="text"
+                                                inputMode="numeric"
+                                                maxLength={6}
+                                                value={resetForm.code}
+                                                onChange={(e) => handleResetFormChange('code', e.target.value.replace(/[^\d]/g, ''))}
+                                                placeholder="6位数字验证码"
+                                                className="bg-transparent border-none p-0 w-full text-sm font-medium focus:ring-0 focus:outline-none placeholder-gray-400 dark:placeholder-gray-500"
+                                            />
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={handleSendResetCode}
+                                            disabled={resetCountdown > 0 || !resetForm.email.trim() || resetSubmitting}
+                                            className="px-5 py-3 bg-primary hover:bg-primary/90 text-white dark:text-gray-900 rounded-xl font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap transition-all active:scale-95 shadow-sm"
+                                        >
+                                            {resetCountdown > 0 ? `${resetCountdown}s` : resetCodeSent ? '重新发送' : '发送'}
+                                        </button>
+                                    </div>
+                                    <p className="text-xs text-text-muted-light dark:text-text-muted-dark leading-5">
+                                        {resetCodeSent
+                                            ? '验证码已发送到当前邮箱。若修改邮箱地址，需要重新发送验证码。'
+                                            : '如果该邮箱已注册，您将收到 6 位数字验证码。'}
+                                    </p>
+                                    {resetFieldErrors.code && (
+                                        <p className="text-xs text-red-500">{resetFieldErrors.code}</p>
+                                    )}
+                                </div>
+
+                                <FormField
+                                    id="reset-password"
+                                    label="新密码"
+                                    type="password"
+                                    value={resetForm.newPassword}
+                                    onChange={(val) => handleResetFormChange('newPassword', val)}
+                                    placeholder="至少 6 个字符，最多 72 字节"
+                                    icon="lock_reset"
+                                    error={resetFieldErrors.newPassword}
+                                    validate={validateRegisterPassword}
+                                    required
+                                    showPasswordToggle
+                                />
+                                <p className="text-xs text-text-muted-light dark:text-text-muted-dark leading-5 -mt-2 px-1">
+                                    {PASSWORD_HELPER_TEXT}
+                                </p>
+
+                                <div className="flex gap-3 pt-2">
+                                    <button
+                                        type="button"
+                                        onClick={handleCloseResetModal}
+                                        className="flex-1 py-3 px-4 rounded-xl bg-gray-100 dark:bg-gray-800 text-text-main-light dark:text-text-main-dark font-bold transition-all active:scale-[0.98]"
+                                    >
+                                        取消
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={resetSubmitting}
+                                        className="flex-1 py-3 px-4 rounded-xl bg-primary text-white dark:text-gray-900 font-bold transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        {resetSubmitting ? '提交中...' : '确认重置'}
+                                    </button>
+                                </div>
+                            </form>
+                        </MotionDiv>
+                    </MotionDiv>
+                )}
+            </AnimatePresence>
         </div>
     );
 }

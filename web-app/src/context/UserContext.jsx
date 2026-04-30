@@ -5,6 +5,13 @@ import { initMockMode } from '../mock/mockMode';
 import UserContext from './UserContextValue';
 import { clearAuthTokens, getAccessToken, setAuthTokens } from '../utils/storage';
 
+const normalizeEmail = (value = '') => value.trim().toLowerCase();
+const normalizeUsername = (value = '') => value.trim();
+const normalizeLoginIdentity = (value = '') => {
+    const normalized = value.trim();
+    return normalized.includes('@') ? normalized.toLowerCase() : normalized;
+};
+
 export const UserProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -45,22 +52,26 @@ export const UserProvider = ({ children }) => {
 
     const login = useCallback(async (email, password) => {
         try {
-            const res = await authApi.login({ username: email, password });
+            const res = await authApi.login({ username: normalizeLoginIdentity(email), password });
             if (res.code === 0) {
                 applyAuthSuccess(res.data);
                 return { success: true };
             }
-            const errorMsg = res.message?.trim() || '登录失败，请检查邮箱和密码';
+            const errorMsg = res.message?.trim() || '登录失败，请检查用户名/邮箱和密码';
             return { success: false, message: errorMsg };
         } catch (error) {
             console.error('Failed to login:', error);
-            return { success: false, message: getApiErrorMessage(error, '登录失败，请检查邮箱和密码') };
+            return { success: false, message: getApiErrorMessage(error, '登录失败，请检查用户名/邮箱和密码') };
         }
     }, [applyAuthSuccess]);
 
     const register = useCallback(async (username, email, password) => {
         try {
-            const res = await authApi.register({ username, email, password });
+            const res = await authApi.register({
+                username: normalizeUsername(username),
+                email: normalizeEmail(email),
+                password,
+            });
             if (res.code === 0) {
                 applyAuthSuccess(res.data);
                 return { success: true };
@@ -74,7 +85,12 @@ export const UserProvider = ({ children }) => {
 
     const verifyRegister = useCallback(async (email, code, username, password) => {
         try {
-            const res = await authApi.verifyRegister({ email, code, username, password });
+            const res = await authApi.verifyRegister({
+                email: normalizeEmail(email),
+                code: code.trim(),
+                username: normalizeUsername(username),
+                password,
+            });
             if (res.code === 0) {
                 applyAuthSuccess(res.data);
                 return { success: true };
@@ -88,13 +104,41 @@ export const UserProvider = ({ children }) => {
 
     const sendCode = useCallback(async (email, codeType = 'register') => {
         try {
-            const res = await authApi.sendCode({ email, code_type: codeType });
+            const res = await authApi.sendCode({ email: normalizeEmail(email), code_type: codeType });
             return res.code === 0
-                ? { success: true }
+                ? { success: true, message: res.message || res.data?.message || '验证码已发送' }
                 : { success: false, message: res.message || '发送验证码失败' };
         } catch (error) {
             console.error('Failed to send code:', error);
             return { success: false, message: getApiErrorMessage(error, '发送验证码失败') };
+        }
+    }, []);
+
+    const sendPasswordResetCode = useCallback(async (email) => {
+        try {
+            const res = await authApi.sendPasswordResetCode(normalizeEmail(email));
+            return res.code === 0
+                ? { success: true, message: res.message || res.data?.message || '重置验证码已发送' }
+                : { success: false, message: res.message || '发送重置验证码失败' };
+        } catch (error) {
+            console.error('Failed to send password reset code:', error);
+            return { success: false, message: getApiErrorMessage(error, '发送重置验证码失败') };
+        }
+    }, []);
+
+    const resetPassword = useCallback(async (email, code, newPassword) => {
+        try {
+            const res = await authApi.resetPassword({
+                email: normalizeEmail(email),
+                code: code.trim(),
+                new_password: newPassword,
+            });
+            return res.code === 0
+                ? { success: true, message: res.message || res.data?.message || '密码重置成功' }
+                : { success: false, message: res.message || '密码重置失败' };
+        } catch (error) {
+            console.error('Failed to reset password:', error);
+            return { success: false, message: getApiErrorMessage(error, '密码重置失败') };
         }
     }, []);
 
@@ -163,12 +207,29 @@ export const UserProvider = ({ children }) => {
         register,
         verifyRegister,
         sendCode,
+        sendPasswordResetCode,
+        resetPassword,
         logout,
         refreshUser,
         updateUser,
         updateAvatar,
         changePassword,
-    }), [user, isLoading, isAuthenticated, login, register, verifyRegister, sendCode, logout, refreshUser, updateUser, updateAvatar, changePassword]);
+    }), [
+        user,
+        isLoading,
+        isAuthenticated,
+        login,
+        register,
+        verifyRegister,
+        sendCode,
+        sendPasswordResetCode,
+        resetPassword,
+        logout,
+        refreshUser,
+        updateUser,
+        updateAvatar,
+        changePassword,
+    ]);
 
     return (
         <UserContext.Provider value={contextValue}>
