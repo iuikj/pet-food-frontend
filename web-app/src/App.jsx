@@ -25,6 +25,9 @@ import ProfileEdit from './pages/ProfileEdit';
 import PetEdit from './pages/PetEdit';
 import WeightTrend from './pages/WeightTrend';
 import AGUITest from './pages/AGUITest';
+import AGUIPlanLanding from './pages/AGUIPlanLanding';
+import AGUIPlanRun from './pages/AGUIPlanRun';
+import AGUIPlanResult from './pages/AGUIPlanResult';
 import { useBackButton } from './hooks/useBackButton';
 import ScrollToTop from './components/ScrollToTop';
 import React from 'react';
@@ -195,6 +198,9 @@ function AnimatedRoutes() {
           <Route path="/pet/:id/weight" element={<ProtectedRoute><WeightTrend /></ProtectedRoute>} />
           <Route path="/dashboard/daily" element={<ProtectedRoute><DashboardDaily /></ProtectedRoute>} />
           <Route path="/agui-test" element={<ProtectedRoute><AGUITest /></ProtectedRoute>} />
+          <Route path="/agui-plan" element={<ProtectedRoute><AGUIPlanLanding /></ProtectedRoute>} />
+          <Route path="/agui-plan/run" element={<ProtectedRoute><AGUIPlanRun /></ProtectedRoute>} />
+          <Route path="/agui-plan/result" element={<ProtectedRoute><AGUIPlanResult /></ProtectedRoute>} />
 
           <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
           <Route path="*" element={<Navigate to="/" replace />} />

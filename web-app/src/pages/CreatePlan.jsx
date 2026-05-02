@@ -316,10 +316,10 @@ export default function Home() {
                 </button>
             </div>
 
-            {/* AG-UI 实验入口（悬浮按钮）— 紫粉渐变区分实验性质，避开 BottomNav 中央 FAB */}
+            {/* AG-UI v2 任务式生成入口(悬浮按钮)— 紫粉渐变区分实验性质,避开 BottomNav 中央 FAB */}
             <Link
-                to="/agui-test"
-                aria-label="进入 AG-UI 实验台"
+                to="/agui-plan"
+                aria-label="进入 AG-UI v2 任务式生成"
                 className="fixed bottom-28 right-6 z-30 w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 text-white shadow-lg flex items-center justify-center hover:scale-110 active:scale-95 transition-transform"
             >
                 <span className="material-icons-round text-xl">science</span>
