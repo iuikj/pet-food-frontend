@@ -60,7 +60,9 @@ export function useAGUIPlanRunner({ setForwardedProps }) {
         });
     }, [currentPet, user?.id, setForwardedProps]);
 
-    // 2) 订阅 AG-UI CUSTOM 事件 (后端 emit_progress 双发的关键接收点)
+    // 2) 订阅事件流：
+    //    a) onCustomEvent — 后端 emit_progress / emit_ai_message / emit_tool_call 等业务事件（主路径）
+    //    b) onTextMessage* / onToolCall* / onReasoning* — AG-UI 自带标准事件（DEV 模式日志，便于评估冗余）
     useEffect(() => {
         if (!agent) return undefined;
 
@@ -107,9 +109,37 @@ export function useAGUIPlanRunner({ setForwardedProps }) {
                 });
 
                 if (import.meta.env.DEV) {
-                    console.debug('[AG-UI custom event]', payload.type, payload);
+                    console.debug('[AG-UI custom]', payload.type, payload);
                 }
             },
+            // ─────────── DEV 探针：AG-UI 自带标准事件 ───────────
+            // 这些事件由 ag_ui_langgraph 在 LLM 流式输出工具调用 / 文本 / reasoning 时自动发出。
+            // 当前主路径仍走 onCustomEvent（后端 emit_*），下面仅在 DEV 模式打日志，
+            // 用于评估"哪些 emit_* 调用是冗余的"。生产构建（import.meta.env.DEV=false）下零开销。
+            ...(import.meta.env.DEV ? {
+                onToolCallStartEvent: ({ event }) => {
+                    console.debug('[AG-UI std] TOOL_CALL_START', event.toolCallName, 'id:', event.toolCallId);
+                },
+                onToolCallEndEvent: ({ event }) => {
+                    console.debug('[AG-UI std] TOOL_CALL_END id:', event.toolCallId);
+                },
+                onToolCallResultEvent: ({ event }) => {
+                    const preview = String(event.content || '').slice(0, 80);
+                    console.debug('[AG-UI std] TOOL_CALL_RESULT id:', event.toolCallId, 'content:', preview);
+                },
+                onTextMessageStartEvent: ({ event }) => {
+                    console.debug('[AG-UI std] TEXT_MESSAGE_START role:', event.role, 'id:', event.messageId);
+                },
+                onTextMessageEndEvent: ({ event }) => {
+                    console.debug('[AG-UI std] TEXT_MESSAGE_END id:', event.messageId);
+                },
+                onReasoningStartEvent: ({ event }) => {
+                    console.debug('[AG-UI std] REASONING_START id:', event.messageId);
+                },
+                onReasoningEndEvent: ({ event }) => {
+                    console.debug('[AG-UI std] REASONING_END id:', event.messageId);
+                },
+            } : {}),
             onRunFailed: ({ error: runError }) => {
                 queueMicrotask(() => {
                     setError(runError?.message || 'Agent 运行失败');
