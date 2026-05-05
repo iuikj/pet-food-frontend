@@ -1,4 +1,4 @@
-import { Message, MessageContent } from '@/components/ai-elements/message';
+import { Message, MessageContent, MessageResponse } from '@/components/ai-elements/message';
 
 /**
  * AI 消息 Widget。
@@ -17,7 +17,9 @@ export default function AIMessageWidget({ event }) {
 
     return (
         <Message from="assistant" className="max-w-full">
-            <MessageContent>{content}</MessageContent>
+            <MessageContent>
+                <MessageResponse>{content}</MessageResponse>
+            </MessageContent>
         </Message>
     );
 }

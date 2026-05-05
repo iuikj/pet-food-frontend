@@ -18,7 +18,7 @@ import { organizeEventsForTimeline, eventKey } from '../../utils/aguiPlanEvents'
  *
  * 渲染逻辑:
  *   - mainStream 项:普通事件 → <WidgetSwitch>;虚拟 {_kind:'week_block'} → 嵌入 <WeekParallelBlock>
- *   - week_agent_N 的事件不进主流 (吸附到 weekBuckets,展开后由子 TimelineFeed 渲染)
+ *   - 带 week_number 的事件不进主流 (吸附到 weekBuckets,展开后由子 TimelineFeed 渲染)
  *
  * 布局契约:
  *   - 父容器必须有确定高度且 flex column 上下文 (h-full + min-h-0),否则 Conversation 的 stick-to-bottom 失效

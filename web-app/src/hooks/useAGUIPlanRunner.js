@@ -29,7 +29,6 @@ const TOOL_VIEW_TYPE_MAP = {
     daily_calorie_tool: 'tool_food_calc',
     nutrition_requirement_tool: 'tool_food_calc',
     write_todos: 'plan_board',
-    task: 'subagent_dispatch',
     query_note: 'tool_note_read',
     ls: 'tool_note_read',
     query_shared_note: 'tool_note_read',
@@ -56,12 +55,6 @@ function upsertEventById(events, id, buildNext) {
     const next = [...events];
     next[index] = buildNext(next[index]);
     return next;
-}
-
-function getWeekNumber(state) {
-    const raw = state?.week_assignment?.week_number;
-    const n = Number(raw);
-    return Number.isFinite(n) ? n : null;
 }
 
 function asObject(value) {
@@ -94,17 +87,18 @@ function getMetadataSubagentInfo(metadata) {
     };
 }
 
-function getStateSubagentInfo(state) {
-    const info = state?.subagent_info;
-    if (!info?.subagent_id) return null;
-    return info;
+function getMetadataWeekInfo(metadata) {
+    const meta = asObject(metadata);
+    if (!meta) return null;
+    const raw = meta.week_number ?? meta.week ?? meta.week_num;
+    const week = Number(raw);
+    if (!Number.isFinite(week)) return null;
+    return {
+        week_number: week,
+    };
 }
 
-function getScopedSubagentInfo(event, state) {
-    return getMetadataSubagentInfo(getEventMetadata(event)) || getStateSubagentInfo(state);
-}
-
-function buildScopeDetail(subagentInfo) {
+function buildSubagentScopeDetail(subagentInfo) {
     if (!subagentInfo?.subagent_id) return {};
     return {
         agent_scope: 'subagent',
@@ -113,21 +107,32 @@ function buildScopeDetail(subagentInfo) {
     };
 }
 
-function deriveEventScope(state, activeSteps, event) {
-    const subagentInfo = getScopedSubagentInfo(event, state);
+function buildWeekScopeDetail(weekInfo) {
+    if (!weekInfo?.week_number) return {};
+    return {
+        agent_scope: 'week',
+        week: weekInfo.week_number,
+        week_number: weekInfo.week_number,
+        agent_id: `week_agent_${weekInfo.week_number}`,
+    };
+}
+
+function deriveEventScope(_state, activeSteps, event) {
+    const metadata = getEventMetadata(event);
+    const subagentInfo = getMetadataSubagentInfo(metadata);
     if (subagentInfo) {
         return {
             node: `subagent_${subagentInfo.subagent_id}`,
             taskName: subagentInfo.input_message || 'SubAgent 任务',
-            detail: buildScopeDetail(subagentInfo),
+            detail: buildSubagentScopeDetail(subagentInfo),
         };
     }
-    const week = getWeekNumber(state);
-    if (week) {
+    const weekInfo = getMetadataWeekInfo(metadata);
+    if (weekInfo) {
         return {
-            node: `week_agent_${week}`,
-            taskName: `第${week}周饮食计划`,
-            detail: {},
+            node: `week_agent_${weekInfo.week_number}`,
+            taskName: `第${weekInfo.week_number}周饮食计划`,
+            detail: buildWeekScopeDetail(weekInfo),
         };
     }
     const stepName = activeSteps[activeSteps.length - 1];
@@ -136,6 +141,27 @@ function deriveEventScope(state, activeSteps, event) {
         node,
         taskName: node === 'plan_agent' ? '研究阶段' : null,
         detail: {},
+    };
+}
+
+function hasScopedOwner(detail) {
+    return !!(
+        detail?.subagent_id ||
+        detail?.week_number ||
+        detail?.week
+    );
+}
+
+function pickScopedTool(existing, next) {
+    if (!existing) return next;
+    if (hasScopedOwner(existing.scopeDetail) || !hasScopedOwner(next.scopeDetail)) {
+        return existing;
+    }
+    return {
+        ...existing,
+        node: next.node,
+        taskName: next.taskName,
+        scopeDetail: next.scopeDetail,
     };
 }
 
@@ -148,15 +174,6 @@ function buildToolDetail({ toolName, args, status, result, callId }) {
         call_id: callId,
         ...(result !== undefined ? { result } : {}),
     };
-}
-
-function isSubagentTool(toolName) {
-    const lowered = String(toolName || '').toLowerCase();
-    return toolName === 'task' || lowered.includes('subagent') || lowered.includes('transfer') || lowered.includes('transfor');
-}
-
-function hasObjectPayload(value) {
-    return !!value && typeof value === 'object' && Object.keys(value).length > 0;
 }
 
 function buildToolPayload({ toolName, args, status, result, callId, node, taskName, message, scopeDetail = {} }) {
@@ -177,35 +194,6 @@ function buildToolPayload({ toolName, args, status, result, callId, node, taskNa
                 tool_name: toolName,
                 call_id: callId,
                 status,
-                ...(result !== undefined ? { result } : {}),
-            },
-        };
-    }
-
-    if (isSubagentTool(toolName)) {
-        if (!hasObjectPayload(args)) return null;
-        const target = args.subagent_type || args.agent_name || args.name || 'subagent';
-        const delegatedTask = args.description || args.content || args.task_name || args.task || taskName || '委派任务';
-        const subagentId = scopeDetail.subagent_id || args.subagent_id || args.subagent_info?.subagent_id;
-        const inputMessage = scopeDetail.input_message || delegatedTask;
-        return {
-            type: 'subagent_spawn',
-            message: `委派 → ${target}: ${delegatedTask}`,
-            node,
-            task_name: delegatedTask,
-            timestamp: nowIso(),
-            detail: {
-                ...scopeDetail,
-                view_type: 'subagent_dispatch',
-                target,
-                task_name: delegatedTask,
-                tool_name: toolName,
-                args: args || {},
-                status,
-                call_id: callId,
-                agent_scope: 'subagent',
-                ...(subagentId ? { subagent_id: String(subagentId) } : {}),
-                ...(inputMessage ? { input_message: inputMessage } : {}),
                 ...(result !== undefined ? { result } : {}),
             },
         };
@@ -284,7 +272,7 @@ export function useAGUIPlanRunner({ setForwardedProps }) {
     }, [currentPet, user?.id, setForwardedProps]);
 
     // 2) 订阅事件流：
-    //    a) onCustomEvent — 后端业务 ProgressEvent（phase / plan_snapshot / subagent_spawn / completed）
+    //    a) onCustomEvent — 后端业务 ProgressEvent（phase / plan_snapshot / agent lifecycle / completed）
     //    b) onTextMessage* / onToolCall* / onReasoning* — AG-UI 标准事件
     useEffect(() => {
         if (!agent) return undefined;
@@ -504,17 +492,28 @@ export function useAGUIPlanRunner({ setForwardedProps }) {
             onToolCallArgsEvent: ({ event, toolCallName, partialToolCallArgs, state }) => {
                 const existing = toolCallsRef.current.get(event.toolCallId);
                 const scope = deriveEventScope(state, activeStepsRef.current, event);
+                const scoped = pickScopedTool(existing, {
+                    node: scope.node,
+                    taskName: scope.taskName,
+                    scopeDetail: scope.detail,
+                });
                 toolCallsRef.current.set(event.toolCallId, {
                     toolName: toolCallName || existing?.toolName,
                     args: partialToolCallArgs || existing?.args || {},
-                    node: existing?.node || scope.node,
-                    taskName: existing?.taskName || scope.taskName,
-                    scopeDetail: existing?.scopeDetail || scope.detail,
+                    node: scoped.node,
+                    taskName: scoped.taskName,
+                    scopeDetail: scoped.scopeDetail,
                 });
             },
-            onToolCallResultEvent: ({ event }) => {
+            onToolCallResultEvent: ({ event, state }) => {
                 const existing = toolCallsRef.current.get(event.toolCallId);
                 if (!existing) return;
+                const scope = deriveEventScope(state, activeStepsRef.current, event);
+                const scoped = pickScopedTool(existing, {
+                    node: scope.node,
+                    taskName: scope.taskName,
+                    scopeDetail: scope.detail,
+                });
                 toolCallsRef.current.delete(event.toolCallId);
                 completedToolCallIdsRef.current.add(event.toolCallId);
 
@@ -524,23 +523,32 @@ export function useAGUIPlanRunner({ setForwardedProps }) {
                     status: 'completed',
                     result: event.content,
                     callId: event.toolCallId,
-                    node: existing.node,
-                    taskName: existing.taskName,
+                    node: scoped.node,
+                    taskName: scoped.taskName,
                     message: `${existing.toolName}: completed`,
-                    scopeDetail: existing.scopeDetail,
+                    scopeDetail: scoped.scopeDetail,
                 });
                 if (!payload) return;
                 enqueueStateUpdate(() => {
                     setEvents((prev) => [...prev, payload]);
                 });
             },
-            onToolCallEndEvent: ({ event, toolCallName, toolCallArgs }) => {
+            onToolCallEndEvent: ({ event, toolCallName, toolCallArgs, state }) => {
                 const existing = toolCallsRef.current.get(event.toolCallId);
                 if (!existing) return;
+                const scope = deriveEventScope(state, activeStepsRef.current, event);
+                const scoped = pickScopedTool(existing, {
+                    node: scope.node,
+                    taskName: scope.taskName,
+                    scopeDetail: scope.detail,
+                });
                 toolCallsRef.current.set(event.toolCallId, {
                     ...existing,
                     toolName: toolCallName || existing.toolName,
                     args: toolCallArgs || existing.args || {},
+                    node: scoped.node,
+                    taskName: scoped.taskName,
+                    scopeDetail: scoped.scopeDetail,
                 });
             },
             onNewMessage: ({ message, state }) => {

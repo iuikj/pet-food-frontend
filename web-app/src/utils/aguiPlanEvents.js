@@ -20,7 +20,6 @@ export const EVENT_META = {
     plan_snapshot:            { phase: 'research', icon: 'checklist',         color: 'amber'   },
     task_delegating:          { phase: 'research', icon: 'forward_to_inbox',  color: 'amber'   },
     research_task_delegating: { phase: 'research', icon: 'forward_to_inbox',  color: 'amber'   },
-    subagent_spawn:           { phase: 'research', icon: 'forward',           color: 'amber'   },
     task_executing:           { phase: 'research', icon: 'play_circle',       color: 'amber'   },
     task_searching:           { phase: 'research', icon: 'travel_explore',    color: 'blue'    },
     task_querying_note:       { phase: 'research', icon: 'description',       color: 'gray'    },
@@ -56,15 +55,26 @@ export const EVENT_META = {
     info:                     { phase: null,       icon: 'info',              color: 'gray'    },
 };
 
-/** 把所有事件按周分桶。node 字段格式 "week_agent_N" */
+function weekNumberFromEvent(ev) {
+    const detailWeek = ev.detail?.week_number ?? ev.detail?.week;
+    const parsedDetailWeek = Number(detailWeek);
+    if (Number.isFinite(parsedDetailWeek)) return parsedDetailWeek;
+    return null;
+}
+
+function isWeekScopedEvent(ev) {
+    return !!weekNumberFromEvent(ev) && (
+        ev.detail?.agent_scope === 'week' ||
+        ev.node?.startsWith('week_agent_')
+    );
+}
+
+/** 把所有事件按周分桶。只使用 detail.week_number / detail.week 作为归属依据 */
 export function bucketByWeek(events) {
     const buckets = { 1: [], 2: [], 3: [], 4: [] };
     for (const e of events) {
-        const m = e.node?.match(/^week_agent_(\d)$/);
-        if (m) {
-            const n = Number(m[1]);
-            if (buckets[n]) buckets[n].push(e);
-        }
+        const n = weekNumberFromEvent(e);
+        if (buckets[n]) buckets[n].push(e);
     }
     return buckets;
 }
@@ -215,14 +225,12 @@ export function mergeToolCalls(events) {
 function subagentIdFromEvent(ev) {
     const detailId = ev.detail?.subagent_id || ev.detail?.subagent_info?.subagent_id;
     if (detailId) return String(detailId);
-    const nodeMatch = ev.node?.match(/^subagent_(.+)$/);
-    return nodeMatch?.[1] || null;
+    return null;
 }
 
 function isSubagentScopedEvent(ev) {
     return !!subagentIdFromEvent(ev) && (
-        ev.detail?.agent_scope === 'subagent' ||
-        ev.node?.startsWith('subagent_')
+        ev.detail?.agent_scope === 'subagent'
     );
 }
 
@@ -239,10 +247,10 @@ export function eventKey(ev) {
  * 时间流分流算法 (核心):
  *   1. 按 timestamp 升序
  *   2. 合并同 call_id 的 tool_call started+completed
- *   3. node="week_agent_N" 的事件 → 不进主流,吸附到 weekBuckets[N]
+ *   3. 带 week_number 的 week 事件 → 不进主流,吸附到 weekBuckets[N]
  *   4. view_type="week_dispatch" 的事件 → 对应 week bucket,主流当前位置插入虚拟节点 {_kind:'week_block'}
  *      触发 TimelineFeed 在该位置嵌入 <WeekParallelBlock>
- *   5. view_type="subagent_dispatch" 的事件 → 对应 subagent bucket,主流插入 {_kind:'subagent_block'}
+ *   5. 带 subagent_id 的 subagent 事件 → 对应 subagent bucket,主流插入 {_kind:'subagent_block'}
  *
  * 返回 { mainStream, weekBuckets, subagentBuckets, subagentCards }
  */
@@ -268,16 +276,16 @@ export function organizeEventsForTimeline(events, options = {}) {
     let subagentBlockInserted = false;
 
     for (const ev of merged) {
-        const m = ev.node?.match(/^week_agent_(\d)$/);
-        if (m) {
-            const n = Number(m[1]);
+        const weekNumber = weekNumberFromEvent(ev);
+        if (isWeekScopedEvent(ev)) {
+            const n = weekNumber;
             if (weekBuckets[n]) weekBuckets[n].push(ev);
             continue;
         }
 
         const isWeekDispatch = ev.detail?.view_type === 'week_dispatch';
         if (isWeekDispatch) {
-            const week = Number(ev.detail?.week_number);
+            const week = weekNumber;
             if (weekBuckets[week]) {
                 weekBuckets[week].push(ev);
             }
@@ -290,7 +298,11 @@ export function organizeEventsForTimeline(events, options = {}) {
 
         const isSubagentDispatch = ev.detail?.view_type === 'subagent_dispatch';
         if (isSubagentDispatch) {
-            const id = subagentIdFromEvent(ev) || ev.detail?.call_id || eventKey(ev);
+            const id = subagentIdFromEvent(ev);
+            if (!id) {
+                mainStream.push(ev);
+                continue;
+            }
             subagentCardsById.set(id, {
                 id,
                 dispatchEvent: ev,

@@ -7,7 +7,7 @@ import OnboardingLayout from '../components/OnboardingLayout';
 export default function OnboardingName() {
     const navigate = useNavigate();
     const location = useLocation();
-    const [petPhoto, setPetPhoto] = useState(sessionStorage.getItem('onboarding_pet_photo') || null);
+    const [petPhoto                                                                                                                                                                                    , setPetPhoto] = useState(sessionStorage.getItem('onboarding_pet_photo') || null);
     const [petName, setPetName] = useState(sessionStorage.getItem('onboarding_pet_name') || '');
     const { selectPhoto } = usePhotoSelect();
 
@@ -20,7 +20,7 @@ export default function OnboardingName() {
     const takePicture = async () => {
         const result = await selectPhoto({
             promptLabelHeader: '选择照片来源',
-            promptLabelPhoto: '从相册选择',
+            promptLabelPhoto: '从相册选择',                                       
             promptLabelPicture: '拍照',
         });
         if (result) {

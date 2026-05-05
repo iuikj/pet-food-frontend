@@ -13,7 +13,7 @@ import { toQueueDispatch } from '@/lib/aiElementsAdapter';
 
 /**
  * SubAgent 调度提示单行。
- * 数据契约:emit_subagent_spawn → detail.{target, task_name, week_number}
+ * 数据契约:subagent lifecycle custom event → detail.{subagent_id, target, task_name, status}
  */
 export default function SubagentDispatchWidget({ event }) {
     const dispatch = toQueueDispatch(event);
