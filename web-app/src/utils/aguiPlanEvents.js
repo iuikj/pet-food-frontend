@@ -2,11 +2,11 @@
  * AGUI Plan 事件流工具函数库
  *
  * 后端 emit_progress 双发的 ProgressEvent 通过 ag_ui_langgraph 转成 AG-UI CUSTOM 事件,
- * 前端 useRenderCustomMessages 收到后,用此处的工具函数派生：
+ * 前端 agent.subscribe(onCustomEvent) 收到后,用此处的工具函数派生：
  *   - 按 phase 分桶 (research / dispatch / weeks / finalize)
  *   - 按 node 分桶 (research_planner / week_agent_1..4 / structure / gather)
  *   - 按 call_id 合并 tool_call started + completed 两条事件为同一卡片
- *   - 派生 4 周状态、总进度、当前 phase
+ *   - 派生 4 周状态、当前 phase
  */
 
 // ── 19 + 6 种 ProgressEventType 的 UI 元数据 ──
@@ -90,14 +90,9 @@ export function derivePhase(events, isRunning) {
     if (last.node?.startsWith('week_agent_')) return 'weeks';
     if (last.node === 'dispatch_weeks') return 'dispatch';
     if (last.node === 'collect_and_structure' || last.node === 'structure_report' || last.node === 'gather') return 'finalize';
-    if (last.node === 'research_planner' || last.node === 'subagent' || last.node === 'write_note') return 'research';
+    if (last.node === 'research_planner' || last.node === 'subagent' || last.node?.startsWith('subagent_') || last.node === 'write_note') return 'research';
 
     return EVENT_META[last.type]?.phase ?? 'starting';
-}
-
-/** 派生总进度。取所有事件 progress 字段的最大值 (避免回退) */
-export function deriveOverallProgress(events) {
-    return events.reduce((m, e) => Math.max(m, e.progress ?? 0), 0);
 }
 
 /** 单周状态推导:基于最后一条 week_* 事件的类型 */
@@ -106,7 +101,7 @@ export function deriveWeekStatus(weekEvents) {
     const phaseEvents = weekEvents.filter((e) => /^week_/.test(e.type));
     const last = phaseEvents[phaseEvents.length - 1];
 
-    if (!last) return { key: 'pending', label: '等待中', color: 'gray', progress: 0 };
+    if (!last) return { key: 'pending', label: '等待中', color: 'gray' };
 
     const map = {
         week_planning:    { key: 'planning',  label: '规划中', color: 'amber'   },
@@ -116,7 +111,24 @@ export function deriveWeekStatus(weekEvents) {
         week_completed:   { key: 'completed', label: '已完成', color: 'primary' },
     };
     const status = map[last.type] ?? { key: 'active', label: '执行中', color: 'amber' };
-    return { ...status, progress: deriveOverallProgress(weekEvents) };
+    return status;
+}
+
+export function deriveSubagentStatus(subagentEvents, dispatchEvent) {
+    const all = [...(subagentEvents || []), ...(dispatchEvent ? [dispatchEvent] : [])];
+    if (all.some((e) => e.type === 'error' || e.detail?.status === 'error')) {
+        return { key: 'error', label: '失败', color: 'red' };
+    }
+    if (all.some((e) => e.type === 'task_completed' || e.detail?.status === 'completed')) {
+        return { key: 'completed', label: '已完成', color: 'primary' };
+    }
+    if (all.some((e) => e.type === 'task_searching')) {
+        return { key: 'searching', label: '检索中', color: 'blue' };
+    }
+    if (all.some((e) => e.type === 'task_executing')) {
+        return { key: 'active', label: '执行中', color: 'amber' };
+    }
+    return { key: 'pending', label: '等待中', color: 'gray' };
 }
 
 /** 把事件按 phase 分桶 (除聊天式事件,需按 node 二次推断) */
@@ -154,31 +166,70 @@ export function mergeToolCalls(events) {
 
     for (const ev of events) {
         const isToolCall = ev.type === 'tool_call' || ev.detail?.view_type?.startsWith('tool_');
+        const isSubagentDispatch = ev.detail?.view_type === 'subagent_dispatch';
         const callId = ev.detail?.call_id;
+        const planSnapshotKey = ev.type === 'plan_snapshot' && (
+            ev.detail?.source === 'state.todos' ||
+            ev.detail?.tool_name === 'write_todos' ||
+            ev.detail?.tool_name === 'update_todos' ||
+            ev.detail?.tool_name === 'TodoWrite'
+        )
+            ? `plan:${ev.node ?? 'plan_agent'}:todos`
+            : null;
 
-        if (isToolCall && callId && callIndex.has(callId)) {
-            // 合并:覆盖 detail (保留最新 status / result),更新 timestamp
-            const idx = callIndex.get(callId);
+        if (planSnapshotKey && callIndex.has(planSnapshotKey)) {
+            const idx = callIndex.get(planSnapshotKey);
             out[idx] = {
                 ...out[idx],
+                ...ev,
                 detail: { ...out[idx].detail, ...ev.detail },
                 timestamp: ev.timestamp,
             };
             continue;
         }
 
+        if ((isToolCall || isSubagentDispatch) && callId && callIndex.has(callId)) {
+            // 合并:覆盖 detail (保留最新 status / result),更新 timestamp
+            const idx = callIndex.get(callId);
+            out[idx] = {
+                ...out[idx],
+                ...ev,
+                detail: { ...out[idx].detail, ...ev.detail },
+                timestamp: out[idx].timestamp || ev.timestamp,
+            };
+            continue;
+        }
+
         out.push({ ...ev });
-        if (isToolCall && callId) {
+        if ((isToolCall || isSubagentDispatch) && callId) {
             callIndex.set(callId, out.length - 1);
+        }
+        if (planSnapshotKey) {
+            callIndex.set(planSnapshotKey, out.length - 1);
         }
     }
 
     return out;
 }
 
+function subagentIdFromEvent(ev) {
+    const detailId = ev.detail?.subagent_id || ev.detail?.subagent_info?.subagent_id;
+    if (detailId) return String(detailId);
+    const nodeMatch = ev.node?.match(/^subagent_(.+)$/);
+    return nodeMatch?.[1] || null;
+}
+
+function isSubagentScopedEvent(ev) {
+    return !!subagentIdFromEvent(ev) && (
+        ev.detail?.agent_scope === 'subagent' ||
+        ev.node?.startsWith('subagent_')
+    );
+}
+
 /** 计算事件的稳定 React key (timestamp + call_id 或 node + type) */
 export function eventKey(ev) {
     if (ev._kind === 'week_block') return 'week_block';
+    if (ev._kind === 'subagent_block') return 'subagent_block';
     const callId = ev.detail?.call_id;
     if (callId) return `call:${callId}`;
     return `${ev.timestamp}|${ev.node ?? ''}|${ev.type}`;
@@ -189,21 +240,32 @@ export function eventKey(ev) {
  *   1. 按 timestamp 升序
  *   2. 合并同 call_id 的 tool_call started+completed
  *   3. node="week_agent_N" 的事件 → 不进主流,吸附到 weekBuckets[N]
- *   4. 第一个 view_type="week_dispatch" 的事件 → 主流当前位置插入虚拟节点 {_kind:'week_block'}
+ *   4. view_type="week_dispatch" 的事件 → 对应 week bucket,主流当前位置插入虚拟节点 {_kind:'week_block'}
  *      触发 TimelineFeed 在该位置嵌入 <WeekParallelBlock>
- *   5. 后续 week_dispatch 仍进主流 (作为多次分发的提示行),但不再插入新的 week_block
+ *   5. view_type="subagent_dispatch" 的事件 → 对应 subagent bucket,主流插入 {_kind:'subagent_block'}
  *
- * 返回 { mainStream, weekBuckets }
+ * 返回 { mainStream, weekBuckets, subagentBuckets, subagentCards }
  */
-export function organizeEventsForTimeline(events) {
+export function organizeEventsForTimeline(events, options = {}) {
     const sorted = [...events].sort((a, b) =>
         (a.timestamp || '').localeCompare(b.timestamp || '')
     );
     const merged = mergeToolCalls(sorted);
+    if (options.nested) {
+        return {
+            mainStream: merged,
+            weekBuckets: { 1: [], 2: [], 3: [], 4: [] },
+            subagentBuckets: {},
+            subagentCards: [],
+        };
+    }
 
     const mainStream = [];
     const weekBuckets = { 1: [], 2: [], 3: [], 4: [] };
+    const subagentBuckets = {};
+    const subagentCardsById = new Map();
     let weekBlockInserted = false;
+    let subagentBlockInserted = false;
 
     for (const ev of merged) {
         const m = ev.node?.match(/^week_agent_(\d)$/);
@@ -215,7 +277,10 @@ export function organizeEventsForTimeline(events) {
 
         const isWeekDispatch = ev.detail?.view_type === 'week_dispatch';
         if (isWeekDispatch) {
-            mainStream.push(ev);
+            const week = Number(ev.detail?.week_number);
+            if (weekBuckets[week]) {
+                weekBuckets[week].push(ev);
+            }
             if (!weekBlockInserted) {
                 mainStream.push({ _kind: 'week_block', timestamp: ev.timestamp });
                 weekBlockInserted = true;
@@ -223,8 +288,48 @@ export function organizeEventsForTimeline(events) {
             continue;
         }
 
+        const isSubagentDispatch = ev.detail?.view_type === 'subagent_dispatch';
+        if (isSubagentDispatch) {
+            const id = subagentIdFromEvent(ev) || ev.detail?.call_id || eventKey(ev);
+            subagentCardsById.set(id, {
+                id,
+                dispatchEvent: ev,
+                target: ev.detail?.target || 'subagent',
+                taskName: ev.detail?.task_name || ev.task_name || ev.message || 'SubAgent 任务',
+            });
+            (subagentBuckets[id] ||= []).push(ev);
+            if (!subagentBlockInserted) {
+                mainStream.push({ _kind: 'subagent_block', timestamp: ev.timestamp });
+                subagentBlockInserted = true;
+            }
+            continue;
+        }
+
+        if (isSubagentScopedEvent(ev)) {
+            const id = subagentIdFromEvent(ev);
+            (subagentBuckets[id] ||= []).push(ev);
+            if (!subagentCardsById.has(id)) {
+                subagentCardsById.set(id, {
+                    id,
+                    dispatchEvent: null,
+                    target: ev.detail?.target || 'subagent',
+                    taskName: ev.detail?.input_message || ev.task_name || ev.message || 'SubAgent 任务',
+                });
+            }
+            if (!subagentBlockInserted) {
+                mainStream.push({ _kind: 'subagent_block', timestamp: ev.timestamp });
+                subagentBlockInserted = true;
+            }
+            continue;
+        }
+
         mainStream.push(ev);
     }
 
-    return { mainStream, weekBuckets };
+    return {
+        mainStream,
+        weekBuckets,
+        subagentBuckets,
+        subagentCards: Array.from(subagentCardsById.values()),
+    };
 }

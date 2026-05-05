@@ -36,7 +36,11 @@ export default function AGUIPlanRun() {
     );
 
     return (
-        <div className="flex flex-col min-h-[100dvh] bg-background-light dark:bg-background-dark" style={cpkThemeStyle}>
+        <div
+            className="agui-run-shell flex min-h-[100dvh] flex-col bg-background-light dark:bg-background-dark"
+            data-agui-run
+            style={cpkThemeStyle}
+        >
             <CopilotKitProvider
                 agents__unsafe_dev_only={{ [AGENT_ID]: agent }}
                 showDevConsole={false}
@@ -143,7 +147,7 @@ function RunInner({ setForwardedProps }) {
                     <PetHero pet={currentPet} events={events} isRunning={isRunning} error={error} />
 
                     {!hasStarted && !error && (
-                        <section className="bg-white dark:bg-surface-dark rounded-2xl p-5 shadow-soft border border-gray-100 dark:border-gray-800 text-center">
+                        <section className="py-8 text-center">
                             <span className="material-icons-round text-5xl text-primary mb-2">smart_toy</span>
                             <h3 className="font-bold text-base mb-1">准备就绪</h3>
                             <p className="text-xs text-text-muted-light leading-relaxed">

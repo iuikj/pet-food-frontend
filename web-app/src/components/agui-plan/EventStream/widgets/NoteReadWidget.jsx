@@ -19,7 +19,7 @@ export default function NoteReadWidget({ event }) {
                     <ToolInput input={part.input} />
                 )}
                 {noteText && (
-                    <div className="rounded-md border bg-muted/30 p-3 text-xs">
+                    <div className="rounded-md bg-muted/30 p-3 text-xs">
                         <h4 className="mb-2 font-medium uppercase tracking-wide text-muted-foreground text-xs">
                             笔记
                         </h4>

@@ -36,14 +36,15 @@ export const widgetRegistry = {
 
     // 阶段元事件
     phase_marker:      PhaseMarkerWidget,
-    progress_tick:     null,    // 不渲染 (仅推进进度,前端 deriveOverallProgress 消费)
+    progress_tick:     null,    // 不渲染；AG-UI run 页面不再消费百分比 progress
 };
 
-/** 按 view_type 取 Widget;未注册的回落到 GenericToolWidget */
+/** 按 view_type 取 Widget;仅 tool_* 未注册项回落到 GenericToolWidget */
 export function getWidget(viewType) {
     if (!viewType) return null;
     if (viewType in widgetRegistry) return widgetRegistry[viewType];
-    return GenericToolWidget;
+    if (viewType.startsWith('tool_')) return GenericToolWidget;
+    return null;
 }
 
 /** 用于 DEV 模式排查未识别的 view_type */

@@ -1,9 +1,16 @@
 import { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion'; // eslint-disable-line no-unused-vars -- motion used via JSX
-import { Conversation, ConversationContent, ConversationScrollButton, ConversationEmptyState } from '@/components/ai-elements/conversation';
+import {
+    Conversation,
+    ConversationContent,
+    ConversationDownload,
+    ConversationScrollButton,
+    ConversationEmptyState,
+} from '@/components/ai-elements/conversation';
 import { Sparkles } from 'lucide-react';
 import WidgetSwitch from './EventStream/WidgetSwitch';
 import WeekParallelBlock from './WeekParallelBlock';
+import SubAgentParallelBlock from './SubAgentParallelBlock';
 import { organizeEventsForTimeline, eventKey } from '../../utils/aguiPlanEvents';
 
 /**
@@ -18,9 +25,19 @@ import { organizeEventsForTimeline, eventKey } from '../../utils/aguiPlanEvents'
  *   - compact 模式 (嵌入 WeekAgentCard 时) 用 max-h-[50vh] 防止子卡片过高
  */
 export default function TimelineFeed({ events, emptyText, compact = false }) {
-    const { mainStream, weekBuckets } = useMemo(
-        () => organizeEventsForTimeline(events || []),
-        [events]
+    const { mainStream, weekBuckets, subagentBuckets, subagentCards } = useMemo(
+        () => organizeEventsForTimeline(events || [], { nested: compact }),
+        [events, compact]
+    );
+    const conversationMessages = useMemo(
+        () => mainStream
+            .filter((item) => item?.detail?.view_type === 'ai_message')
+            .map((item) => ({
+                id: item.detail?.message_id || eventKey(item),
+                role: 'assistant',
+                parts: [{ type: 'text', text: item.detail?.content || item.message || '' }],
+            })),
+        [mainStream],
     );
 
     if (mainStream.length === 0) {
@@ -52,6 +69,18 @@ export default function TimelineFeed({ events, emptyText, compact = false }) {
                                 </motion.div>
                             );
                         }
+                        if (item._kind === 'subagent_block') {
+                            return (
+                                <motion.div
+                                    key="subagent_block"
+                                    initial={{ opacity: 0, scale: 0.96 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    transition={{ type: 'spring', stiffness: 240, damping: 22 }}
+                                >
+                                    <SubAgentParallelBlock cards={subagentCards} buckets={subagentBuckets} />
+                                </motion.div>
+                            );
+                        }
                         return (
                             <motion.div
                                 key={eventKey(item)}
@@ -65,6 +94,9 @@ export default function TimelineFeed({ events, emptyText, compact = false }) {
                     })}
                 </AnimatePresence>
             </ConversationContent>
+            {!compact && conversationMessages.length > 0 && (
+                <ConversationDownload messages={conversationMessages} />
+            )}
             <ConversationScrollButton />
         </Conversation>
     );

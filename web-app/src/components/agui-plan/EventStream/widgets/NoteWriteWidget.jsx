@@ -15,7 +15,7 @@ export default function NoteWriteWidget({ event }) {
             <ToolHeader type={part.type} state={part.state} />
             <ToolContent>
                 {writeContent ? (
-                    <div className="rounded-md border bg-muted/30 p-3 text-xs">
+                    <div className="rounded-md bg-muted/30 p-3 text-xs">
                         <h4 className="mb-2 font-medium uppercase tracking-wide text-muted-foreground text-xs">
                             写入内容
                         </h4>

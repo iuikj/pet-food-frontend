@@ -35,13 +35,82 @@ export function toToolUIPart(event) {
 export function toAiSdkPlan(event) {
     const items = event.detail?.items || [];
     return {
-        title: event.detail?.task_name || '任务规划',
+        title: event.task_name || event.detail?.task_name || '任务规划',
         action: event.detail?.action || 'updated',
         steps: items.map((it, i) => ({
             id: String(i),
             description: typeof it === 'string' ? it : (it.content || it.description || ''),
             status: typeof it === 'object' ? (it.status || 'pending') : 'pending',
         })),
+    };
+}
+
+export function toQueueSections(event) {
+    const detail = event.detail || {};
+    const items = detail.items || [];
+    const pending = [];
+    const completed = [];
+
+    items.forEach((item, index) => {
+        const description = typeof item === 'string' ? item : (item.content || item.description || '');
+        const status = typeof item === 'object' ? (item.status || 'pending') : 'pending';
+        const entry = {
+            id: String(index),
+            description,
+            status,
+            completed: status === 'done' || status === 'completed',
+        };
+        if (entry.completed) {
+            completed.push(entry);
+        } else {
+            pending.push(entry);
+        }
+    });
+
+    return [
+        {
+            key: 'pending',
+            label: '项进行中任务',
+            count: pending.length,
+            defaultOpen: true,
+            items: pending,
+        },
+        {
+            key: 'completed',
+            label: '项已完成任务',
+            count: completed.length,
+            defaultOpen: completed.length > 0,
+            items: completed,
+        },
+    ].filter((section) => section.count > 0);
+}
+
+export function toQueueDispatch(event) {
+    const detail = event.detail || {};
+    const week = detail.week_number;
+    const target = detail.target || 'subagent';
+    const taskName = detail.task_name || event.message || '待处理任务';
+    const isWeek = target === 'week_agent' || detail.view_type === 'week_dispatch';
+
+    return {
+        title: isWeek ? '周任务分发' : 'Subagent 委派',
+        sections: [
+            {
+                key: 'active',
+                label: isWeek ? '项周任务' : '项委派任务',
+                count: 1,
+                defaultOpen: true,
+                items: [
+                    {
+                        id: `${target}-${week ?? 'main'}`,
+                        description: taskName,
+                        status: 'in_progress',
+                        completed: false,
+                        meta: isWeek && week ? `W${week}` : target,
+                    },
+                ],
+            },
+        ],
     };
 }
 

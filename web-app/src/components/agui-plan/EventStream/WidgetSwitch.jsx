@@ -1,5 +1,5 @@
 import { createElement } from 'react';
-import { getWidget, isKnownViewType } from './widgetRegistry';
+import { getWidget } from './widgetRegistry';
 import PhaseMarkerWidget from './widgets/PhaseMarkerWidget';
 
 /**
@@ -22,10 +22,6 @@ export default function WidgetSwitch({ event }) {
 
     if (event.message && (event.progress !== undefined || event.type)) {
         return <PhaseMarkerWidget event={event} />;
-    }
-
-    if (import.meta.env.DEV && viewType && !isKnownViewType(viewType)) {
-        console.warn('[WidgetSwitch] unknown view_type:', viewType, event);
     }
 
     return null;

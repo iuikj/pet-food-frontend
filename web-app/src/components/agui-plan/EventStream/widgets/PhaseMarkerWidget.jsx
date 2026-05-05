@@ -8,11 +8,10 @@ export default function PhaseMarkerWidget({ event }) {
     const message = event.message || event.detail?.content || event.type;
     const isError = event.type === 'error';
     const isCompleted = event.type === 'completed' || event.type === 'task_completed';
-    const showProgress = typeof event.progress === 'number' && event.progress > 0 && event.progress < 100;
 
     if (isError) {
         return (
-            <div className="flex items-center gap-2 px-2 py-1.5 text-xs text-destructive">
+            <div className="flex items-center gap-2 px-1 py-1 text-xs text-destructive">
                 <AlertCircle className="size-4 shrink-0" />
                 <span>{message}</span>
             </div>
@@ -21,7 +20,7 @@ export default function PhaseMarkerWidget({ event }) {
 
     if (isCompleted) {
         return (
-            <div className="flex items-center gap-2 px-2 py-1.5 text-sm font-medium text-primary">
+            <div className="flex items-center gap-2 px-1 py-1 text-sm font-medium text-emerald-700">
                 <CheckCircle2 className="size-4 shrink-0" />
                 <span>{message}</span>
             </div>
@@ -29,11 +28,8 @@ export default function PhaseMarkerWidget({ event }) {
     }
 
     return (
-        <div className="flex items-center gap-2 px-2 py-1.5 text-xs text-muted-foreground">
+        <div className="flex items-center gap-2 px-1 py-1 text-xs text-muted-foreground">
             <Shimmer>{message}</Shimmer>
-            {showProgress && (
-                <span className="ml-auto font-mono text-[10px] shrink-0">{event.progress}%</span>
-            )}
         </div>
     );
 }

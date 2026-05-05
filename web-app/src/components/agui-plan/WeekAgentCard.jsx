@@ -1,5 +1,4 @@
 import { useMemo } from 'react';
-import { motion } from 'framer-motion'; // eslint-disable-line no-unused-vars -- motion used via JSX
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { ChevronDown } from 'lucide-react';
 import { deriveWeekStatus } from '../../utils/aguiPlanEvents';
@@ -17,7 +16,7 @@ const STATUS_BADGE = {
 };
 
 /**
- * 单周折叠卡 — 折叠态显示标题/状态/最后一条消息/进度条;
+ * 单周折叠卡 — 折叠态显示标题/状态/最后一条消息;
  * 展开后嵌入 compact 子 TimelineFeed,递归渲染该周事件流。
  */
 export default function WeekAgentCard({ weekNumber, events }) {
@@ -25,10 +24,9 @@ export default function WeekAgentCard({ weekNumber, events }) {
     const last = events?.[events.length - 1];
     const meta = STATUS_BADGE[status.key] || STATUS_BADGE.pending;
     const canExpand = (events?.length || 0) > 0;
-    const progress = status.progress || (canExpand ? 5 : 0);
 
     return (
-        <Collapsible className="rounded-lg border bg-card overflow-hidden">
+        <Collapsible className="overflow-hidden rounded-md border bg-background">
             <CollapsibleTrigger
                 disabled={!canExpand}
                 className="group flex w-full flex-col items-start gap-1.5 p-3 text-left disabled:cursor-default"
@@ -52,15 +50,8 @@ export default function WeekAgentCard({ weekNumber, events }) {
                 <p className="min-h-[1rem] w-full truncate text-xs text-muted-foreground">
                     {last?.message || '等待启动...'}
                 </p>
-                <div className="h-1 w-full overflow-hidden rounded-full bg-muted">
-                    <motion.div
-                        className="h-full rounded-full bg-primary"
-                        animate={{ width: `${progress}%` }}
-                        transition={{ duration: 0.4 }}
-                    />
-                </div>
             </CollapsibleTrigger>
-            <CollapsibleContent className="border-t bg-background">
+            <CollapsibleContent className="border-t">
                 {canExpand && <TimelineFeed events={events} compact emptyText="此周暂无事件" />}
             </CollapsibleContent>
         </Collapsible>
