@@ -1,59 +1,29 @@
 import { useMemo } from 'react';
-import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
-import { ChevronDown } from 'lucide-react';
 import { deriveWeekStatus } from '../../utils/aguiPlanEvents';
-import TimelineFeed from './TimelineFeed';
+import AgentStreamCard from './AgentStreamCard';
 
 const WEEK_LABELS = ['基础适应期', '营养强化期', '多样化拓展', '巩固优化期'];
 
-const STATUS_BADGE = {
-    pending:   { cls: 'bg-muted text-muted-foreground',           label: '等待'   },
-    planning:  { cls: 'bg-amber-500/15 text-amber-700',           label: '规划中' },
-    searching: { cls: 'bg-blue-500/15 text-blue-700',             label: '检索中' },
-    writing:   { cls: 'bg-purple-500/15 text-purple-700',         label: '撰写中' },
-    completed: { cls: 'bg-primary/15 text-primary',               label: '已完成' },
-    active:    { cls: 'bg-amber-500/15 text-amber-700',           label: '执行中' },
-};
-
-/**
- * 单周折叠卡 — 折叠态显示标题/状态/最后一条消息;
- * 展开后嵌入 compact 子 TimelineFeed,递归渲染该周事件流。
- */
-export default function WeekAgentCard({ weekNumber, events }) {
-    const status = useMemo(() => deriveWeekStatus(events || []), [events]);
-    const last = events?.[events.length - 1];
-    const meta = STATUS_BADGE[status.key] || STATUS_BADGE.pending;
-    const canExpand = (events?.length || 0) > 0;
+export default function WeekAgentCard({ card, events }) {
+    const weekNumber = Number(card?.weekNumber || card?.id);
+    const lifecycleEvents = useMemo(
+        () => [card?.dispatchEvent, card?.startedEvent, card?.completedEvent].filter(Boolean),
+        [card?.dispatchEvent, card?.startedEvent, card?.completedEvent],
+    );
+    const status = useMemo(
+        () => deriveWeekStatus(events || [], lifecycleEvents),
+        [events, lifecycleEvents],
+    );
 
     return (
-        <Collapsible className="overflow-hidden rounded-md border bg-background">
-            <CollapsibleTrigger
-                disabled={!canExpand}
-                className="group flex w-full flex-col items-start gap-1.5 p-3 text-left disabled:cursor-default"
-            >
-                <div className="flex w-full items-center justify-between gap-2">
-                    <div className="flex min-w-0 items-center gap-2">
-                        <span className="text-sm font-bold">第{weekNumber}周</span>
-                        <span className="truncate text-[10px] text-muted-foreground">
-                            {WEEK_LABELS[weekNumber - 1]}
-                        </span>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-1.5">
-                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${meta.cls}`}>
-                            {meta.label}
-                        </span>
-                        {canExpand && (
-                            <ChevronDown className="size-4 text-muted-foreground transition-transform group-data-[panel-open]:rotate-180" />
-                        )}
-                    </div>
-                </div>
-                <p className="min-h-[1rem] w-full truncate text-xs text-muted-foreground">
-                    {last?.message || '等待启动...'}
-                </p>
-            </CollapsibleTrigger>
-            <CollapsibleContent className="border-t">
-                {canExpand && <TimelineFeed events={events} compact emptyText="此周暂无事件" />}
-            </CollapsibleContent>
-        </Collapsible>
+        <AgentStreamCard
+            kind="week"
+            title={Number.isFinite(weekNumber) ? `第${weekNumber}周` : '周计划'}
+            subtitle={Number.isFinite(weekNumber) ? WEEK_LABELS[weekNumber - 1] : null}
+            taskName={card?.taskName}
+            status={status}
+            events={events || []}
+            emptyText="此周暂无事件"
+        />
     );
 }

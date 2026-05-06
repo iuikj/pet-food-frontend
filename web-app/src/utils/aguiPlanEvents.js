@@ -63,10 +63,7 @@ function weekNumberFromEvent(ev) {
 }
 
 function isWeekScopedEvent(ev) {
-    return !!weekNumberFromEvent(ev) && (
-        ev.detail?.agent_scope === 'week' ||
-        ev.node?.startsWith('week_agent_')
-    );
+    return !!weekNumberFromEvent(ev) && ev.detail?.agent_scope === 'week';
 }
 
 /** 把所有事件按周分桶。只使用 detail.week_number / detail.week 作为归属依据 */
@@ -106,12 +103,20 @@ export function derivePhase(events, isRunning) {
 }
 
 /** 单周状态推导:基于最后一条 week_* 事件的类型 */
-export function deriveWeekStatus(weekEvents) {
+export function deriveWeekStatus(weekEvents, lifecycleEvents = []) {
     // 仅看 week_planning / week_searching / week_plan_ready / week_writing / week_completed
-    const phaseEvents = weekEvents.filter((e) => /^week_/.test(e.type));
+    const lifecycle = Array.isArray(lifecycleEvents)
+        ? lifecycleEvents
+        : (lifecycleEvents ? [lifecycleEvents] : []);
+    const allEvents = [...lifecycle, ...(weekEvents || [])];
+    const phaseEvents = allEvents.filter((e) => /^week_/.test(e.type));
     const last = phaseEvents[phaseEvents.length - 1];
 
-    if (!last) return { key: 'pending', label: '等待中', color: 'gray' };
+    if (!last) {
+        return (weekEvents || []).length > 0
+            ? { key: 'active', label: '执行中', color: 'amber' }
+            : { key: 'pending', label: '等待中', color: 'gray' };
+    }
 
     const map = {
         week_planning:    { key: 'planning',  label: '规划中', color: 'amber'   },
@@ -124,18 +129,27 @@ export function deriveWeekStatus(weekEvents) {
     return status;
 }
 
-export function deriveSubagentStatus(subagentEvents, dispatchEvent) {
-    const all = [...(subagentEvents || []), ...(dispatchEvent ? [dispatchEvent] : [])];
+export function deriveSubagentStatus(subagentEvents, lifecycleEvents = []) {
+    const lifecycle = Array.isArray(lifecycleEvents)
+        ? lifecycleEvents
+        : (lifecycleEvents ? [lifecycleEvents] : []);
+    const all = [...lifecycle, ...(subagentEvents || [])];
     if (all.some((e) => e.type === 'error' || e.detail?.status === 'error')) {
         return { key: 'error', label: '失败', color: 'red' };
     }
-    if (all.some((e) => e.type === 'task_completed' || e.detail?.status === 'completed')) {
+    if (lifecycle.some((e) => (
+        e.type === 'task_completed' ||
+        (
+            e.detail?.view_type === 'subagent_dispatch' &&
+            e.detail?.status === 'completed'
+        )
+    ))) {
         return { key: 'completed', label: '已完成', color: 'primary' };
     }
-    if (all.some((e) => e.type === 'task_searching')) {
+    if (all.some((e) => e.type === 'task_searching' || e.detail?.view_type === 'tool_search')) {
         return { key: 'searching', label: '检索中', color: 'blue' };
     }
-    if (all.some((e) => e.type === 'task_executing')) {
+    if (all.some((e) => e.type === 'task_executing') || (subagentEvents || []).length > 0) {
         return { key: 'active', label: '执行中', color: 'amber' };
     }
     return { key: 'pending', label: '等待中', color: 'gray' };
@@ -234,6 +248,66 @@ function isSubagentScopedEvent(ev) {
     );
 }
 
+function isSubagentLifecycleEvent(ev) {
+    return ev.detail?.view_type === 'subagent_dispatch';
+}
+
+function isWeekLifecycleEvent(ev) {
+    return ev.detail?.agent_scope === 'week' && (
+        ev.type === 'week_planning' ||
+        ev.type === 'week_completed'
+    );
+}
+
+function buildSubagentCardPatch(ev) {
+    const status = ev.detail?.status;
+    const taskName =
+        ev.detail?.task_name ||
+        ev.detail?.input_message ||
+        ev.task_name ||
+        ev.message ||
+        'SubAgent 任务';
+    return {
+        target: ev.detail?.target || 'subagent',
+        taskName,
+        ...(status === 'completed'
+            ? { completedEvent: ev }
+            : { dispatchEvent: ev }),
+    };
+}
+
+function buildWeekCardPatch(ev, weekNumber) {
+    const taskName =
+        ev.detail?.task_name ||
+        ev.task_name ||
+        ev.message ||
+        `第${weekNumber}周饮食计划`;
+    const base = {
+        target: ev.detail?.agent_id || `week_agent_${weekNumber}`,
+        taskName,
+    };
+    if (ev.detail?.view_type === 'week_dispatch') {
+        return { ...base, dispatchEvent: ev };
+    }
+    if (ev.type === 'week_completed' || ev.detail?.status === 'completed') {
+        return { ...base, completedEvent: ev };
+    }
+    return { ...base, startedEvent: ev };
+}
+
+function upsertCard(map, id, patch) {
+    const existing = map.get(id) || { id };
+    map.set(id, {
+        ...existing,
+        ...patch,
+        dispatchEvent: existing.dispatchEvent || patch.dispatchEvent || null,
+        startedEvent: existing.startedEvent || patch.startedEvent || null,
+        completedEvent: patch.completedEvent || existing.completedEvent || null,
+        taskName: patch.taskName || existing.taskName,
+        target: patch.target || existing.target,
+    });
+}
+
 /** 计算事件的稳定 React key (timestamp + call_id 或 node + type) */
 export function eventKey(ev) {
     if (ev._kind === 'week_block') return 'week_block';
@@ -247,12 +321,13 @@ export function eventKey(ev) {
  * 时间流分流算法 (核心):
  *   1. 按 timestamp 升序
  *   2. 合并同 call_id 的 tool_call started+completed
- *   3. 带 week_number 的 week 事件 → 不进主流,吸附到 weekBuckets[N]
- *   4. view_type="week_dispatch" 的事件 → 对应 week bucket,主流当前位置插入虚拟节点 {_kind:'week_block'}
+ *   3. 带 week_number 的 week 标准事件 → 不进主流,吸附到 weekBuckets[N]
+ *   4. week_dispatch / week lifecycle 事件 → 只更新 weekCards,主流当前位置插入虚拟节点 {_kind:'week_block'}
  *      触发 TimelineFeed 在该位置嵌入 <WeekParallelBlock>
- *   5. 带 subagent_id 的 subagent 事件 → 对应 subagent bucket,主流插入 {_kind:'subagent_block'}
+ *   5. subagent_dispatch lifecycle 事件 → 只更新 subagentCards,不进入子 feed
+ *   6. 带 subagent_id 的 subagent 标准事件 → 对应 subagent bucket,主流插入 {_kind:'subagent_block'}
  *
- * 返回 { mainStream, weekBuckets, subagentBuckets, subagentCards }
+ * 返回 { mainStream, weekBuckets, weekCards, subagentBuckets, subagentCards }
  */
 export function organizeEventsForTimeline(events, options = {}) {
     const sorted = [...events].sort((a, b) =>
@@ -263,6 +338,7 @@ export function organizeEventsForTimeline(events, options = {}) {
         return {
             mainStream: merged,
             weekBuckets: { 1: [], 2: [], 3: [], 4: [] },
+            weekCards: [],
             subagentBuckets: {},
             subagentCards: [],
         };
@@ -270,6 +346,7 @@ export function organizeEventsForTimeline(events, options = {}) {
 
     const mainStream = [];
     const weekBuckets = { 1: [], 2: [], 3: [], 4: [] };
+    const weekCardsByNumber = new Map();
     const subagentBuckets = {};
     const subagentCardsById = new Map();
     let weekBlockInserted = false;
@@ -277,17 +354,25 @@ export function organizeEventsForTimeline(events, options = {}) {
 
     for (const ev of merged) {
         const weekNumber = weekNumberFromEvent(ev);
-        if (isWeekScopedEvent(ev)) {
-            const n = weekNumber;
-            if (weekBuckets[n]) weekBuckets[n].push(ev);
-            continue;
-        }
 
         const isWeekDispatch = ev.detail?.view_type === 'week_dispatch';
         if (isWeekDispatch) {
             const week = weekNumber;
             if (weekBuckets[week]) {
-                weekBuckets[week].push(ev);
+                upsertCard(weekCardsByNumber, week, buildWeekCardPatch(ev, week));
+            }
+            if (!weekBlockInserted) {
+                mainStream.push({ _kind: 'week_block', timestamp: ev.timestamp });
+                weekBlockInserted = true;
+            }
+            continue;
+        }
+
+        if (isWeekScopedEvent(ev)) {
+            const n = weekNumber;
+            upsertCard(weekCardsByNumber, n, buildWeekCardPatch(ev, n));
+            if (!isWeekLifecycleEvent(ev) && weekBuckets[n]) {
+                weekBuckets[n].push(ev);
             }
             if (!weekBlockInserted) {
                 mainStream.push({ _kind: 'week_block', timestamp: ev.timestamp });
@@ -303,13 +388,7 @@ export function organizeEventsForTimeline(events, options = {}) {
                 mainStream.push(ev);
                 continue;
             }
-            subagentCardsById.set(id, {
-                id,
-                dispatchEvent: ev,
-                target: ev.detail?.target || 'subagent',
-                taskName: ev.detail?.task_name || ev.task_name || ev.message || 'SubAgent 任务',
-            });
-            (subagentBuckets[id] ||= []).push(ev);
+            upsertCard(subagentCardsById, id, buildSubagentCardPatch(ev));
             if (!subagentBlockInserted) {
                 mainStream.push({ _kind: 'subagent_block', timestamp: ev.timestamp });
                 subagentBlockInserted = true;
@@ -319,7 +398,9 @@ export function organizeEventsForTimeline(events, options = {}) {
 
         if (isSubagentScopedEvent(ev)) {
             const id = subagentIdFromEvent(ev);
-            (subagentBuckets[id] ||= []).push(ev);
+            if (!isSubagentLifecycleEvent(ev)) {
+                (subagentBuckets[id] ||= []).push(ev);
+            }
             if (!subagentCardsById.has(id)) {
                 subagentCardsById.set(id, {
                     id,
@@ -341,6 +422,8 @@ export function organizeEventsForTimeline(events, options = {}) {
     return {
         mainStream,
         weekBuckets,
+        weekCards: Array.from(weekCardsByNumber.values())
+            .sort((a, b) => Number(a.id) - Number(b.id)),
         subagentBuckets,
         subagentCards: Array.from(subagentCardsById.values()),
     };

@@ -6,6 +6,7 @@ import { CopilotKitProvider } from '@copilotkit/react-core/v2';
 import { createContextualHttpAgent } from '../utils/contextualHttpAgent';
 import { useAGUIPlanRunner, AGENT_ID } from '../hooks/useAGUIPlanRunner';
 import { usePets } from '../hooks/usePets';
+import { usePlanGeneration } from '../hooks/usePlanGeneration';
 import PageHeader from '../components/layout/PageHeader';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
 import PetHero from '../components/agui-plan/PetHero';
@@ -54,6 +55,7 @@ export default function AGUIPlanRun() {
 function RunInner({ setForwardedProps }) {
     const navigate = useNavigate();
     const { currentPet } = usePets();
+    const { completeWithAguiResult } = usePlanGeneration();
     const {
         events,
         error,
@@ -100,18 +102,19 @@ function RunInner({ setForwardedProps }) {
         };
     }, [isRunning]);
 
-    // 完成后跳结果页:把 completedDetail 写入 sessionStorage 跨路由传值
+    // 完成后接回原 SSE 结果流程:PlanGenerationContext → /plan/summary
     useEffect(() => {
         if (!completedDetail) return;
-        try {
-            sessionStorage.setItem('agui_plan_result', JSON.stringify(completedDetail));
-        } catch (e) {
-            console.warn('[AGUIPlanRun] sessionStorage write failed', e);
-        }
         // 给 BackgroundMode disable 一点时间再跳
-        const t = setTimeout(() => navigate('/agui-plan/result', { replace: true }), 400);
+        const t = setTimeout(() => {
+            void completeWithAguiResult(completedDetail)
+                .then(() => navigate('/plan/summary', { replace: true }))
+                .catch((e) => {
+                    console.error('[AGUIPlanRun] result handoff failed', e);
+                });
+        }, 400);
         return () => clearTimeout(t);
-    }, [completedDetail, navigate]);
+    }, [completedDetail, completeWithAguiResult, navigate]);
 
     const handleBack = () => {
         if (isRunning) {

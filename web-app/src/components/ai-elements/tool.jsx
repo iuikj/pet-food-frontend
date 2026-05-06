@@ -23,7 +23,7 @@ export const Tool = ({
   ...props
 }) => (
   <Collapsible
-    className={cn("not-prose mb-4 w-full rounded-md border", className)}
+    className={cn("not-prose mb-4 w-full rounded-lg border bg-background shadow-xs", className)}
     {...props} />
 );
 
@@ -102,7 +102,7 @@ export const ToolInput = ({
       className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
       Parameters
     </h4>
-    <div className="rounded-md bg-muted/50">
+    <div className="rounded-lg bg-muted/50">
       <CodeBlock code={JSON.stringify(input, null, 2)} language="json" />
     </div>
   </div>
@@ -135,7 +135,7 @@ export const ToolOutput = ({
         {errorText ? "Error" : "Result"}
       </h4>
       <div
-        className={cn("overflow-x-auto rounded-md text-xs [&_table]:w-full", errorText
+        className={cn("overflow-x-auto rounded-lg text-xs [&_table]:w-full", errorText
           ? "bg-destructive/10 text-destructive"
           : "bg-muted/50 text-foreground")}>
         {errorText && <div>{errorText}</div>}

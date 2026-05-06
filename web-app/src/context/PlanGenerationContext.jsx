@@ -317,6 +317,36 @@ export const PlanGenerationProvider = ({ children }) => {
         await disableBackgroundMode();
     }, [addLog, disableBackgroundMode, fetchTaskResult, sendCompletionNotification, stopPolling, storeResult]);
 
+    const completeWithAguiResult = useCallback(async (detail, {
+        completedPlanId = null,
+        logMessage = 'AG-UI 计划生成完成',
+    } = {}) => {
+        stopPolling();
+
+        const transformed = transformCompletedEventToResult(
+            detail,
+            detail?.ai_suggestions || detail?.message || ''
+        );
+
+        storeResult(transformed);
+        setStatus('completed');
+        setProgress(100);
+        setCurrentStepIndex(STEPS.length - 1);
+        setIsBackgroundRunning(false);
+        setError(null);
+        clearPendingPlanTask();
+
+        const nextPlanId = completedPlanId || detail?.plan_id || detail?.id || null;
+        if (nextPlanId) {
+            setPlanId(nextPlanId);
+        }
+
+        addLog(logMessage);
+        await disableBackgroundMode();
+
+        return transformed;
+    }, [addLog, disableBackgroundMode, stopPolling, storeResult]);
+
     const failGeneration = useCallback(async (message) => {
         stopPolling();
         setStatus('error');
@@ -804,6 +834,7 @@ export const PlanGenerationProvider = ({ children }) => {
         resetGeneration,
         restoreFromBackground,
         resumePendingTask,
+        completeWithAguiResult,
     }), [
         status,
         progress,
@@ -820,6 +851,7 @@ export const PlanGenerationProvider = ({ children }) => {
         resetGeneration,
         restoreFromBackground,
         resumePendingTask,
+        completeWithAguiResult,
     ]);
 
     return (

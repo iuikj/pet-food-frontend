@@ -42,7 +42,6 @@ export default function PlanBoardWidget({ event }) {
                         <QueueSectionTrigger>
                             <QueueSectionLabel
                                 count={section.count}
-                                icon={<ClipboardList className="size-3.5" />}
                                 label={section.label}
                             />
                         </QueueSectionTrigger>
