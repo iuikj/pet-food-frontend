@@ -10,15 +10,15 @@ import { ChevronDown } from 'lucide-react';
 function ThoughtLine() {
     const { duration, isOpen, isStreaming } = useReasoning();
     const label = duration === undefined
-        ? 'Thought for a few seconds'
-        : `Thought for ${duration} seconds`;
+        ? '思考了几秒'
+        : `思考了 ${duration} 秒`;
 
     return (
         <>
             <span className="agui-reasoning-pulse" />
             <span className="min-w-0 flex-1 truncate">
                 {isStreaming ? (
-                    <Shimmer duration={1}>Thinking through workflow...</Shimmer>
+                    <Shimmer duration={1}>正在推理方案...</Shimmer>
                 ) : label}
             </span>
             <ChevronDown className={`size-3.5 shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180' : 'rotate-0'}`} />

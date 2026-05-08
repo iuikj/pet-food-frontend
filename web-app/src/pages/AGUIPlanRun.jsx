@@ -3,35 +3,23 @@ import { useNavigate } from 'react-router-dom';
 import { Capacitor } from '@capacitor/core';
 import { BackgroundMode } from '@anuradev/capacitor-background-mode';
 import { CopilotKitProvider } from '@copilotkit/react-core/v2';
-import { Activity, ChevronLeft, Sparkles } from 'lucide-react';
 import { createContextualHttpAgent } from '../utils/contextualHttpAgent';
 import { useAGUIPlanRunner, AGENT_ID } from '../hooks/useAGUIPlanRunner';
 import { usePets } from '../hooks/usePets';
 import { usePlanGeneration } from '../hooks/usePlanGeneration';
 import { Button } from '../components/ui/button';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
-import PetHero from '../components/agui-plan/PetHero';
+import PlanRunHeader from '../components/agui-plan/PlanRunHeader';
 import TimelineFeed from '../components/agui-plan/TimelineFeed';
-import PlanGenActionBar from '../components/agui-plan/PlanGenActionBar';
+import TaskQueueCompact from '../components/agui-plan/TaskQueueCompact';
+import { Square, RotateCcw } from 'lucide-react';
 
 const AGUI_BASE_URL = import.meta.env.VITE_AGUI_BASE_URL || 'http://localhost:8000';
 
-// scope 化注入 cpk 主题变量(与 AGUITest 保持一致,不污染全局)
-const cpkThemeStyle = {
-    '--cpk-font-sans': "'Plus Jakarta Sans', system-ui, sans-serif",
-    '--cpk-radius-md': '0.875rem',
-    '--cpk-radius-lg': '1.125rem',
-    '--cpk-radius-xl': '1.5rem',
-};
-
 /**
  * /planning/detailed — v2 任务式生成主战场。
- *
- * 顶层只创建 ContextualHttpAgent 实例 + 包 Provider,真正逻辑在 RunInner 里。
- * 这样保证 useAgent / agent.subscribe 等 Provider 内 hook 能正常工作。
  */
 export default function AGUIPlanRun() {
-    // agent 工厂只构造一次:threadId / messages 等绑在实例上,重建会丢历史
     const { agent, setForwardedProps } = useMemo(
         () => createContextualHttpAgent({ url: `${AGUI_BASE_URL}/langgraph` }),
         [],
@@ -39,9 +27,8 @@ export default function AGUIPlanRun() {
 
     return (
         <div
-            className="agui-run-shell min-h-[100dvh] bg-[var(--agui-stage)] text-[var(--agui-ink)]"
+            className="agui-run-shell min-h-[100dvh] bg-white text-gray-900"
             data-agui-run
-            style={cpkThemeStyle}
         >
             <CopilotKitProvider
                 agents__unsafe_dev_only={{ [AGENT_ID]: agent }}
@@ -50,49 +37,6 @@ export default function AGUIPlanRun() {
                 <RunInner setForwardedProps={setForwardedProps} />
             </CopilotKitProvider>
         </div>
-    );
-}
-
-function RunHeader({ isRunning, error, onBack }) {
-    const stateLabel = error ? '失败' : (isRunning ? '执行中' : '准备中');
-
-    return (
-        <header className="agui-run-header sticky top-0 z-40 shrink-0 px-4 pb-3 pt-[calc(env(safe-area-inset-top)+0.75rem)]">
-            <div className="flex h-12 items-center justify-between gap-3 rounded-[24px] border border-white/70 bg-white/[0.72] px-2.5 shadow-[0_14px_40px_rgba(37,35,28,0.08)] backdrop-blur-2xl">
-                <Button
-                    aria-label="返回"
-                    className="size-9 cursor-pointer rounded-full border border-black/[0.04] bg-white/[0.78] text-[var(--agui-ink)] shadow-[0_4px_18px_rgba(37,35,28,0.08)] hover:bg-white"
-                    onClick={onBack}
-                    size="icon"
-                    type="button"
-                    variant="ghost"
-                >
-                    <ChevronLeft />
-                </Button>
-
-                <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5">
-                        <h1 className="truncate text-[19px] font-semibold leading-none tracking-normal">
-                            {error ? '生成失败' : '专属计划生成中'}
-                        </h1>
-                        {!error && (
-                            <Sparkles className="size-3.5 text-[var(--agui-green)]" />
-                        )}
-                    </div>
-                    <p className="mt-1 truncate text-[10px] font-medium uppercase tracking-[0.16em] text-[var(--agui-muted)]">
-                        正在整理宠物档案与饮食方案
-                    </p>
-                </div>
-
-                <div className="flex items-center gap-2 rounded-full border border-white/60 bg-white/[0.58] px-2.5 py-1.5">
-                    <span
-                        aria-label={stateLabel}
-                        className={isRunning && !error ? 'agui-live-dot' : 'agui-live-dot agui-live-dot--idle'}
-                    />
-                    <Activity className="size-3.5 text-[var(--agui-muted)]" />
-                </div>
-            </div>
-        </header>
     );
 }
 
@@ -215,32 +159,57 @@ function RunInner({ setForwardedProps }) {
         health_status: pendingPayload?.pet_information?.health_status,
     };
 
+    // 从 events 中提取 plan_board items 用于 TaskQueueCompact
+    const planItems = useMemo(() => {
+        for (let i = events.length - 1; i >= 0; i -= 1) {
+            if (events[i]?.detail?.view_type === 'plan_board') {
+                return events[i].detail.items || [];
+            }
+        }
+        return [];
+    }, [events]);
+
     return (
-        <div className="agui-phone-surface relative mx-auto flex min-h-[100dvh] w-full max-w-[430px] flex-col overflow-hidden bg-[var(--agui-app-bg)] shadow-[0_0_0_1px_rgba(255,255,255,0.55),0_32px_90px_rgba(34,31,25,0.16)]">
-            <RunHeader isRunning={isRunning} error={error} onBack={handleBack} />
+        <div className="relative mx-auto flex min-h-[100dvh] w-full max-w-[430px] flex-col overflow-hidden bg-white">
+            <PlanRunHeader pet={displayPet} onBack={handleBack} />
 
-            <main className="relative z-10 flex min-h-0 flex-1 flex-col px-5 pb-[9.5rem]">
-                <div className="shrink-0 pt-2">
-                    <PetHero pet={displayPet} events={events} isRunning={isRunning || !hasStarted} error={error} />
-                </div>
-
-                <div className="mt-5 min-h-0 flex-1">
+            <main className="relative flex min-h-0 flex-1 flex-col px-4 pb-32">
+                <div className="min-h-0 flex-1">
                     <TimelineFeed
                         events={events}
-                        emptyText={hasStarted ? '等待第一个事件...' : '正在启动详细工作流...'}
+                        emptyText={hasStarted ? '等待第一个事件...' : '正在启动...'}
                     />
                 </div>
             </main>
 
-            <PlanGenActionBar
-                events={events}
-                isRunning={isRunning}
-                hasStarted={hasStarted}
-                error={error}
-                onCancel={() => setShowCancelConfirm(true)}
-                onReset={retry}
-                onBack={() => navigate('/plan/create', { replace: true })}
-            />
+            {/* 底部固定区域：TaskQueueCompact + ActionBar */}
+            <div className="fixed inset-x-0 bottom-0 z-30 mx-auto w-full max-w-[430px]">
+                <TaskQueueCompact items={planItems} />
+                <nav className="flex items-center gap-2 border-t border-gray-100 bg-white/90 px-4 py-3 backdrop-blur-sm">
+                    {hasStarted && isRunning && !error && (
+                        <Button
+                            type="button"
+                            onClick={() => setShowCancelConfirm(true)}
+                            className="h-9 cursor-pointer rounded-full border border-gray-200 bg-white px-4 text-[13px] font-medium text-gray-600 hover:bg-gray-50"
+                            variant="ghost"
+                        >
+                            <Square className="mr-1.5 size-3.5" />
+                            停止
+                        </Button>
+                    )}
+                    {error && (
+                        <Button
+                            type="button"
+                            onClick={retry}
+                            className="h-9 cursor-pointer rounded-full border border-gray-200 bg-white px-4 text-[13px] font-medium text-gray-600 hover:bg-gray-50"
+                            variant="ghost"
+                        >
+                            <RotateCcw className="mr-1.5 size-3.5" />
+                            重试
+                        </Button>
+                    )}
+                </nav>
+            </div>
 
             <ConfirmDialog
                 open={showCancelConfirm}
