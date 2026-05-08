@@ -23,7 +23,7 @@ export default function SubagentDispatchWidget({ event }) {
     const Icon = isWeek ? Layers : Workflow;
 
     return (
-        <Queue>
+        <Queue className="agui-plan-board">
             <QueueSection defaultOpen>
                 <QueueSectionTrigger className="bg-transparent px-0 py-0 hover:bg-transparent">
                     <span className="flex items-center gap-2 text-sm text-muted-foreground">

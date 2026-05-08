@@ -10,13 +10,13 @@ import { toToolUIPart } from '@/lib/aiElementsAdapter';
 export default function GenericToolWidget({ event }) {
     const part = toToolUIPart(event);
     return (
-        <Tool>
-            <ToolHeader type={part.type} state={part.state} />
-            <ToolContent>
+        <Tool className="agui-tool-card">
+            <ToolHeader className="agui-tool-header" type={part.type} state={part.state} />
+            <ToolContent className="agui-tool-content">
                 {part.input && Object.keys(part.input).length > 0 && (
-                    <ToolInput input={part.input} />
+                    <ToolInput className="agui-tool-io" input={part.input} />
                 )}
-                <ToolOutput output={part.output} errorText={part.errorText} />
+                <ToolOutput className="agui-tool-io" output={part.output} errorText={part.errorText} />
             </ToolContent>
         </Tool>
     );

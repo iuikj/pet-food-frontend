@@ -10,14 +10,14 @@ export default function SearchToolWidget({ event }) {
     const part = toToolUIPart(event);
     const sources = toAiSdkSources(event);
     return (
-        <Tool>
-            <ToolHeader type={part.type} state={part.state} />
-            <ToolContent>
+        <Tool className="agui-tool-card">
+            <ToolHeader className="agui-tool-header" type={part.type} state={part.state} />
+            <ToolContent className="agui-tool-content">
                 {part.input && Object.keys(part.input).length > 0 && (
-                    <ToolInput input={part.input} />
+                    <ToolInput className="agui-tool-io" input={part.input} />
                 )}
                 {sources.length > 0 ? (
-                    <Sources>
+                    <Sources className="agui-sources">
                         <SourcesTrigger count={sources.length} />
                         <SourcesContent>
                             {sources.map((s, i) => (
@@ -26,7 +26,7 @@ export default function SearchToolWidget({ event }) {
                         </SourcesContent>
                     </Sources>
                 ) : (
-                    <ToolOutput output={part.output} errorText={part.errorText} />
+                    <ToolOutput className="agui-tool-io" output={part.output} errorText={part.errorText} />
                 )}
             </ToolContent>
         </Tool>

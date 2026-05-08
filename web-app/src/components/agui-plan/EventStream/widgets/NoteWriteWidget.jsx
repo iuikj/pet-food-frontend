@@ -11,20 +11,20 @@ export default function NoteWriteWidget({ event }) {
     const writeContent =
         part.input?.content || part.input?.text || part.input?.note || part.input?.new_content || '';
     return (
-        <Tool>
-            <ToolHeader type={part.type} state={part.state} />
-            <ToolContent>
+        <Tool className="agui-tool-card">
+            <ToolHeader className="agui-tool-header" type={part.type} state={part.state} />
+            <ToolContent className="agui-tool-content">
                 {writeContent ? (
-                    <div className="rounded-md bg-muted/30 p-3 text-xs">
+                    <div className="rounded-[18px] border border-white/[0.55] bg-white/[0.48] p-3 text-xs">
                         <h4 className="mb-2 font-medium uppercase tracking-wide text-muted-foreground text-xs">
                             写入内容
                         </h4>
                         <MessageResponse>{writeContent}</MessageResponse>
                     </div>
                 ) : (
-                    <ToolInput input={part.input} />
+                    <ToolInput className="agui-tool-io" input={part.input} />
                 )}
-                <ToolOutput output={part.output} errorText={part.errorText} />
+                <ToolOutput className="agui-tool-io" output={part.output} errorText={part.errorText} />
             </ToolContent>
         </Tool>
     );

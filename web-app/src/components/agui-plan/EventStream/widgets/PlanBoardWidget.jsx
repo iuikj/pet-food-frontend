@@ -21,14 +21,14 @@ export default function PlanBoardWidget({ event }) {
     const sections = toQueueSections(event);
 
     return (
-        <Queue>
+        <Queue className="agui-plan-board">
             <div className="flex items-start gap-3 px-1 pt-1">
-                <div className="rounded-md bg-muted/60 p-2 text-muted-foreground">
+                <div className="rounded-[16px] bg-white/60 p-2 text-[var(--agui-muted)]">
                     <ClipboardList className="size-4" />
                 </div>
                 <div className="min-w-0">
-                    <h4 className="truncate text-sm font-semibold">{plan.title}</h4>
-                    <p className="text-xs text-muted-foreground">
+                    <h4 className="truncate text-sm font-semibold text-[var(--agui-ink)]">{plan.title}</h4>
+                    <p className="text-xs text-[var(--agui-muted)]">
                         {event.detail?.action === 'created' ? '新建任务队列' : '任务队列更新'}
                     </p>
                 </div>

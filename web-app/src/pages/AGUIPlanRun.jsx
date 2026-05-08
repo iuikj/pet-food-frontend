@@ -3,11 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { Capacitor } from '@capacitor/core';
 import { BackgroundMode } from '@anuradev/capacitor-background-mode';
 import { CopilotKitProvider } from '@copilotkit/react-core/v2';
+import { Activity, ChevronLeft, Sparkles } from 'lucide-react';
 import { createContextualHttpAgent } from '../utils/contextualHttpAgent';
 import { useAGUIPlanRunner, AGENT_ID } from '../hooks/useAGUIPlanRunner';
 import { usePets } from '../hooks/usePets';
 import { usePlanGeneration } from '../hooks/usePlanGeneration';
-import PageHeader from '../components/layout/PageHeader';
+import { Button } from '../components/ui/button';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
 import PetHero from '../components/agui-plan/PetHero';
 import TimelineFeed from '../components/agui-plan/TimelineFeed';
@@ -24,7 +25,7 @@ const cpkThemeStyle = {
 };
 
 /**
- * /agui-plan/run — v2 任务式生成主战场。
+ * /planning/detailed — v2 任务式生成主战场。
  *
  * 顶层只创建 ContextualHttpAgent 实例 + 包 Provider,真正逻辑在 RunInner 里。
  * 这样保证 useAgent / agent.subscribe 等 Provider 内 hook 能正常工作。
@@ -38,7 +39,7 @@ export default function AGUIPlanRun() {
 
     return (
         <div
-            className="agui-run-shell flex min-h-[100dvh] flex-col bg-background-light dark:bg-background-dark"
+            className="agui-run-shell min-h-[100dvh] bg-[var(--agui-stage)] text-[var(--agui-ink)]"
             data-agui-run
             style={cpkThemeStyle}
         >
@@ -49,6 +50,49 @@ export default function AGUIPlanRun() {
                 <RunInner setForwardedProps={setForwardedProps} />
             </CopilotKitProvider>
         </div>
+    );
+}
+
+function RunHeader({ isRunning, error, onBack }) {
+    const stateLabel = error ? '失败' : (isRunning ? '执行中' : '准备中');
+
+    return (
+        <header className="agui-run-header sticky top-0 z-40 shrink-0 px-4 pb-3 pt-[calc(env(safe-area-inset-top)+0.75rem)]">
+            <div className="flex h-12 items-center justify-between gap-3 rounded-[24px] border border-white/70 bg-white/[0.72] px-2.5 shadow-[0_14px_40px_rgba(37,35,28,0.08)] backdrop-blur-2xl">
+                <Button
+                    aria-label="返回"
+                    className="size-9 cursor-pointer rounded-full border border-black/[0.04] bg-white/[0.78] text-[var(--agui-ink)] shadow-[0_4px_18px_rgba(37,35,28,0.08)] hover:bg-white"
+                    onClick={onBack}
+                    size="icon"
+                    type="button"
+                    variant="ghost"
+                >
+                    <ChevronLeft />
+                </Button>
+
+                <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5">
+                        <h1 className="truncate text-[19px] font-semibold leading-none tracking-normal">
+                            {error ? '生成失败' : '专属计划生成中'}
+                        </h1>
+                        {!error && (
+                            <Sparkles className="size-3.5 text-[var(--agui-green)]" />
+                        )}
+                    </div>
+                    <p className="mt-1 truncate text-[10px] font-medium uppercase tracking-[0.16em] text-[var(--agui-muted)]">
+                        正在整理宠物档案与饮食方案
+                    </p>
+                </div>
+
+                <div className="flex items-center gap-2 rounded-full border border-white/60 bg-white/[0.58] px-2.5 py-1.5">
+                    <span
+                        aria-label={stateLabel}
+                        className={isRunning && !error ? 'agui-live-dot' : 'agui-live-dot agui-live-dot--idle'}
+                    />
+                    <Activity className="size-3.5 text-[var(--agui-muted)]" />
+                </div>
+            </div>
+        </header>
     );
 }
 
@@ -68,6 +112,29 @@ function RunInner({ setForwardedProps }) {
     } = useAGUIPlanRunner({ setForwardedProps });
 
     const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+    const [pendingPayload] = useState(() => {
+        const raw = sessionStorage.getItem('pending_agui_plan_payload');
+        if (!raw) return null;
+        try {
+            const parsed = JSON.parse(raw);
+            return parsed?.pet_information ? parsed : null;
+        } catch (e) {
+            console.warn('[AGUIPlanRun] invalid pending payload', e);
+            sessionStorage.removeItem('pending_agui_plan_payload');
+            return null;
+        }
+    });
+
+    useEffect(() => {
+        if (!pendingPayload) {
+            navigate('/plan/create', { replace: true });
+        }
+    }, [navigate, pendingPayload]);
+
+    useEffect(() => {
+        if (!pendingPayload || hasStarted) return;
+        start(pendingPayload);
+    }, [pendingPayload, hasStarted, start]);
 
     // Capacitor 后台模式:运行中开,完成 / 错误 / 取消时关
     useEffect(() => {
@@ -108,7 +175,10 @@ function RunInner({ setForwardedProps }) {
         // 给 BackgroundMode disable 一点时间再跳
         const t = setTimeout(() => {
             void completeWithAguiResult(completedDetail)
-                .then(() => navigate('/plan/summary', { replace: true }))
+                .then(() => {
+                    sessionStorage.removeItem('pending_agui_plan_payload');
+                    navigate('/plan/summary', { replace: true });
+                })
                 .catch((e) => {
                     console.error('[AGUIPlanRun] result handoff failed', e);
                 });
@@ -120,62 +190,56 @@ function RunInner({ setForwardedProps }) {
         if (isRunning) {
             setShowCancelConfirm(true);
         } else {
-            navigate('/agui-plan');
+            navigate('/plan/create', { replace: true });
         }
     };
 
     const confirmCancel = () => {
         setShowCancelConfirm(false);
         cancel();
-        navigate('/agui-plan');
+        sessionStorage.removeItem('pending_agui_plan_payload');
+        navigate('/plan/create', { replace: true });
+    };
+
+    const retry = () => {
+        reset();
+        start(pendingPayload);
+    };
+
+    const displayPet = currentPet || {
+        name: pendingPayload?.pet_name,
+        type: pendingPayload?.pet_information?.pet_type,
+        breed: pendingPayload?.pet_information?.pet_breed,
+        age: pendingPayload?.pet_information?.pet_age,
+        weight: pendingPayload?.pet_information?.pet_weight,
+        health_status: pendingPayload?.pet_information?.health_status,
     };
 
     return (
-        <>
-            <PageHeader
-                title={isRunning ? '生成中' : (error ? '生成失败' : 'AI 工作台')}
-                onBack={handleBack}
-                rightAction={
-                    isRunning ? (
-                        <span className="relative flex h-3 w-3">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
-                            <span className="relative inline-flex rounded-full h-3 w-3 bg-primary" />
-                        </span>
-                    ) : null
-                }
-            />
+        <div className="agui-phone-surface relative mx-auto flex min-h-[100dvh] w-full max-w-[430px] flex-col overflow-hidden bg-[var(--agui-app-bg)] shadow-[0_0_0_1px_rgba(255,255,255,0.55),0_32px_90px_rgba(34,31,25,0.16)]">
+            <RunHeader isRunning={isRunning} error={error} onBack={handleBack} />
 
-            <main className="flex-1 flex flex-col w-full max-w-2xl mx-auto px-4 pb-32 min-h-0">
-                <div className="pt-4 shrink-0 space-y-5">
-                    <PetHero pet={currentPet} events={events} isRunning={isRunning} error={error} />
-
-                    {!hasStarted && !error && (
-                        <section className="py-8 text-center">
-                            <span className="material-icons-round text-5xl text-primary mb-2">smart_toy</span>
-                            <h3 className="font-bold text-base mb-1">准备就绪</h3>
-                            <p className="text-xs text-text-muted-light leading-relaxed">
-                                点击下方"启动 AI 生成"按钮,实时观察 LangGraph 多智能体工作过程。
-                            </p>
-                        </section>
-                    )}
+            <main className="relative z-10 flex min-h-0 flex-1 flex-col px-5 pb-[9.5rem]">
+                <div className="shrink-0 pt-2">
+                    <PetHero pet={displayPet} events={events} isRunning={isRunning || !hasStarted} error={error} />
                 </div>
 
-                {hasStarted && (
-                    <div className="flex-1 mt-4 min-h-0">
-                        <TimelineFeed events={events} emptyText="等待第一个事件..." />
-                    </div>
-                )}
+                <div className="mt-5 min-h-0 flex-1">
+                    <TimelineFeed
+                        events={events}
+                        emptyText={hasStarted ? '等待第一个事件...' : '正在启动详细工作流...'}
+                    />
+                </div>
             </main>
 
             <PlanGenActionBar
+                events={events}
                 isRunning={isRunning}
                 hasStarted={hasStarted}
                 error={error}
-                canStart={!!currentPet}
-                onStart={start}
                 onCancel={() => setShowCancelConfirm(true)}
-                onReset={reset}
-                onBack={() => navigate('/agui-plan')}
+                onReset={retry}
+                onBack={() => navigate('/plan/create', { replace: true })}
             />
 
             <ConfirmDialog
@@ -188,6 +252,6 @@ function RunInner({ setForwardedProps }) {
                 onConfirm={confirmCancel}
                 destructive
             />
-        </>
+        </div>
     );
 }

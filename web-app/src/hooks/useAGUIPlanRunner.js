@@ -229,6 +229,7 @@ function logAguiEvent(event) {
 export function useAGUIPlanRunner({ setForwardedProps }) {
     const { currentPet } = usePets();
     const { user } = useUser();
+    const userId = user?.id ? String(user.id) : null;
     const { copilotkit } = useCopilotKit();
     const { agent } = useAgent({
         agentId: AGENT_ID,
@@ -266,10 +267,13 @@ export function useAGUIPlanRunner({ setForwardedProps }) {
                 pet_age: currentPet.age,
                 pet_weight: currentPet.weight,
                 health_status: currentPet.health_status,
+                special_requirements: currentPet.special_requirements,
+                allergens: currentPet.allergens || [],
+                health_issues: currentPet.health_issues || [],
             },
-            ...(user?.id ? { user_id: String(user.id) } : {}),
+            ...(userId ? { user_id: userId } : {}),
         });
-    }, [currentPet, user?.id, setForwardedProps]);
+    }, [currentPet, userId, setForwardedProps]);
 
     // 2) 订阅事件流：
     //    a) onCustomEvent — 后端业务 ProgressEvent（phase / plan_snapshot / agent lifecycle / completed）
@@ -611,9 +615,17 @@ export function useAGUIPlanRunner({ setForwardedProps }) {
     }, [agent]);
 
     // 3) 启动 — 编程式 runAgent (任务式,无对话)
-    const start = useCallback(() => {
+    const start = useCallback((runPayload = null) => {
         if (startedRef.current) return;
-        if (!currentPet) {
+        const payloadPet = runPayload?.pet_information;
+        const runPet = payloadPet
+            ? {
+                type: payloadPet.pet_type,
+                name: runPayload.pet_name,
+            }
+            : currentPet;
+
+        if (!runPet) {
             setError('请先选择宠物');
             return;
         }
@@ -636,14 +648,21 @@ export function useAGUIPlanRunner({ setForwardedProps }) {
         setCompletedDetail(null);
         setHasStarted(true);
 
+        if (runPayload?.pet_information) {
+            setForwardedProps({
+                pet_information: runPayload.pet_information,
+                ...(userId ? { user_id: userId } : {}),
+            });
+        }
+
         // AG-UI runAgent 需要至少一条 user message 作为本次任务入口
         agent.addMessage({
             id: crypto.randomUUID(),
             role: 'user',
-            content: `请为我的 ${currentPet.type === 'cat' ? '猫咪' : '狗狗'}「${currentPet.name}」生成月度饮食计划。`,
+            content: `请为我的 ${runPet.type === 'cat' ? '猫咪' : '狗狗'}「${runPet.name || '宠物'}」生成月度饮食计划。`,
         });
         copilotkit.runAgent({ agent });
-    }, [agent, copilotkit, currentPet]);
+    }, [agent, copilotkit, currentPet, setForwardedProps, userId]);
 
     // 4) 取消 — 调用 AbstractAgent.abortRun()
     const cancel = useCallback(() => {

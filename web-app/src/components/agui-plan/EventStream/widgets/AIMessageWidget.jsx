@@ -17,8 +17,8 @@ export default function AIMessageWidget({ event }) {
 
     return (
         <Message from="assistant" className="max-w-full">
-            <MessageContent>
-                <MessageResponse>{content}</MessageResponse>
+            <MessageContent className="agui-ai-message-content">
+                <MessageResponse className="agui-ai-message-response">{content}</MessageResponse>
             </MessageContent>
         </Message>
     );

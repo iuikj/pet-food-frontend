@@ -15,12 +15,12 @@ export default function SubAgentCard({ card, events }) {
     return (
         <AgentStreamCard
             kind="subagent"
-            title={card?.target || 'SubAgent'}
+            title={card?.target ? `子 Agent ${card.target}` : '子 Agent'}
             subtitle={card?.id ? `id ${card.id}` : null}
             taskName={card?.taskName}
             status={status}
             events={events || []}
-            emptyText="此 SubAgent 暂无事件"
+            emptyText="此子 Agent 暂无事件"
         />
     );
 }

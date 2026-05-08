@@ -11,7 +11,7 @@ export default function PhaseMarkerWidget({ event }) {
 
     if (isError) {
         return (
-            <div className="flex items-center gap-2 px-1 py-1 text-xs text-destructive">
+            <div className="agui-phase-marker agui-phase-marker--error">
                 <AlertCircle className="size-4 shrink-0" />
                 <span>{message}</span>
             </div>
@@ -20,7 +20,7 @@ export default function PhaseMarkerWidget({ event }) {
 
     if (isCompleted) {
         return (
-            <div className="flex items-center gap-2 px-1 py-1 text-sm font-medium text-emerald-700">
+            <div className="agui-phase-marker agui-phase-marker--done">
                 <CheckCircle2 className="size-4 shrink-0" />
                 <span>{message}</span>
             </div>
@@ -28,7 +28,7 @@ export default function PhaseMarkerWidget({ event }) {
     }
 
     return (
-        <div className="flex items-center gap-2 px-1 py-1 text-xs text-muted-foreground">
+        <div className="agui-phase-marker">
             <Shimmer>{message}</Shimmer>
         </div>
     );

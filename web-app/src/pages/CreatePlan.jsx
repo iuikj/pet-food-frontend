@@ -1,22 +1,31 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion'; // eslint-disable-line no-unused-vars -- motion used via JSX
+import { Eye, Workflow } from 'lucide-react';
 import SecureImage from '../components/SecureImage';
 import PetIcon from '../components/icons/PetIcon';
 import { pageTransitions } from '../utils/animations';
 import { usePets } from '../hooks/usePets';
 import { formatPetAge } from '../utils/petUtils';
 import { mockPets } from '../mock/data/pets';
+import { petsApi } from '../api';
+import { getApiErrorMessage } from '../api/client';
 
 export default function Home() {
     const navigate = useNavigate();
-    const { pets, currentPet, setCurrentPet, isLoading, error } = usePets();
+    const { pets, currentPet, setCurrentPet, isLoading } = usePets();
     const [selectedPetId, setSelectedPetId] = useState(null);
     const [requirement, setRequirement] = useState('');
     const [selectedTags, setSelectedTags] = useState([]);
+    const [generationMode, setGenerationMode] = useState('detailed');
+    const [generationError, setGenerationError] = useState('');
+    const [isPreparingDetailed, setIsPreparingDetailed] = useState(false);
 
     // 决定使用的宠物列表：真实数据优先，无数据时 fallback 到 mock
-    const petList = pets.length > 0 ? pets : (isLoading ? [] : mockPets);
+    const petList = useMemo(
+        () => (pets.length > 0 ? pets : (isLoading ? [] : mockPets)),
+        [pets, isLoading],
+    );
 
     // 获取当前选中的宠物
     const selectedPet = petList.find(p => p.id === selectedPetId) || null;
@@ -38,7 +47,44 @@ export default function Home() {
         );
     };
 
+    const needsPetDetail = (pet) => {
+        if (!pet || String(pet.id || '').startsWith('mock-')) return false;
+        return (
+            !Object.prototype.hasOwnProperty.call(pet, 'allergens') ||
+            !Object.prototype.hasOwnProperty.call(pet, 'health_issues') ||
+            pet.health_status === undefined ||
+            pet.special_requirements === undefined
+        );
+    };
+
+    const resolveAguiPet = async (pet) => {
+        if (!needsPetDetail(pet)) return pet;
+        const res = await petsApi.getPet(pet.id);
+        if (res.code === 0 && res.data) {
+            return res.data;
+        }
+        throw new Error(res.message || '获取宠物档案失败');
+    };
+
+    const buildAguiPayload = (pet, specialRequirements) => ({
+        pet_information: {
+            pet_type: pet.type,
+            pet_breed: pet.breed,
+            pet_age: pet.age,
+            pet_weight: pet.weight,
+            health_status: pet.health_status,
+            special_requirements: specialRequirements || pet.special_requirements || '',
+            allergens: pet.allergens || [],
+            health_issues: pet.health_issues || [],
+        },
+        pet_id: pet.id,
+        pet_name: pet.name,
+        special_requirements: specialRequirements || '',
+    });
+
     const handleGeneratePlan = async () => {
+        if (isPreparingDetailed) return;
+        setGenerationError('');
         // 设置当前宠物到 context
         if (selectedPetId) {
             setCurrentPet(selectedPetId);
@@ -52,13 +98,30 @@ export default function Home() {
             requirementText || null,
         ].filter(Boolean).join('\n').slice(0, 500);
 
+        if (generationMode === 'detailed') {
+            if (!selectedPet) return;
+            setIsPreparingDetailed(true);
+            try {
+                const aguiPet = await resolveAguiPet(selectedPet);
+                sessionStorage.setItem(
+                    'pending_agui_plan_payload',
+                    JSON.stringify(buildAguiPayload(aguiPet, mergedRequirements)),
+                );
+                sessionStorage.removeItem('pending_special_requirements');
+                navigate('/planning/detailed');
+            } catch (err) {
+                setGenerationError(getApiErrorMessage(err, '准备详细模式失败，请稍后重试'));
+            } finally {
+                setIsPreparingDetailed(false);
+            }
+            return;
+        }
+
         if (mergedRequirements) {
             sessionStorage.setItem('pending_special_requirements', mergedRequirements);
         } else {
             sessionStorage.removeItem('pending_special_requirements');
         }
-
-        // 导航到loading页面
         navigate('/planning');
     };
 
@@ -302,28 +365,49 @@ export default function Home() {
             </main>
 
             <div className="px-6 pb-24 bg-background-light dark:bg-background-dark">
+                {generationError && (
+                    <p className="mb-3 rounded-2xl bg-red-50 px-4 py-3 text-sm font-medium text-red-600 dark:bg-red-950/30 dark:text-red-300">
+                        {generationError}
+                    </p>
+                )}
+                <div className="mb-3 grid grid-cols-2 gap-2 rounded-2xl bg-white p-1.5 shadow-soft dark:bg-surface-dark">
+                    {[
+                        { key: 'preview', label: '预览', icon: Eye },
+                        { key: 'detailed', label: '详细', icon: Workflow },
+                    ].map((mode) => {
+                        const Icon = mode.icon;
+                        const active = generationMode === mode.key;
+                        return (
+                            <button
+                                key={mode.key}
+                                type="button"
+                                onClick={() => setGenerationMode(mode.key)}
+                                className={`flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl text-sm font-bold transition-colors ${
+                                    active
+                                        ? 'bg-primary text-white shadow-sm dark:text-gray-900'
+                                        : 'text-text-muted-light hover:bg-gray-50 dark:text-text-muted-dark dark:hover:bg-background-dark'
+                                }`}
+                            >
+                                <Icon data-icon="inline-start" className="size-4" />
+                                {mode.label}
+                            </button>
+                        );
+                    })}
+                </div>
                 <button
                     onClick={handleGeneratePlan}
-                    disabled={!selectedPetId || petList.length === 0}
+                    disabled={!selectedPetId || petList.length === 0 || isPreparingDetailed}
                     className={`w-full font-bold text-lg py-4 rounded-2xl flex items-center justify-center gap-2 transition-all duration-200
-                        ${selectedPetId && petList.length > 0
+                        ${selectedPetId && petList.length > 0 && !isPreparingDetailed
                             ? 'bg-primary text-white dark:text-gray-900 shadow-glow hover:shadow-glow-lg hover:brightness-110 active:scale-[0.97]'
                             : 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
                         }`}
                 >
                     <span className="material-icons-round">restaurant_menu</span>
-                    生成专属计划
+                    {isPreparingDetailed ? '准备详细模式...' : '生成专属计划'}
                 </button>
             </div>
 
-            {/* AG-UI v2 任务式生成入口(悬浮按钮)— 紫粉渐变区分实验性质,避开 BottomNav 中央 FAB */}
-            <Link
-                to="/agui-plan"
-                aria-label="进入 AG-UI v2 任务式生成"
-                className="fixed bottom-28 right-6 z-30 w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 text-white shadow-lg flex items-center justify-center hover:scale-110 active:scale-95 transition-transform"
-            >
-                <span className="material-icons-round text-xl">science</span>
-            </Link>
         </motion.div>
     );
 }

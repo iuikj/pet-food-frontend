@@ -1,51 +1,125 @@
 import { useMemo, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion'; // eslint-disable-line no-unused-vars -- motion used via JSX
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Bot, CalendarDays, Maximize2, Minimize2 } from 'lucide-react';
+import { Bot, CalendarDays, Check, ChevronDown, CircleDashed } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import TimelineFeed from './TimelineFeed';
 
-const STATUS_VARIANT = {
-    pending: 'secondary',
-    active: 'secondary',
-    planning: 'secondary',
-    searching: 'secondary',
-    writing: 'secondary',
-    completed: 'secondary',
-    error: 'destructive',
+const STATUS_CLASS = {
+    pending: 'agui-status-badge--pending',
+    active: 'agui-status-badge--active',
+    planning: 'agui-status-badge--active',
+    searching: 'agui-status-badge--searching',
+    writing: 'agui-status-badge--active',
+    completed: 'agui-status-badge--completed',
+    error: 'agui-status-badge--error',
 };
 
-function previewLabel(event) {
-    const viewType = event.detail?.view_type;
-    if (viewType === 'ai_message') return '消息';
-    if (viewType === 'reasoning') return '推理';
-    if (viewType?.startsWith('tool_') || event.type === 'tool_call') return '工具';
-    if (event.type === 'plan_snapshot') return '队列';
-    return event.task_name || event.type || '事件';
+function statusLabel(status) {
+    if (!status?.key) return '等待中';
+    if (status.key === 'completed') return '已完成';
+    if (status.key === 'searching') return '搜索中';
+    if (status.key === 'error') return status.label || '失败';
+    if (status.key === 'pending') return status.label || '等待中';
+    return status.label || '执行中';
 }
 
-function previewText(event) {
+function eventDone(event) {
     const detail = event.detail || {};
-    if (detail.view_type === 'ai_message') {
-        return detail.content || event.message || '';
+    return (
+        event.type === 'completed' ||
+        event.type === 'task_completed' ||
+        event.type === 'week_completed' ||
+        detail.status === 'completed' ||
+        detail.status === 'output-available'
+    );
+}
+
+function eventErrored(event) {
+    return event.type === 'error' || event.detail?.status === 'error';
+}
+
+function previewCommand(event) {
+    const detail = event.detail || {};
+    const viewType = detail.view_type;
+    const suffix = eventErrored(event) ? '失败' : (eventDone(event) ? '已完成' : '进行中');
+
+    if (viewType?.startsWith('tool_') || event.type === 'tool_call') {
+        if (viewType === 'tool_search') return `资料检索${suffix}`;
+        if (viewType === 'tool_note_read') return `读取营养资料${suffix}`;
+        if (viewType === 'tool_note_write') return `整理阶段笔记${suffix}`;
+        if (viewType === 'tool_food_calc') return `营养计算${suffix}`;
+        return `工具调用${suffix}`;
     }
-    if (detail.view_type === 'reasoning') {
-        return detail.content || detail.reasoning || event.message || '';
+    if (viewType === 'reasoning') {
+        return eventDone(event) ? '推理完成' : '正在推理方案';
     }
-    if (detail.view_type?.startsWith('tool_') || event.type === 'tool_call') {
-        const toolName = detail.tool_name || 'tool';
-        const status = detail.status ? ` · ${detail.status}` : '';
-        return `${toolName}${status}`;
+    if (viewType === 'ai_message') {
+        return `生成说明${suffix}`;
     }
-    return event.message || detail.task_name || event.task_name || event.type || '';
+    if (event.type === 'plan_snapshot') {
+        return `任务队列${suffix}`;
+    }
+    return `${detail.task_name || event.task_name || event.message || '事件更新'} ${suffix}`;
 }
 
 function AgentIcon({ kind }) {
-    if (kind === 'week') {
-        return <CalendarDays className="size-4 text-muted-foreground" />;
+    const Icon = kind === 'week' ? CalendarDays : Bot;
+
+    return (
+        <div className={cn('agui-agent-avatar', kind === 'week' && 'agui-agent-avatar--week')}>
+            <Icon className="size-5" />
+        </div>
+    );
+}
+
+function EventPreviewStack({ events }) {
+    if (events.length === 0) {
+        return (
+            <div className="agui-event-preview agui-event-preview--empty">
+                <div className="agui-event-preview-row">
+                    <CircleDashed className="size-3.5" />
+                    <span>等待事件更新...</span>
+                </div>
+            </div>
+        );
     }
-    return <Bot className="size-4 text-muted-foreground" />;
+
+    return (
+        <div className="agui-event-preview" aria-label="事件流预览">
+            <AnimatePresence initial={false}>
+                {events.map((event, index) => (
+                    <motion.div
+                        animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                        className={cn(
+                            'agui-event-preview-row',
+                            index === 0 && events.length === 3 && 'is-faded',
+                        )}
+                        exit={{ opacity: 0, y: -8, filter: 'blur(4px)' }}
+                        initial={{ opacity: 0, y: 9, filter: 'blur(5px)' }}
+                        key={`${event.timestamp || ''}-${event.type || ''}-${event.detail?.message_id || event.detail?.call_id || index}`}
+                        layout
+                        transition={{ duration: 0.24, ease: 'easeOut' }}
+                    >
+                        {eventDone(event) ? (
+                            <Check className="size-3.5" />
+                        ) : (
+                            <span className="agui-preview-spinner" />
+                        )}
+                        <span className="truncate">{previewCommand(event)}</span>
+                    </motion.div>
+                ))}
+            </AnimatePresence>
+        </div>
+    );
+}
+
+function AgentMetaLabel({ kind }) {
+    if (kind === 'week') {
+        return '周计划 Agent';
+    }
+    return '子 Agent';
 }
 
 export default function AgentStreamCard({
@@ -60,91 +134,89 @@ export default function AgentStreamCard({
     const [open, setOpen] = useState(false);
     const canExpand = events.length > 0;
     const previewEvents = useMemo(() => events.slice(-3), [events]);
-    const statusVariant = STATUS_VARIANT[status?.key] || 'secondary';
+    const statusClass = STATUS_CLASS[status?.key] || STATUS_CLASS.pending;
+    const resolvedStatusLabel = statusLabel(status);
 
     return (
         <Collapsible
             open={open}
             onOpenChange={setOpen}
-            className="relative overflow-hidden rounded-lg border border-border bg-background shadow-xs"
+            className={cn(
+                'agui-agent-card',
+                kind === 'week' && 'agui-agent-card--week',
+                open && 'is-open',
+            )}
         >
-            <header className="flex flex-col gap-2 p-3 pb-2">
-                <div className="flex items-start justify-between gap-2">
-                    <div className="flex min-w-0 items-start gap-2">
+            <header className="p-5 pb-4">
+                <div className="flex items-start justify-between gap-3">
+                    <div className="flex min-w-0 items-start gap-3">
                         <AgentIcon kind={kind} />
                         <div className="min-w-0">
-                            <h4 className="truncate text-sm font-semibold">{title}</h4>
+                            <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--agui-muted)]">
+                                <AgentMetaLabel kind={kind} />
+                            </p>
+                            <h4 className="truncate text-[17px] font-semibold leading-tight tracking-normal">
+                                {title}
+                            </h4>
                             {subtitle && (
-                                <p className="truncate text-[11px] text-muted-foreground">
+                                <p className="mt-1 truncate text-[11px] text-[var(--agui-muted)]">
                                     {subtitle}
                                 </p>
                             )}
                         </div>
                     </div>
-                    <Badge variant={statusVariant} className="rounded-full">
-                        {status?.label || '等待'}
+                    <Badge variant="secondary" className={cn('agui-status-badge', statusClass)}>
+                        {resolvedStatusLabel}
                     </Badge>
                 </div>
 
-                <div className="rounded-lg border border-border bg-muted/45 px-3 py-2 shadow-inner">
-                    <p className="text-[10px] font-medium uppercase text-muted-foreground">
-                        任务
+                <div className="mt-5">
+                    <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--agui-muted)]">
+                        任务摘要
                     </p>
-                    <p className="line-clamp-2 break-words text-xs text-foreground">
+                    <p className="line-clamp-3 break-words text-[13px] leading-6 text-[var(--agui-ink-soft)]">
                         {taskName || '等待任务描述...'}
                     </p>
                 </div>
             </header>
 
             {!open && (
-                <div className="px-3 pb-11">
-                    <div className="flex flex-col gap-1 rounded-lg bg-muted/55 p-2 shadow-inner">
-                        {previewEvents.length > 0 ? (
-                            previewEvents.map((event, index) => (
-                                <div
-                                    key={`${event.timestamp || ''}-${event.type || ''}-${event.detail?.message_id || event.detail?.call_id || index}`}
-                                    className="flex items-center gap-2 rounded-md px-2 py-1 text-[11px] text-muted-foreground"
-                                >
-                                    <span className="size-1.5 shrink-0 rounded-full bg-muted-foreground/35" />
-                                    <span className="shrink-0 font-medium">{previewLabel(event)}</span>
-                                    <span className="min-w-0 truncate">{previewText(event)}</span>
-                                </div>
-                            ))
-                        ) : (
-                            <p className="px-2 py-1 text-[11px] text-muted-foreground">
-                                等待 AG-UI 标准事件...
-                            </p>
-                        )}
-                    </div>
+                <div className="px-5 pb-4">
+                    <EventPreviewStack events={previewEvents} />
                 </div>
             )}
 
-            <CollapsibleContent className="border-t border-border bg-background">
-                <div className="max-h-[56vh] overflow-y-auto overscroll-contain px-2 py-2 pb-11">
+            <CollapsibleContent className="agui-agent-card-content">
+                <div className="agui-subspace-shell">
+                    <div className="mb-3 flex items-center justify-between">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--agui-muted)]">
+                            内部时间线
+                        </p>
+                        <span className="rounded-full bg-white/[0.65] px-2 py-1 text-[10px] text-[var(--agui-muted)]">
+                            {events.length} 条事件
+                        </span>
+                    </div>
                     {canExpand ? (
                         <TimelineFeed events={events} compact emptyText={emptyText} />
                     ) : (
-                        <p className="p-3 text-xs text-muted-foreground">{emptyText}</p>
+                        <p className="p-3 text-xs text-[var(--agui-muted)]">{emptyText}</p>
                     )}
                 </div>
             </CollapsibleContent>
 
-            <div className="absolute bottom-2 right-2">
+            <footer className="flex items-center justify-between border-t border-black/[0.035] px-5 py-3">
+                <span className="text-[11px] text-[var(--agui-muted)]">
+                    事件预览
+                </span>
                 <CollapsibleTrigger
+                    aria-label={open ? '收起事件流' : '展开事件流'}
+                    className={cn('agui-agent-toggle', !canExpand && 'opacity-45')}
                     disabled={!canExpand}
-                    render={(
-                        <Button
-                            aria-label={open ? '收起事件流' : '展开事件流'}
-                            className={cn('rounded-lg shadow-xs', !canExpand && 'opacity-50')}
-                            size="icon-sm"
-                            type="button"
-                            variant="outline"
-                        />
-                    )}
                 >
-                    {open ? <Minimize2 /> : <Maximize2 />}
+                    <span>{open ? '收起' : '展开'}</span>
+                    <ChevronDown className={cn('size-3.5 transition-transform duration-200', open && 'rotate-180')} />
                 </CollapsibleTrigger>
-            </div>
+            </footer>
         </Collapsible>
     );
 }
