@@ -117,6 +117,9 @@ export function toQueueDispatch(event) {
 /**
  * detail.result (search 工具返回) → AI Elements <Sources> 期望的数组
  * 容错:result 可能是 array / JSON 字符串 / { results: [...] } 形状
+ *
+ * title 仍 fallback 到 url 以兼容 <Source> 直接展示;
+ * 若消费方需要 hostname 风格,自行用 new URL(s.url).hostname 处理。
  */
 export function toAiSdkSources(event) {
     const r = event.detail?.result;

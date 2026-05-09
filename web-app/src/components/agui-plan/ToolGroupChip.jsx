@@ -42,7 +42,51 @@ const AGGREGATE_ICONS = {
     plan: ListChecks,
 };
 
+function basenameOf(p) {
+    if (!p || typeof p !== 'string') return '';
+    const trimmed = p.replace(/[\\/]+$/, '');
+    const idx = Math.max(trimmed.lastIndexOf('/'), trimmed.lastIndexOf('\\'));
+    return idx >= 0 ? trimmed.slice(idx + 1) : trimmed;
+}
+
+function extractTokenForKey(key, ev) {
+    const args = ev.detail?.args || {};
+    const toolName = ev.detail?.tool_name || '';
+    if (key === 'browse') {
+        const raw = args.path || args.directory || args.pattern || '';
+        return raw || '';
+    }
+    if (key === 'read') {
+        const raw = args.path || args.file_path || args.filename || args.note_name || '';
+        return basenameOf(raw);
+    }
+    if (key === 'write') {
+        const raw = args.path || args.file_path || args.note_name || '';
+        return basenameOf(raw);
+    }
+    if (key === 'search') {
+        const q = args.query || args.pattern || args.search_term || '';
+        if (!q) return '';
+        return q.length > 24 ? `${q.slice(0, 22)}…` : q;
+    }
+    if (key === 'plan') {
+        return '';
+    }
+    return basenameOf(args.path || args.file_path || '') || toolName;
+}
+
+function joinTokens(tokens, max = 4) {
+    if (tokens.length === 0) return '';
+    if (tokens.length <= max) return tokens.join(', ');
+    return `${tokens.slice(0, max).join(', ')} 等 ${tokens.length} 项`;
+}
+
+export function isTaskDispatchToolEvent(event) {
+    return event.detail?.tool_name === 'task';
+}
+
 export function isCoTEvent(event) {
+    if (isTaskDispatchToolEvent(event)) return false;
     if (isReasoningEvent(event)) return true;
     if (isAggregatableTool(event)) return true;
     if (isPlanBoardEvent(event)) return true;
@@ -51,6 +95,7 @@ export function isCoTEvent(event) {
 }
 
 export function isAggregatableTool(event) {
+    if (isTaskDispatchToolEvent(event)) return false;
     const viewType = event.detail?.view_type;
     const toolName = event.detail?.tool_name;
     if (viewType?.startsWith('tool_') || event.type === 'tool_call') {
@@ -81,20 +126,27 @@ export function isMainStreamElement(event) {
 
 export function buildSummaryLines(events) {
     const counts = {};
+    const tokensByKey = {};
     for (const ev of events) {
+        if (isTaskDispatchToolEvent(ev)) continue;
         if (isReasoningEvent(ev) || isPlanBoardEvent(ev) || isPhaseMarkerEvent(ev)) continue;
         const toolName = ev.detail?.tool_name;
         const mapping = TOOL_AGGREGATE_MAP[toolName];
-        if (mapping) {
-            counts[mapping.key] = (counts[mapping.key] || 0) + 1;
+        if (!mapping) continue;
+        counts[mapping.key] = (counts[mapping.key] || 0) + 1;
+        const token = extractTokenForKey(mapping.key, ev);
+        if (token) {
+            (tokensByKey[mapping.key] ||= new Set()).add(token);
         }
     }
     const lines = [];
     for (const key of ['browse', 'read', 'search', 'write', 'plan']) {
         if (counts[key]) {
+            const tokens = tokensByKey[key] ? Array.from(tokensByKey[key]) : [];
             lines.push({
                 key,
                 label: AGGREGATE_LABELS[key](counts[key]),
+                detail: joinTokens(tokens),
                 icon: AGGREGATE_ICONS[key],
                 count: counts[key],
             });
@@ -138,7 +190,10 @@ export default function ToolGroupChip({ events, onExpand, isStreaming = false, c
                 return (
                     <div key={line.key} className="flex items-center gap-2">
                         <Icon className="size-3.5 shrink-0 text-gray-400" />
-                        <span className="flex-1 truncate">{line.label}</span>
+                        <span className="shrink-0">{line.label}</span>
+                        {line.detail && (
+                            <span className="min-w-0 flex-1 truncate text-gray-400">{line.detail}</span>
+                        )}
                     </div>
                 );
             })}

@@ -9,7 +9,7 @@ import {
 import { Sparkles } from 'lucide-react';
 import WidgetSwitch from './EventStream/WidgetSwitch';
 import WeekParallelBlock from './WeekParallelBlock';
-import SubAgentCompact from './SubAgentCompact';
+import SubAgentParallelBlock from './SubAgentParallelBlock';
 import ToolGroupChip, { isCoTEvent, isMainStreamElement } from './ToolGroupChip';
 import ToolGroupSheet from './ToolGroupSheet';
 import { organizeEventsForTimeline, eventKey } from '../../utils/aguiPlanEvents';
@@ -128,16 +128,8 @@ export default function TimelineFeed({ events, emptyText, compact = false }) {
                                         initial={{ opacity: 0, y: 10 }}
                                         animate={{ opacity: 1, y: 0 }}
                                         transition={{ type: 'spring', stiffness: 260, damping: 26 }}
-                                        className="space-y-1"
                                     >
-                                        {subagentCards.map((card) => (
-                                            <SubAgentCompact
-                                                key={card.id}
-                                                card={card}
-                                                events={subagentBuckets[card.id] || []}
-                                                status={card.status}
-                                            />
-                                        ))}
+                                        <SubAgentParallelBlock cards={subagentCards} buckets={subagentBuckets} />
                                     </motion.div>
                                 );
                             }
