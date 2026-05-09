@@ -1,6 +1,6 @@
-import SubAgentCard from './SubAgentCard';
+import FanoutSubAgentStack from './FanoutSubAgentStack';
 
-export default function SubAgentParallelBlock({ cards, buckets }) {
+export default function SubAgentParallelBlock({ cards, buckets, openDetail }) {
     if (!cards?.length) return null;
 
     return (
@@ -13,15 +13,7 @@ export default function SubAgentParallelBlock({ cards, buckets }) {
                     {cards.length} 个任务
                 </span>
             </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                {cards.map((card) => (
-                    <SubAgentCard
-                        key={card.id}
-                        card={card}
-                        events={(buckets || {})[card.id] || []}
-                    />
-                ))}
-            </div>
+            <FanoutSubAgentStack cards={cards} buckets={buckets} openDetail={openDetail} />
         </section>
     );
 }

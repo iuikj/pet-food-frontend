@@ -577,6 +577,11 @@ body::-webkit-scrollbar {
   mask-image: none;
 }
 
+/* PR3 grill #8：莫兰迪卡内嵌 EventPreviewStack 文字调暗，AA 对比度安全（gray-700 #374151）。 */
+.agui-event-preview--compact .agui-event-preview-row {
+  color: #374151;
+}
+
 .agui-event-preview-row {
   display: flex;
   min-width: 0;

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion'; // eslint-disable-line no-unused-vars -- motion used via JSX
 import {
     Conversation,
     ConversationContent,
@@ -10,9 +10,11 @@ import { Sparkles } from 'lucide-react';
 import WidgetSwitch from './EventStream/WidgetSwitch';
 import WeekParallelBlock from './WeekParallelBlock';
 import SubAgentParallelBlock from './SubAgentParallelBlock';
-import ToolGroupChip, { isCoTEvent, isMainStreamElement } from './ToolGroupChip';
+import ToolGroupChip, { isCoTEvent, isMainStreamElement, isTaskDispatchToolEvent } from './ToolGroupChip';
 import ToolGroupSheet from './ToolGroupSheet';
+import FanoutDetailView from './FanoutDetailView';
 import { organizeEventsForTimeline, eventKey } from '../../utils/aguiPlanEvents';
+import { useFanoutDetail } from '@/hooks/useFanoutDetail';
 
 function WorkflowEventRow({ item }) {
     return (
@@ -41,6 +43,10 @@ function buildCoTBlocks(stream) {
     }
 
     for (const item of stream) {
+        // SubAgent 已通过 fanout 块渲染；过滤掉原始 task 工具调用，避免主流再出现单条卡。
+        if (isTaskDispatchToolEvent(item)) {
+            continue;
+        }
         if (item._kind === 'week_block' || item._kind === 'subagent_block') {
             flushCoT();
             result.push(item);
@@ -62,16 +68,41 @@ function buildCoTBlocks(stream) {
     return result;
 }
 
-export default function TimelineFeed({ events, emptyText, compact = false }) {
+export default function TimelineFeed({ events, emptyText, compact = false, disableNestedBlocks = false }) {
     const [sheetEvents, setSheetEvents] = useState(null);
-    const { mainStream, weekBuckets, weekCards, subagentBuckets, subagentCards } = useMemo(
+    const organized = useMemo(
         () => organizeEventsForTimeline(events || [], { nested: compact }),
         [events, compact],
     );
+    // PR3 grill #8 修复：详情页内的 TimelineFeed 必须直接铺平 events 渲染，
+    // 不再二次拆解出 week_block / subagent_block，否则详情页会再渲染一张同款 fanout 卡。
+    const { mainStream, weekBuckets, weekCards, subagentBuckets, subagentCards } = useMemo(() => {
+        if (disableNestedBlocks) {
+            return {
+                mainStream: events || [],
+                weekBuckets: {},
+                weekCards: [],
+                subagentBuckets: {},
+                subagentCards: [],
+            };
+        }
+        return organized;
+    }, [disableNestedBlocks, events, organized]);
 
     const aggregated = useMemo(() => buildCoTBlocks(mainStream), [mainStream]);
 
     const lastIsCoT = aggregated.length > 0 && aggregated[aggregated.length - 1]?._kind === 'cot_block';
+
+    // 详情页（compact / disableNestedBlocks 嵌套实例不再启用）。
+    // 顶层主流唯一持有详情状态；嵌套实例 enabled=false 时 hook 内不订阅 popstate / backButton。
+    const fanoutEnabled = !disableNestedBlocks && !compact;
+    const { detailCard, openDetail, closeDetail } = useFanoutDetail({ enabled: fanoutEnabled });
+    const detailEvents = useMemo(() => {
+        if (!detailCard) return [];
+        if (detailCard.kind === 'sub') return subagentBuckets?.[detailCard.id] || [];
+        if (detailCard.kind === 'week') return weekBuckets?.[detailCard.id] || [];
+        return [];
+    }, [detailCard, subagentBuckets, weekBuckets]);
 
     if (aggregated.length === 0) {
         return (
@@ -117,7 +148,11 @@ export default function TimelineFeed({ events, emptyText, compact = false }) {
                                         animate={{ opacity: 1, y: 0 }}
                                         transition={{ type: 'spring', stiffness: 260, damping: 26 }}
                                     >
-                                        <WeekParallelBlock buckets={weekBuckets} cards={weekCards} />
+                                        <WeekParallelBlock
+                                            buckets={weekBuckets}
+                                            cards={weekCards}
+                                            openDetail={openDetail}
+                                        />
                                     </motion.div>
                                 );
                             }
@@ -129,10 +164,16 @@ export default function TimelineFeed({ events, emptyText, compact = false }) {
                                         animate={{ opacity: 1, y: 0 }}
                                         transition={{ type: 'spring', stiffness: 260, damping: 26 }}
                                     >
-                                        <SubAgentParallelBlock cards={subagentCards} buckets={subagentBuckets} />
+                                        <SubAgentParallelBlock
+                                            cards={subagentCards}
+                                            buckets={subagentBuckets}
+                                            openDetail={openDetail}
+                                        />
                                     </motion.div>
                                 );
                             }
+                            // 兜底：极端情况下若 task 工具事件漏过 buildCoTBlocks 过滤，再阻拦一次。
+                            if (isTaskDispatchToolEvent(item)) return null;
                             return (
                                 <WorkflowEventRow key={eventKey(item)} item={item} />
                             );
@@ -147,6 +188,17 @@ export default function TimelineFeed({ events, emptyText, compact = false }) {
                 events={sheetEvents || []}
                 onClose={() => setSheetEvents(null)}
             />
+
+            <AnimatePresence>
+                {fanoutEnabled && detailCard && (
+                    <FanoutDetailView
+                        key={`${detailCard.kind}-${detailCard.id}`}
+                        card={detailCard}
+                        events={detailEvents}
+                        onClose={closeDetail}
+                    />
+                )}
+            </AnimatePresence>
         </>
     );
 }
