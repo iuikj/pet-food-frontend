@@ -10,19 +10,9 @@ import { Sparkles } from 'lucide-react';
 import WidgetSwitch from './EventStream/WidgetSwitch';
 import WeekParallelBlock from './WeekParallelBlock';
 import SubAgentCompact from './SubAgentCompact';
-import ToolGroupChip, { isAggregatableTool } from './ToolGroupChip';
+import ToolGroupChip, { isCoTEvent, isMainStreamElement } from './ToolGroupChip';
 import ToolGroupSheet from './ToolGroupSheet';
 import { organizeEventsForTimeline, eventKey } from '../../utils/aguiPlanEvents';
-
-/**
- * TimelineFeed v2 — 平铺流式布局。
- *
- * 变化：
- *   - 去掉外层「详细工作流」折叠卡片
- *   - 相邻高频工具事件聚合为 ToolGroupChip
- *   - 子 Agent 使用 SubAgentCompact 缩略卡
- *   - 事件直接平铺，无容器背景
- */
 
 function WorkflowEventRow({ item }) {
     return (
@@ -39,35 +29,36 @@ function WorkflowEventRow({ item }) {
     );
 }
 
-/**
- * 将 mainStream 中相邻的可聚合工具事件合并为 group。
- * 返回混合数组：普通事件 | { _kind: 'tool_group', events: [...] }
- */
-function aggregateToolEvents(stream) {
+function buildCoTBlocks(stream) {
     const result = [];
-    let toolBuffer = [];
+    let cotBuffer = [];
 
-    function flushBuffer() {
-        if (toolBuffer.length > 0) {
-            result.push({ _kind: 'tool_group', events: [...toolBuffer] });
-            toolBuffer = [];
+    function flushCoT() {
+        if (cotBuffer.length > 0) {
+            result.push({ _kind: 'cot_block', events: [...cotBuffer] });
+            cotBuffer = [];
         }
     }
 
     for (const item of stream) {
         if (item._kind === 'week_block' || item._kind === 'subagent_block') {
-            flushBuffer();
+            flushCoT();
             result.push(item);
             continue;
         }
-        if (isAggregatableTool(item)) {
-            toolBuffer.push(item);
-        } else {
-            flushBuffer();
+        if (isMainStreamElement(item)) {
+            flushCoT();
             result.push(item);
+            continue;
         }
+        if (isCoTEvent(item)) {
+            cotBuffer.push(item);
+            continue;
+        }
+        flushCoT();
+        result.push(item);
     }
-    flushBuffer();
+    flushCoT();
     return result;
 }
 
@@ -78,16 +69,9 @@ export default function TimelineFeed({ events, emptyText, compact = false }) {
         [events, compact],
     );
 
-    const visibleStream = useMemo(() => {
-        const filtered = [];
-        for (const item of mainStream) {
-            if (item?.detail?.view_type === 'plan_board') continue;
-            filtered.push(item);
-        }
-        return filtered;
-    }, [mainStream]);
+    const aggregated = useMemo(() => buildCoTBlocks(mainStream), [mainStream]);
 
-    const aggregated = useMemo(() => aggregateToolEvents(visibleStream), [visibleStream]);
+    const lastIsCoT = aggregated.length > 0 && aggregated[aggregated.length - 1]?._kind === 'cot_block';
 
     if (aggregated.length === 0) {
         return (
@@ -108,10 +92,11 @@ export default function TimelineFeed({ events, emptyText, compact = false }) {
                 <ConversationContent className="gap-3 px-0 py-4">
                     <AnimatePresence initial={false}>
                         {aggregated.map((item, idx) => {
-                            if (item._kind === 'tool_group') {
+                            if (item._kind === 'cot_block') {
+                                const isLast = idx === aggregated.length - 1;
                                 return (
                                     <motion.div
-                                        key={`tg-${idx}`}
+                                        key={`cot-${idx}`}
                                         initial={{ opacity: 0, y: 5 }}
                                         animate={{ opacity: 1, y: 0 }}
                                         transition={{ duration: 0.18 }}
@@ -119,6 +104,7 @@ export default function TimelineFeed({ events, emptyText, compact = false }) {
                                         <ToolGroupChip
                                             events={item.events}
                                             onExpand={(evts) => setSheetEvents(evts)}
+                                            isStreaming={isLast && lastIsCoT}
                                         />
                                     </motion.div>
                                 );
