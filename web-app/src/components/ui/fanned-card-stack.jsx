@@ -9,6 +9,55 @@ if (typeof window !== 'undefined') {
   gsap.registerPlugin(Draggable);
 }
 
+function getItemKey(item) {
+  return item?.id ?? JSON.stringify(item);
+}
+
+function getKeySignature(items) {
+  return JSON.stringify(items.map((item) => getItemKey(item)));
+}
+
+function areSameItems(a, b) {
+  return a.length === b.length && a.every((item, index) => item === b[index]);
+}
+
+function reconcileItems(currentItems, incomingItems, { contentOnly = false } = {}) {
+  const incomingByKey = new Map(incomingItems.map((item) => [getItemKey(item), item]));
+  const currentKeys = currentItems.map(getItemKey);
+  const incomingKeys = incomingItems.map(getItemKey);
+  const incomingKeySet = new Set(incomingKeys);
+  const currentKeySet = new Set(currentKeys);
+  const isStructuralChange = (
+    currentKeys.length !== incomingKeys.length ||
+    currentKeys.some((key) => !incomingKeySet.has(key)) ||
+    incomingKeys.some((key) => !currentKeySet.has(key))
+  );
+
+  if (contentOnly) {
+    const nextItems = currentItems.map((item) => incomingByKey.get(getItemKey(item)) ?? item);
+    return {
+      items: areSameItems(currentItems, nextItems) ? currentItems : nextItems,
+      isStructuralChange,
+    };
+  }
+
+  const nextItems = currentItems
+    .filter((item) => incomingKeySet.has(getItemKey(item)))
+    .map((item) => incomingByKey.get(getItemKey(item)) ?? item);
+  const nextKeySet = new Set(nextItems.map(getItemKey));
+
+  incomingItems.forEach((item) => {
+    if (!nextKeySet.has(getItemKey(item))) {
+      nextItems.push(item);
+    }
+  });
+
+  return {
+    items: areSameItems(currentItems, nextItems) ? currentItems : nextItems,
+    isStructuralChange,
+  };
+}
+
 /**
  * Renders a stack of items as fanned-out cards.
  * Users can drag the top card to "swipe" it to the bottom of the stack.
@@ -27,49 +76,95 @@ export function FannedCardStack(
     className
   }
 ) {
-  const [items, setItems] = React.useState(initialItems);
+  const [items, setItems] = React.useState(initialItems || []);
   const cardRefs = React.useRef([]);
+  const itemsRef = React.useRef(items);
+  const onReorderRef = React.useRef(onReorder);
+  const pendingStructuralItems = React.useRef(null);
   const isAnimating = React.useRef(false);
+  const isDragging = React.useRef(false);
   const hasLoaded = React.useRef(false);
+  const pivotX = pivot?.x ?? 50;
+  const pivotY = pivot?.y ?? 100;
+  const itemKeySignature = React.useMemo(() => getKeySignature(items), [items]);
 
   React.useEffect(() => {
-    setItems(initialItems);
-  }, [initialItems]);
+    itemsRef.current = items;
+    cardRefs.current.length = items.length;
+  }, [items]);
 
-  const getCardStyle = React.useCallback((index) => {
+  React.useEffect(() => {
+    onReorderRef.current = onReorder;
+  }, [onReorder]);
+
+  const getCardStyle = React.useCallback((index, itemCount = itemsRef.current.length) => {
     return {
       rotation: index * rotateFactor,
       scale: 1 - index * scaleFactor,
-      zIndex: items.length - index,
+      zIndex: itemCount - index,
       x: 0,
       y: 0,
       opacity: 1,
     };
-  }, [items.length, rotateFactor, scaleFactor]);
+  }, [rotateFactor, scaleFactor]);
+
+  const consumePendingStructuralItems = React.useCallback((baseItems = itemsRef.current) => {
+    if (!pendingStructuralItems.current) return baseItems;
+
+    const pendingItems = pendingStructuralItems.current;
+    pendingStructuralItems.current = null;
+    const { items: nextItems } = reconcileItems(baseItems, pendingItems);
+    return nextItems;
+  }, []);
+
+  React.useEffect(() => {
+    const incomingItems = initialItems || [];
+
+    setItems((currentItems) => {
+      const { isStructuralChange } = reconcileItems(currentItems, incomingItems);
+
+      if (isStructuralChange && (isDragging.current || isAnimating.current)) {
+        pendingStructuralItems.current = incomingItems;
+        const { items: contentOnlyItems } = reconcileItems(currentItems, incomingItems, {
+          contentOnly: true,
+        });
+        itemsRef.current = contentOnlyItems;
+        return contentOnlyItems;
+      }
+
+      pendingStructuralItems.current = null;
+      const { items: nextItems } = reconcileItems(currentItems, incomingItems);
+      itemsRef.current = nextItems;
+      return nextItems;
+    });
+  }, [initialItems]);
 
   useGSAP(() => {
+    const currentItems = itemsRef.current;
+    const itemCount = currentItems.length;
+
     // DECISION: We split logic into "Entrance" (initial load) and "Maintenance" (re-renders).
     // The entrance ensures a clean 'deal' animation, while maintenance updates positions instantly
     // to keep the stack visually consistent during React state updates.
     if (!hasLoaded.current) {
-      items.forEach((_, index) => {
+      currentItems.forEach((_, index) => {
         const el = cardRefs.current[index];
         if (el) {
           gsap.set(el, {
-            transformOrigin: `${pivot.x}% ${pivot.y}%`,
+            transformOrigin: `${pivotX}% ${pivotY}%`,
             rotation: 0,
             x: 0,
             y: 50,
             scale: 0.9,
             opacity: 0,
-            zIndex: items.length - index,
+            zIndex: itemCount - index,
           });
         }
       });
 
       gsap.to(cardRefs.current, {
-        rotation: (i) => getCardStyle(i).rotation,
-        scale: (i) => getCardStyle(i).scale,
+        rotation: (i) => getCardStyle(i, itemCount).rotation,
+        scale: (i) => getCardStyle(i, itemCount).scale,
         y: 0,
         x: 0,
         opacity: 1,
@@ -81,13 +176,13 @@ export function FannedCardStack(
         },
       });
     } else {
-      items.forEach((_, index) => {
+      currentItems.forEach((_, index) => {
         const el = cardRefs.current[index];
         if (!el) return;
-        const style = getCardStyle(index);
+        const style = getCardStyle(index, itemCount);
 
         gsap.set(el, {
-          transformOrigin: `${pivot.x}% ${pivot.y}%`,
+          transformOrigin: `${pivotX}% ${pivotY}%`,
           rotation: style.rotation,
           scale: style.scale,
           x: 0,
@@ -110,6 +205,7 @@ export function FannedCardStack(
           this.endDrag();
           return;
         }
+        isDragging.current = true;
         // STOP: Kill any ongoing "snap back" animations if the user grabs the card mid-air.
         gsap.killTweensOf(this.target);
       },
@@ -119,8 +215,9 @@ export function FannedCardStack(
 
         if (dist > THRESHOLD) {
           isAnimating.current = true;
-          const lastIndex = items.length - 1;
-          const targetStyle = getCardStyle(lastIndex);
+          const currentItems = itemsRef.current;
+          const lastIndex = currentItems.length - 1;
+          const targetStyle = getCardStyle(lastIndex, currentItems.length);
           // HACK: Multiply the drag distance to create a visual "kick" or momentum effect
           // before the card loops back to the bottom of the stack.
           const kickX = this.x * 1.5;
@@ -128,12 +225,15 @@ export function FannedCardStack(
 
           const timeline = gsap.timeline({
             onComplete: () => {
-              const newItems = [...items];
+              const newItems = [...itemsRef.current];
               const movedItem = newItems.shift();
               if (movedItem) newItems.push(movedItem);
-              setItems(newItems);
-              if (onReorder) onReorder(newItems);
               isAnimating.current = false;
+              isDragging.current = false;
+              const settledItems = consumePendingStructuralItems(newItems);
+              itemsRef.current = settledItems;
+              setItems(settledItems);
+              if (onReorderRef.current) onReorderRef.current(settledItems);
             },
           });
 
@@ -156,10 +256,10 @@ export function FannedCardStack(
               ease: 'back.out(1.2)',
             });
 
-          items.forEach((_, i) => {
+          currentItems.forEach((_, i) => {
             if (i === 0) return;
             const el = cardRefs.current[i];
-            const nextStyle = getCardStyle(i - 1);
+            const nextStyle = getCardStyle(i - 1, currentItems.length);
             timeline.to(el, {
               rotation: nextStyle.rotation,
               scale: nextStyle.scale,
@@ -173,6 +273,14 @@ export function FannedCardStack(
             y: 0,
             duration: 0.4,
             ease: 'back.out(1.5)',
+            onComplete: () => {
+              isDragging.current = false;
+              const settledItems = consumePendingStructuralItems();
+              if (settledItems !== itemsRef.current) {
+                itemsRef.current = settledItems;
+                setItems(settledItems);
+              }
+            },
           });
         }
       },
@@ -181,7 +289,7 @@ export function FannedCardStack(
     return () => {
       draggable.kill();
     };
-  }, [items, rotateFactor, scaleFactor, pivot]);
+  }, [itemKeySignature, rotateFactor, scaleFactor, pivotX, pivotY, getCardStyle, consumePendingStructuralItems]);
 
   return (
     <div
@@ -193,7 +301,9 @@ export function FannedCardStack(
       {items.map((item, index) => {
         return (
           <div
-            key={JSON.stringify(item)}
+            // PATCH 2: 项目特化 — 优先用 item.id 作为 key，避免 events 实时更新触发整组 unmount + entrance animation 重放
+            // 由消费方保证 card.id 稳定（grill #7 ADR-001 风险落地）；fallback 到 JSON.stringify 兼容上游契约
+            key={item?.id ?? JSON.stringify(item)}
             ref={(el) => {
               cardRefs.current[index] = el;
             }}
