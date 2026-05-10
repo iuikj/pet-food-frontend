@@ -173,7 +173,7 @@ function RunInner({ setForwardedProps }) {
         <div className="relative mx-auto flex min-h-[100dvh] w-full max-w-[430px] flex-col bg-white">
             <PlanRunHeader pet={displayPet} onBack={handleBack} />
 
-            <main className="relative flex min-h-0 flex-1 flex-col px-4 pb-32">
+            <main className="relative flex min-h-0 flex-1 flex-col pb-32">
                 <div className="min-h-0 flex-1">
                     <TimelineFeed
                         events={events}

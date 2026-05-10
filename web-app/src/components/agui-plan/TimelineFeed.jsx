@@ -120,7 +120,7 @@ export default function TimelineFeed({ events, emptyText, compact = false, disab
     return (
         <>
             <Conversation className="h-full">
-                <ConversationContent className="gap-3 px-0 py-4">
+                <ConversationContent className="gap-3 px-4 py-4">
                     <AnimatePresence initial={false}>
                         {aggregated.map((item, idx) => {
                             if (item._kind === 'cot_block') {

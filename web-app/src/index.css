@@ -560,7 +560,8 @@ body::-webkit-scrollbar {
 .agui-event-preview {
   position: relative;
   display: flex;
-  min-height: 82px;
+  height: 82px;
+  flex-shrink: 0;
   flex-direction: column;
   justify-content: flex-end;
   gap: 4px;
@@ -570,6 +571,15 @@ body::-webkit-scrollbar {
   background: rgba(247, 246, 241, 0.62);
   padding: 10px;
   mask-image: linear-gradient(to bottom, transparent 0%, black 22%, black 100%);
+}
+
+/* PATCH (Session 2 P5 step 3): suppress browser scroll anchoring on every element
+   while a fanned-card stack is actively being swiped. Prevents StickToBottom and any
+   other scroll container from re-snapping mid-flip when card animations cause micro
+   layout twitches. The flag is set on documentElement by fanned-card-stack.jsx. */
+[data-fanned-swiping="true"],
+[data-fanned-swiping="true"] * {
+  overflow-anchor: none;
 }
 
 .agui-event-preview--empty {

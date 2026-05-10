@@ -13,6 +13,30 @@ function getItemKey(item) {
   return item?.id ?? JSON.stringify(item);
 }
 
+// PATCH (Session 2 P5 step 3): toggle a global flag during swipe so CSS can disable
+// browser scroll anchoring on ancestor scroll containers (StickToBottom). overflow-anchor
+// does not inherit, so we set it on documentElement and use a descendant selector to
+// cover all scrollable ancestors. Reference-counted to support concurrent stacks.
+function incSwiping() {
+  if (typeof document === 'undefined') return;
+  const root = document.documentElement;
+  const next = (Number(root.dataset.fannedSwipingCount) || 0) + 1;
+  root.dataset.fannedSwipingCount = String(next);
+  root.setAttribute('data-fanned-swiping', 'true');
+}
+
+function decSwiping() {
+  if (typeof document === 'undefined') return;
+  const root = document.documentElement;
+  const next = Math.max(0, (Number(root.dataset.fannedSwipingCount) || 1) - 1);
+  if (next === 0) {
+    delete root.dataset.fannedSwipingCount;
+    root.removeAttribute('data-fanned-swiping');
+  } else {
+    root.dataset.fannedSwipingCount = String(next);
+  }
+}
+
 function getKeySignature(items) {
   return JSON.stringify(items.map((item) => getItemKey(item)));
 }
@@ -216,6 +240,7 @@ export function FannedCardStack(
           return;
         }
         isDragging.current = true;
+        incSwiping();
         pressRef.current = {
           x: this.pointerX ?? 0,
           y: this.pointerY ?? 0,
@@ -258,6 +283,7 @@ export function FannedCardStack(
               if (movedItem) newItems.push(movedItem);
               isAnimating.current = false;
               isDragging.current = false;
+              decSwiping();
               const settledItems = consumePendingStructuralItems(newItems);
               itemsRef.current = settledItems;
               setItems(settledItems);
@@ -308,6 +334,7 @@ export function FannedCardStack(
             ease: 'back.out(1.5)',
             onComplete: () => {
               isDragging.current = false;
+              decSwiping();
               const settledItems = consumePendingStructuralItems();
               if (settledItems !== itemsRef.current) {
                 itemsRef.current = settledItems;
@@ -326,6 +353,12 @@ export function FannedCardStack(
     })[0];
 
     return () => {
+      if (isDragging.current || isAnimating.current) {
+        // Unmount mid-swipe: balance the incSwiping from onPress so the global flag does not leak.
+        decSwiping();
+        isDragging.current = false;
+        isAnimating.current = false;
+      }
       draggable.kill();
     };
   }, [itemKeySignature, rotateFactor, scaleFactor, pivotX, pivotY, getCardStyle, consumePendingStructuralItems]);
