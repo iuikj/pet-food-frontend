@@ -32,7 +32,7 @@ function HeaderStatusDot({ status }) {
     );
 }
 
-export default function FanoutDetailView({ card, events, onClose }) {
+export default function FanoutDetailView({ card, events, allEvents, onClose }) {
     if (!card) return null;
     const title = card.title || '';
 
@@ -61,7 +61,8 @@ export default function FanoutDetailView({ card, events, onClose }) {
             </header>
 
             <div className="flex-1 overflow-y-auto px-3">
-                <TimelineFeed events={events || []} emptyText="此卡片暂无事件" disableNestedBlocks />
+                {/* PR3：透传 allEvents（task 全量），让 ToolGroupSheet → toAiSdkSources 在 bucket 内 result 缺失时按 call_id 回查兄弟事件 */}
+                <TimelineFeed events={events || []} allEvents={allEvents} emptyText="此卡片暂无事件" disableNestedBlocks />
             </div>
         </motion.div>
     );

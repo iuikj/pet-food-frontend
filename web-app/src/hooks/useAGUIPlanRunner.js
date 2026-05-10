@@ -49,6 +49,39 @@ function enqueueStateUpdate(fn) {
     });
 }
 
+// rAF flush 队列：把同一帧内多次 setEvents updater 合并成一次 commit。
+// 用于 chunk 级流式事件（TextMessageContent / ReasoningMessageContent / ToolCallArgs），
+// 节流到 ≤60fps，避免 AnimatePresence 长列表 diff 雪崩（详见 research/streaming-chunk-protocol.md §4）。
+function createRafBatcher() {
+    let pending = [];
+    let rafId = null;
+    return {
+        push(updater) {
+            pending.push(updater);
+            if (rafId !== null) return;
+            const flush = () => {
+                rafId = null;
+                const fns = pending;
+                pending = [];
+                startTransition(() => {
+                    fns.forEach((fn) => fn());
+                });
+            };
+            rafId = typeof requestAnimationFrame === 'function'
+                ? requestAnimationFrame(flush)
+                : setTimeout(flush, 16);
+        },
+        cancel() {
+            if (rafId !== null) {
+                if (typeof cancelAnimationFrame === 'function') cancelAnimationFrame(rafId);
+                else clearTimeout(rafId);
+                rafId = null;
+            }
+            pending = [];
+        },
+    };
+}
+
 function upsertEventById(events, id, buildNext) {
     const index = events.findIndex((event) => event.detail?.message_id === id);
     if (index < 0) return [...events, buildNext(null)];
@@ -253,9 +286,12 @@ export function useAGUIPlanRunner({ setForwardedProps }) {
     const activeStepsRef = useRef([]);
     const lastTodosSnapshotRef = useRef('');
     const textMessageMetaRef = useRef(new Map());
+    const textMessageBufferRef = useRef(new Map());
     const toolCallsRef = useRef(new Map());
     const completedToolCallIdsRef = useRef(new Set());
     const reasoningRef = useRef(new Map());
+    const rafBatcherRef = useRef(null);
+    if (rafBatcherRef.current == null) rafBatcherRef.current = createRafBatcher();
 
     // 1) 注入业务上下文 (currentPet → forwardedProps box)
     useEffect(() => {
@@ -364,28 +400,80 @@ export function useAGUIPlanRunner({ setForwardedProps }) {
                     taskName: scope.taskName,
                     scopeDetail: scope.detail,
                 });
+                if (event.role !== 'assistant') return;
+                // 占位 entry（is_streaming=true）— 让 AnimatePresence 在第一时间挂载稳定 key
+                textMessageBufferRef.current.set(event.messageId, '');
+                const timestamp = nowIso();
+                rafBatcherRef.current.push(() => {
+                    setEvents((prev) => upsertEventById(prev, event.messageId, () => ({
+                        type: 'ai_message',
+                        message: '',
+                        node: scope.node,
+                        task_name: scope.taskName,
+                        timestamp,
+                        detail: {
+                            ...scope.detail,
+                            view_type: 'ai_message',
+                            content: '',
+                            message_id: event.messageId,
+                            is_streaming: true,
+                        },
+                    })));
+                });
+            },
+            // PR1 核心：订阅 chunk 级流式事件（详见 research/streaming-chunk-protocol.md §1）
+            // 使用 SDK 提供的 textMessageBuffer（累计文本）而非自行拼接 delta；rAF 合并本帧多次 chunk
+            onTextMessageContentEvent: ({ event, textMessageBuffer }) => {
+                const meta = textMessageMetaRef.current.get(event.messageId);
+                if (!meta || meta.role !== 'assistant') return;
+                textMessageBufferRef.current.set(event.messageId, textMessageBuffer);
+                rafBatcherRef.current.push(() => {
+                    setEvents((prev) => upsertEventById(prev, event.messageId, (existing) => ({
+                        type: 'ai_message',
+                        message: existing?.message || '',
+                        node: meta.node,
+                        task_name: meta.taskName,
+                        timestamp: existing?.timestamp || nowIso(),
+                        detail: {
+                            ...(existing?.detail || {}),
+                            ...(meta.scopeDetail || {}),
+                            view_type: 'ai_message',
+                            content: textMessageBuffer,
+                            message_id: event.messageId,
+                            is_streaming: true,
+                        },
+                    })));
+                });
             },
             onTextMessageEndEvent: ({ event, textMessageBuffer }) => {
                 const meta = textMessageMetaRef.current.get(event.messageId);
                 textMessageMetaRef.current.delete(event.messageId);
+                const finalContent = textMessageBuffer ?? textMessageBufferRef.current.get(event.messageId) ?? '';
+                textMessageBufferRef.current.delete(event.messageId);
                 if (!meta || meta.role !== 'assistant') return;
-                if (!textMessageBuffer?.trim()) return;
-
-                const payload = {
-                    type: 'ai_message',
-                    message: textMessageBuffer.trim().slice(0, 120),
-                    node: meta.node,
-                    task_name: meta.taskName,
-                    timestamp: nowIso(),
-                    detail: {
-                        ...(meta.scopeDetail || {}),
-                        view_type: 'ai_message',
-                        content: textMessageBuffer,
-                        message_id: event.messageId,
-                    },
-                };
-                enqueueStateUpdate(() => {
-                    setEvents((prev) => [...prev, payload]);
+                if (!finalContent.trim()) {
+                    // 空消息 → 删除占位 entry
+                    rafBatcherRef.current.push(() => {
+                        setEvents((prev) => prev.filter((item) => item.detail?.message_id !== event.messageId));
+                    });
+                    return;
+                }
+                rafBatcherRef.current.push(() => {
+                    setEvents((prev) => upsertEventById(prev, event.messageId, (existing) => ({
+                        type: 'ai_message',
+                        message: finalContent.trim().slice(0, 120),
+                        node: existing?.node || meta.node,
+                        task_name: existing?.task_name || meta.taskName,
+                        timestamp: existing?.timestamp || nowIso(),
+                        detail: {
+                            ...(existing?.detail || {}),
+                            ...(meta.scopeDetail || {}),
+                            view_type: 'ai_message',
+                            content: finalContent,
+                            message_id: event.messageId,
+                            is_streaming: false,
+                        },
+                    })));
                 });
             },
             onReasoningMessageStartEvent: ({ event, state }) => {
@@ -422,7 +510,8 @@ export function useAGUIPlanRunner({ setForwardedProps }) {
                     ...meta,
                     content,
                 });
-                enqueueStateUpdate(() => {
+                // 用 rAF 合并 chunk → 单帧最多触发一次 setEvents
+                rafBatcherRef.current.push(() => {
                     setEvents((prev) => upsertEventById(prev, event.messageId, (existing) => ({
                         type: 'reasoning',
                         message: content.trim().slice(0, 120) || 'Thinking...',
@@ -501,12 +590,33 @@ export function useAGUIPlanRunner({ setForwardedProps }) {
                     taskName: scope.taskName,
                     scopeDetail: scope.detail,
                 });
+                const resolvedToolName = toolCallName || existing?.toolName;
+                const resolvedArgs = partialToolCallArgs || existing?.args || {};
                 toolCallsRef.current.set(event.toolCallId, {
-                    toolName: toolCallName || existing?.toolName,
-                    args: partialToolCallArgs || existing?.args || {},
+                    toolName: resolvedToolName,
+                    args: resolvedArgs,
                     node: scoped.node,
                     taskName: scoped.taskName,
                     scopeDetail: scoped.scopeDetail,
+                });
+                // PR2：把 streaming args 增量写回 events，让 sheet/卡片内的文件名 / query 实时刷新
+                // 用 call_id 定位（不是 message_id）避免与文本流冲突；rAF 合并多 chunk 为单帧 commit
+                if (PLAN_TODO_TOOL_NAMES.has(resolvedToolName)) return;
+                rafBatcherRef.current.push(() => {
+                    setEvents((prev) => {
+                        const idx = prev.findIndex((e) => e.detail?.call_id === event.toolCallId);
+                        if (idx < 0) return prev;
+                        const cur = prev[idx];
+                        const next = [...prev];
+                        next[idx] = {
+                            ...cur,
+                            detail: {
+                                ...(cur.detail || {}),
+                                args: resolvedArgs,
+                            },
+                        };
+                        return next;
+                    });
                 });
             },
             onToolCallResultEvent: ({ event, state }) => {
@@ -570,7 +680,10 @@ export function useAGUIPlanRunner({ setForwardedProps }) {
                 const taskName = existing.taskName || scope.taskName;
                 const toolName = existing.toolName;
                 const args = existing.args || {};
-                const scopeDetail = existing.scopeDetail || scope.detail;
+                // PR3 ADR-003 方案 B 主修（详见 research/event-stream-distribution.md §根因定位）
+                // 旧逻辑：existing.scopeDetail || scope.detail —— `{}` 是 truthy，导致 START 时刻没拿到 subagent_id 的 tool 整个生命周期都丢失归属
+                // 新逻辑：仅当 existing.scopeDetail 真有 owner（subagent_id / week_number）才锁定，否则用 scope.detail（最新 state 衍生）
+                const scopeDetail = hasScopedOwner(existing.scopeDetail) ? existing.scopeDetail : scope.detail;
 
                 toolCallsRef.current.delete(message.toolCallId);
 
@@ -611,6 +724,7 @@ export function useAGUIPlanRunner({ setForwardedProps }) {
 
         return () => {
             subscription?.unsubscribe?.();
+            rafBatcherRef.current?.cancel();
         };
     }, [agent]);
 
@@ -641,9 +755,11 @@ export function useAGUIPlanRunner({ setForwardedProps }) {
         activeStepsRef.current = [];
         lastTodosSnapshotRef.current = '';
         textMessageMetaRef.current.clear();
+        textMessageBufferRef.current.clear();
         toolCallsRef.current.clear();
         completedToolCallIdsRef.current.clear();
         reasoningRef.current.clear();
+        rafBatcherRef.current?.cancel();
         setError(null);
         setCompletedDetail(null);
         setHasStarted(true);
@@ -683,9 +799,11 @@ export function useAGUIPlanRunner({ setForwardedProps }) {
         activeStepsRef.current = [];
         lastTodosSnapshotRef.current = '';
         textMessageMetaRef.current.clear();
+        textMessageBufferRef.current.clear();
         toolCallsRef.current.clear();
         completedToolCallIdsRef.current.clear();
         reasoningRef.current.clear();
+        rafBatcherRef.current?.cancel();
         setError(null);
         setCompletedDetail(null);
     }, []);

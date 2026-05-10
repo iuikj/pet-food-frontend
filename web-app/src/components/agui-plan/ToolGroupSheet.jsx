@@ -20,6 +20,7 @@ import {
     ChainOfThoughtStep,
 } from '@/components/ai-elements/chain-of-thought';
 import { Sources, SourcesTrigger, SourcesContent, Source } from '@/components/ai-elements/sources';
+import { Reasoning, ReasoningContent, ReasoningTrigger } from '@/components/ai-elements/reasoning';
 import {
     isReasoningEvent,
     isPlanBoardEvent,
@@ -147,19 +148,24 @@ function mergeConsecutiveReasoning(events) {
 }
 
 // === 事件 → Step 映射（单一函数，避免 if-else 长链）===
+// allEvents 用于 toAiSdkSources 在当前 event 没 result 时按 call_id 回查兄弟事件（PR3 方案 A 兜底）
 
-function mapEventToStep(event) {
+function mapEventToStep(event, allEvents) {
     if (isReasoningEvent(event)) {
         const text = event.detail?.content || event.message || '';
+        const isStreaming = !!event.detail?.is_streaming;
+        // PR2 ADR-002：sheet 内 reasoning 用 ai-elements <Reasoning> 取代静态 span
+        // 外层保留 ChainOfThoughtStep 容器（Brain 图标 + "思考过程" label），children 注入 Reasoning 折叠器
         return {
             icon: Brain,
-            label: (
-                <span className="whitespace-pre-wrap text-muted-foreground">
-                    {text}
-                </span>
+            label: isStreaming ? '思考过程（推理中…）' : '思考过程',
+            status: isStreaming ? 'active' : 'complete',
+            children: (
+                <Reasoning className="agui-reasoning w-full" isStreaming={isStreaming} defaultOpen>
+                    <ReasoningTrigger />
+                    <ReasoningContent>{text}</ReasoningContent>
+                </Reasoning>
             ),
-            status: 'complete',
-            children: null,
             keyHint: 'reasoning',
         };
     }
@@ -204,7 +210,8 @@ function mapEventToStep(event) {
 
     if (SEARCH_TOOLS.has(toolName)) {
         const query = summarizeQuery(args.query || args.pattern || args.search_term || '');
-        const sources = toAiSdkSources(event);
+        // PR3：传入 allEvents，让 toAiSdkSources 在 event.detail.result 缺失时按 call_id 回查兄弟事件
+        const sources = toAiSdkSources(event, allEvents);
         return {
             icon: Search,
             label: appendFailedSuffix(query ? `已搜索 "${query}"` : '搜索', rawStatus),
@@ -321,10 +328,12 @@ function useBodyScrollLock(active) {
     }, [active]);
 }
 
-export default function ToolGroupSheet({ open, events = [], onClose }) {
+export default function ToolGroupSheet({ open, events = [], allEvents, onClose }) {
     const merged = mergeConsecutiveReasoning(events).filter(
         (ev) => !isPhaseMarkerEvent(ev) && !isTaskDispatchToolEvent(ev),
     );
+    // 详情页传入 allEvents（task 全量事件，含 mainStream + 所有 buckets）；主流页未传时退化为 events
+    const lookupPool = Array.isArray(allEvents) ? allEvents : events;
 
     useBodyScrollLock(open);
 
@@ -391,7 +400,7 @@ export default function ToolGroupSheet({ open, events = [], onClose }) {
                                 <ChainOfThought defaultOpen>
                                     <ChainOfThoughtContent>
                                         {merged.map((ev, i) => {
-                                            const step = mapEventToStep(ev);
+                                            const step = mapEventToStep(ev, lookupPool);
                                             const key =
                                                 ev.detail?.call_id ||
                                                 ev.detail?.message_id ||

@@ -233,7 +233,46 @@ export function mergeToolCalls(events) {
         }
     }
 
-    return out;
+    return inheritScopeFromMerge(out);
+}
+
+/**
+ * PR3 ADR-003 方案 B：scope 横向补全。
+ * mergeToolCalls 之后，按 call_id 把同一调用链上散落的 owner 元数据（subagent_id / week_number / agent_scope）
+ * 拍齐到所有同 call_id 的事件 detail 上，避免 START 没拿到 owner / END 才出现 owner 时整条事件被错路由到 mainStream。
+ *
+ * 假设 call_id 全局唯一（LangGraph 保证），不会跨 owner 复用；如未来发现复用，需在此加断言。
+ */
+function inheritScopeFromMerge(events) {
+    const byCallId = new Map();
+    for (const ev of events) {
+        const cid = ev.detail?.call_id;
+        if (!cid) continue;
+        const slot = byCallId.get(cid) || {};
+        const sid = ev.detail?.subagent_id || ev.detail?.subagent_info?.subagent_id;
+        if (sid && !slot.subagent_id) slot.subagent_id = String(sid);
+        if (ev.detail?.agent_scope && !slot.agent_scope) slot.agent_scope = ev.detail.agent_scope;
+        const wk = ev.detail?.week_number ?? ev.detail?.week;
+        if (wk && !slot.week_number) {
+            slot.week_number = Number(wk);
+            if (Number.isFinite(slot.week_number)) slot.week = slot.week_number;
+        }
+        byCallId.set(cid, slot);
+    }
+    return events.map((ev) => {
+        const cid = ev.detail?.call_id;
+        if (!cid) return ev;
+        const slot = byCallId.get(cid);
+        if (!slot || Object.keys(slot).length === 0) return ev;
+        // 已有字段优先：仅补缺失的 owner，不覆盖既有显式值
+        return {
+            ...ev,
+            detail: {
+                ...slot,
+                ...ev.detail,
+            },
+        };
+    });
 }
 
 function subagentIdFromEvent(ev) {

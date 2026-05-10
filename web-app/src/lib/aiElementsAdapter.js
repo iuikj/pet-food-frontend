@@ -116,24 +116,38 @@ export function toQueueDispatch(event) {
 
 /**
  * detail.result (search 工具返回) → AI Elements <Sources> 期望的数组
- * 容错:result 可能是 array / JSON 字符串 / { results: [...] } 形状
+ * 容错:result 可能是 array / JSON 字符串 / { results: [...] } / { sources: [...] } / { items: [...] } 形状
+ *
+ * PR3 ADR-003 方案 A 兜底（详见 research/event-stream-distribution.md）：
+ *   传入可选 allEvents 时，若 event.detail.result 缺失，按 call_id 回查同 call_id 事件取 result。
  *
  * title 仍 fallback 到 url 以兼容 <Source> 直接展示;
  * 若消费方需要 hostname 风格,自行用 new URL(s.url).hostname 处理。
  */
-export function toAiSdkSources(event) {
-    const r = event.detail?.result;
-    if (!r) return [];
+export function toAiSdkSources(event, allEvents) {
+    let r = event?.detail?.result;
+    if ((r === undefined || r === null) && Array.isArray(allEvents)) {
+        const cid = event?.detail?.call_id;
+        if (cid) {
+            const sibling = allEvents.find(
+                (e) => e !== event && e?.detail?.call_id === cid && e?.detail?.result !== undefined && e?.detail?.result !== null,
+            );
+            if (sibling) r = sibling.detail.result;
+        }
+    }
+    if (r === undefined || r === null) return [];
     let raw = r;
     if (typeof r === 'string') {
         try { raw = JSON.parse(r); } catch { return []; }
     }
-    const list = Array.isArray(raw) ? raw : (raw?.results || raw?.sources || []);
+    const list = Array.isArray(raw)
+        ? raw
+        : (raw?.results || raw?.sources || raw?.items || raw?.data || []);
     return list
-        .filter((it) => it && (it.url || it.href))
+        .filter((it) => it && (it.url || it.href || it.link))
         .map((it) => ({
-            url: it.url || it.href,
-            title: it.title || it.name || it.url || it.href,
+            url: it.url || it.href || it.link,
+            title: it.title || it.name || it.url || it.href || it.link,
             snippet: it.snippet || it.content || it.description || '',
         }));
 }

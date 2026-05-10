@@ -186,6 +186,7 @@ export default function TimelineFeed({ events, emptyText, compact = false, disab
             <ToolGroupSheet
                 open={!!sheetEvents}
                 events={sheetEvents || []}
+                allEvents={events || []}
                 onClose={() => setSheetEvents(null)}
             />
 
@@ -195,6 +196,7 @@ export default function TimelineFeed({ events, emptyText, compact = false, disab
                         key={`${detailCard.kind}-${detailCard.id}`}
                         card={detailCard}
                         events={detailEvents}
+                        allEvents={events || []}
                         onClose={closeDetail}
                     />
                 )}
