@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import usePhotoSelect from '../hooks/usePhotoSelect';
 import SecureImage from '../components/SecureImage';
+import PageHeader from '../components/layout/PageHeader';
 import { useUser } from '../hooks/useUser';
 
 export default function ProfileEdit() {
@@ -100,16 +101,11 @@ export default function ProfileEdit() {
             exit={{ opacity: 0, x: -50 }}
             className="flex flex-col min-h-[100dvh] bg-background-light dark:bg-background-dark pb-safe"
         >
-            <header className="px-6 pt-12 pb-4 flex items-center justify-between bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-md sticky top-0 z-50">
-                <Link
-                    to="/profile"
-                    className="w-10 h-10 rounded-full bg-white dark:bg-surface-dark shadow-sm flex items-center justify-center text-text-muted-light dark:text-text-muted-dark hover:text-primary transition-colors"
-                >
-                    <span className="material-icons-round">arrow_back</span>
-                </Link>
-                <h1 className="text-xl font-bold text-center flex-1">编辑个人资料</h1>
-                <div className="w-10 h-10" />
-            </header>
+            <PageHeader
+                title="编辑个人资料"
+                centerTitle
+                onBack={() => navigate('/profile')}
+            />
 
             <main className="px-6 py-6 flex-1 overflow-y-auto">
                 {error && (

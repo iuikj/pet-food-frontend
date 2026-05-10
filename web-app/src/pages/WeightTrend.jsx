@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useCallback } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     LineChart,
@@ -18,6 +18,7 @@ import { useWeights } from '../hooks/useWeights';
 import Skeleton from '../components/ui/Skeleton';
 import Modal from '../components/Modal';
 import WeightRecordSheet from '../components/WeightRecordSheet';
+import PageHeader from '../components/layout/PageHeader';
 
 /** YYYY-MM-DD → "M/D" */
 function shortDate(isoStr) {
@@ -151,18 +152,13 @@ export default function WeightTrend() {
     }
 
     return (
-        <motion.div {...pageTransitions} className="min-h-[100dvh] pb-24 overflow-x-hidden bg-background-light dark:bg-background-dark">
+        <motion.div {...pageTransitions} className="min-h-[100dvh] pb-24 overflow-x-clip bg-background-light dark:bg-background-dark">
             {/* Header */}
-            <header className="px-6 pt-12 pb-4 flex items-center justify-between bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-md sticky top-0 z-40">
-                <button
-                    onClick={() => navigate(-1)}
-                    className="w-10 h-10 rounded-full bg-white dark:bg-surface-dark shadow-sm flex items-center justify-center text-text-muted-light dark:text-text-muted-dark hover:text-primary transition-colors"
-                >
-                    <span className="material-icons-round">arrow_back</span>
-                </button>
-                <h1 className="text-lg font-bold flex-1 text-center">体重曲线</h1>
-                <div className="w-10" />
-            </header>
+            <PageHeader
+                title="体重曲线"
+                centerTitle
+                onBack={() => navigate(-1)}
+            />
 
             <main className="px-6 space-y-6">
                 {/* 当前体重概览卡 */}

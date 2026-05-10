@@ -8,6 +8,7 @@ import { useUser } from '../hooks/useUser';
 import PetCard from '../components/PetCard';
 import Modal from '../components/Modal';
 import Skeleton from '../components/ui/Skeleton';
+import PageHeader from '../components/layout/PageHeader';
 
 export default function Profile() {
     const navigate = useNavigate();
@@ -46,7 +47,7 @@ export default function Profile() {
 
     if (userLoading) {
         return (
-            <div className="pb-32 overflow-x-hidden">
+            <div className="pb-32 overflow-x-clip">
                 {/* Header skeleton */}
                 <div className="px-6 pt-12 pb-2 flex justify-end gap-3">
                     <Skeleton.Circle size={40} />
@@ -89,58 +90,57 @@ export default function Profile() {
     return (
         <motion.div
             {...pageTransitions}
-            className="pb-32 overflow-x-hidden"
+            className="pb-32 overflow-x-clip"
         >
-            <header className="px-6 pt-12 pb-2 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md sticky top-0 z-50">
-                <div className="flex justify-end gap-3">
+            <PageHeader />
+
+            <main className="px-6 space-y-8">
+                {/* 用户信息卡片 */}
+                <section className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        <div className="relative">
+                            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary to-accent-blue p-1 shadow-glow">
+                                {user?.avatar_url ? (
+                                    <SecureImage
+                                        alt="User Avatar"
+                                        className="w-full h-full rounded-full object-cover border-2 border-white dark:border-background-dark"
+                                        src={user.avatar_url}
+                                    />
+                                ) : (
+                                    <div className="w-full h-full rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center border-2 border-white dark:border-background-dark">
+                                        <span className="material-icons-round text-3xl text-gray-400">person</span>
+                                    </div>
+                                )}
+                            </div>
+                            <Link
+                                to="/profile/edit"
+                                className="absolute bottom-0 right-0 w-6 h-6 bg-primary rounded-full border-2 border-white dark:border-background-dark shadow-md flex items-center justify-center text-white hover:bg-green-400 transition-all active:scale-[0.9]"
+                            >
+                                <span className="material-icons-round text-[14px]">edit</span>
+                            </Link>
+                        </div>
+                        <div>
+                            <h2 className="text-lg font-bold">{user?.nickname || user?.username || '用户'}</h2>
+                            <p className="text-sm text-text-muted-light dark:text-text-muted-dark">{user?.email}</p>
+                            {user?.is_pro && (
+                                <div className="flex items-center gap-2 mt-2">
+                                    <span className="px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 rounded text-xs font-bold flex items-center gap-1">
+                                        <span className="material-icons-round text-[14px]">star</span> PRO 会员
+                                    </span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
                     <button
                         onClick={() => {
                             const isDark = document.documentElement.classList.toggle('dark');
                             setThemeIcon(isDark ? 'light_mode' : 'dark_mode');
                         }}
-                        className="w-10 h-10 rounded-full bg-white dark:bg-surface-dark shadow-sm flex items-center justify-center text-text-muted-light dark:text-text-muted-dark hover:text-primary transition-all active:scale-[0.95]"
+                        className="w-10 h-10 rounded-full bg-white dark:bg-surface-dark shadow-sm flex items-center justify-center text-text-muted-light dark:text-text-muted-dark hover:text-primary transition-all active:scale-[0.95] flex-shrink-0"
                         title="切换主题"
                     >
                         <span className="material-icons-round">{themeIcon}</span>
                     </button>
-                </div>
-            </header>
-
-            <main className="px-6 space-y-8">
-                {/* 用户信息卡片 */}
-                <section className="flex items-center gap-4">
-                    <div className="relative">
-                        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary to-accent-blue p-1 shadow-glow">
-                            {user?.avatar_url ? (
-                                <SecureImage
-                                    alt="User Avatar"
-                                    className="w-full h-full rounded-full object-cover border-2 border-white dark:border-background-dark"
-                                    src={user.avatar_url}
-                                />
-                            ) : (
-                                <div className="w-full h-full rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center border-2 border-white dark:border-background-dark">
-                                    <span className="material-icons-round text-3xl text-gray-400">person</span>
-                                </div>
-                            )}
-                        </div>
-                        <Link
-                            to="/profile/edit"
-                            className="absolute bottom-0 right-0 w-6 h-6 bg-primary rounded-full border-2 border-white dark:border-background-dark shadow-md flex items-center justify-center text-white hover:bg-green-400 transition-all active:scale-[0.9]"
-                        >
-                            <span className="material-icons-round text-[14px]">edit</span>
-                        </Link>
-                    </div>
-                    <div>
-                        <h2 className="text-lg font-bold">{user?.nickname || user?.username || '用户'}</h2>
-                        <p className="text-sm text-text-muted-light dark:text-text-muted-dark">{user?.email}</p>
-                        {user?.is_pro && (
-                            <div className="flex items-center gap-2 mt-2">
-                                <span className="px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 rounded text-xs font-bold flex items-center gap-1">
-                                    <span className="material-icons-round text-[14px]">star</span> PRO 会员
-                                </span>
-                            </div>
-                        )}
-                    </div>
                 </section>
 
                 {/* 宠物列表 */}

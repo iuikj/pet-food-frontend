@@ -41,7 +41,7 @@ export default function OnboardingLayout({
                 <StepIndicator currentStep={currentStep} totalSteps={totalSteps} showLabels={false} />
             </div>
 
-            <main className="flex-1 overflow-y-auto overflow-x-hidden px-6">
+            <main className="flex-1 overflow-y-auto overflow-x-clip px-6">
                 <AnimatePresence mode="wait">
                     <motion.div
                         key={location.pathname}

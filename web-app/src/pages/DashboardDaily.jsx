@@ -9,6 +9,7 @@ import { useMeals } from '../hooks/useMeals';
 import MealCard from '../components/MealCard';
 import PlanDetails from './PlanDetails';
 import Skeleton from '../components/ui/Skeleton';
+import PageHeader from '../components/layout/PageHeader';
 import { compareWeightRecordsAsc } from '../utils/weightRecords';
 import { weightsApi, mealsApi } from '../api';
 import { getApiErrorMessage } from '../api/client';
@@ -314,29 +315,36 @@ export default function DashboardDaily() {
     const weekDays = getThisWeekDays();
 
     return (
-        <motion.div {...pageTransitions} className="pb-24 overflow-x-hidden">
+        <motion.div {...pageTransitions} className="pb-24 overflow-x-clip">
             {/* Header */}
-            <header className="px-6 pt-12 pb-4 flex justify-between items-center bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-md sticky top-0 z-50">
-                <div className="flex items-center gap-3">
-                    <div className="relative">
-                        {currentPet?.avatar_url ? (
-                            <SecureImage alt={currentPet.name} className="w-12 h-12 rounded-full object-cover border-2 border-white dark:border-surface-dark shadow-sm" src={currentPet.avatar_url} />
-                        ) : (
-                            <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-lg border-2 border-white dark:border-surface-dark shadow-sm">
-                                {currentPet?.name?.charAt(0) || '?'}
-                            </div>
-                        )}
-                        <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-surface-dark"></div>
+            <PageHeader
+                leftSlot={
+                    <div className="flex items-center gap-3">
+                        <div className="relative">
+                            {currentPet?.avatar_url ? (
+                                <SecureImage alt={currentPet.name} className="w-12 h-12 rounded-full object-cover border-2 border-white dark:border-surface-dark shadow-sm" src={currentPet.avatar_url} />
+                            ) : (
+                                <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-lg border-2 border-white dark:border-surface-dark shadow-sm">
+                                    {currentPet?.name?.charAt(0) || '?'}
+                                </div>
+                            )}
+                            <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-surface-dark"></div>
+                        </div>
+                        <div>
+                            <p className="text-xs text-text-muted-light dark:text-text-muted-dark font-medium uppercase tracking-wider">计划用于</p>
+                            <h1 className="text-xl font-bold flex items-center gap-1">
+                                {currentPet?.name || '宠物'}
+                                <span className="material-icons-round text-primary text-sm">pets</span>
+                            </h1>
+                        </div>
                     </div>
-                    <div>
-                        <p className="text-xs text-text-muted-light dark:text-text-muted-dark font-medium uppercase tracking-wider">计划用于</p>
-                        <h1 className="text-xl font-bold flex items-center gap-1">
-                            {currentPet?.name || '宠物'}
-                            <span className="material-icons-round text-primary text-sm">pets</span>
-                        </h1>
-                    </div>
-                </div>
-                <div className="flex gap-3">
+                }
+                rightSlot={
+                    <button onClick={() => navigate(targetDate ? '/calendar' : '/')} className="w-10 h-10 rounded-full bg-white dark:bg-surface-dark shadow-sm flex items-center justify-center text-text-muted-light dark:text-text-muted-dark hover:text-primary transition-colors">
+                        <span className="material-icons-round">arrow_back</span>
+                    </button>
+                }
+            />
 
             {/* 错误提示 */}
             {todayError && !targetDate && (
@@ -344,11 +352,6 @@ export default function DashboardDaily() {
                     <ErrorAlert error={todayError} />
                 </div>
             )}
-                    <button onClick={() => navigate(targetDate ? '/calendar' : '/')} className="w-10 h-10 rounded-full bg-white dark:bg-surface-dark shadow-sm flex items-center justify-center text-text-muted-light dark:text-text-muted-dark hover:text-primary transition-colors">
-                        <span className="material-icons-round">arrow_back</span>
-                    </button>
-                </div>
-            </header>
 
             <main className="px-6 space-y-8">
                 {/* 本周日历 / 日期标题 */}

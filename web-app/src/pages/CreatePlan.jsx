@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'; // eslint-disable-line 
 import { Eye, Workflow } from 'lucide-react';
 import SecureImage from '../components/SecureImage';
 import PetIcon from '../components/icons/PetIcon';
+import PageHeader from '../components/layout/PageHeader';
 import { pageTransitions } from '../utils/animations';
 import { usePets } from '../hooks/usePets';
 import { formatPetAge } from '../utils/petUtils';
@@ -136,24 +137,17 @@ export default function Home() {
     return (
         <motion.div
             {...pageTransitions}
-            className="pb-32 overflow-x-hidden"
+            className="pb-32 overflow-x-clip"
         >
-            <header className="px-6 pt-12 pb-4 flex justify-between items-center bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-md sticky top-0 z-40">
-                <div className="flex items-center gap-2">
-                    <button
-                        onClick={() => navigate(-1)}
-                        className="w-8 h-8 rounded-full flex items-center justify-center text-text-muted-light dark:text-text-muted-dark hover:bg-gray-100 dark:hover:bg-surface-dark transition-colors"
-                    >
-                        <span className="material-icons-round text-lg">arrow_back</span>
-                    </button>
-                    <h1 className="text-xl font-bold">智能饮食规划</h1>
-                </div>
-                <div className="flex gap-3">
+            <PageHeader
+                title="智能饮食规划"
+                onBack={() => navigate(-1)}
+                rightSlot={
                     <button className="w-8 h-8 rounded-full flex items-center justify-center text-text-muted-light dark:text-text-muted-dark hover:text-primary transition-colors">
                         <span className="material-icons-round">help_outline</span>
                     </button>
-                </div>
-            </header>
+                }
+            />
 
             <main className="px-6 space-y-8 mt-4">
                 {/* === 第1步：选择宠物 === */}

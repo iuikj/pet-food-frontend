@@ -10,6 +10,7 @@ import { createContextualHttpAgent } from '../utils/contextualHttpAgent';
 import { usePets } from '../hooks/usePets';
 import { useUser } from '../hooks/useUser';
 import SecureImage from '../components/SecureImage';
+import PageHeader from '../components/layout/PageHeader';
 // v2 入口内部 import './index.css'，由 vite-plugin-copilotkit-v2-css 拦截转为运行时 <style> 注入
 // 见 vite.config.js（避开项目 Tailwind 3.4 与 v2 CSS 中 @layer properties 等 v4 指令的冲突）
 
@@ -172,55 +173,60 @@ export default function AGUITest() {
             className="min-h-[100dvh] flex flex-col bg-background-light dark:bg-background-dark"
             style={cpkThemeStyle}
         >
-            <header className="px-4 pt-12 pb-3 flex items-center justify-between bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md sticky top-0 z-40 border-b border-gray-100/60 dark:border-gray-800/60">
-                <div className="flex items-center gap-3 min-w-0">
-                    <button
-                        onClick={() => navigate(-1)}
-                        className="w-9 h-9 rounded-full flex items-center justify-center text-text-muted-light dark:text-text-muted-dark hover:bg-gray-100 dark:hover:bg-surface-dark transition-colors shrink-0"
-                        aria-label="返回"
-                    >
-                        <span className="material-icons-round text-lg">arrow_back</span>
-                    </button>
-                    {currentPet && (
-                        <div className="w-9 h-9 rounded-full overflow-hidden bg-primary/20 flex items-center justify-center text-sm font-bold shrink-0">
-                            {currentPet.avatar_url ? (
-                                <SecureImage
-                                    src={currentPet.avatar_url}
-                                    alt={currentPet.name}
-                                    className="w-full h-full object-cover"
-                                />
-                            ) : (
-                                currentPet.name?.charAt(0) || '?'
-                            )}
-                        </div>
-                    )}
-                    <div className="leading-tight min-w-0">
-                        <h1 className="text-base font-bold flex items-center gap-1.5">
-                            <span className="truncate">AG-UI 实验台</span>
-                            <span className="px-1.5 py-0.5 rounded-md bg-primary/15 text-primary text-[10px] font-semibold shrink-0">
-                                v2
-                            </span>
-                            {devMode && (
-                                <span className="px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-600 text-[10px] font-semibold shrink-0">
-                                    dev
+            <PageHeader
+                className="border-b border-gray-100/60 dark:border-gray-800/60"
+                leftSlot={
+                    <div className="flex items-center gap-3 min-w-0">
+                        <button
+                            onClick={() => navigate(-1)}
+                            className="w-9 h-9 rounded-full flex items-center justify-center text-text-muted-light dark:text-text-muted-dark hover:bg-gray-100 dark:hover:bg-surface-dark transition-colors shrink-0"
+                            aria-label="返回"
+                        >
+                            <span className="material-icons-round text-lg">arrow_back</span>
+                        </button>
+                        {currentPet && (
+                            <div className="w-9 h-9 rounded-full overflow-hidden bg-primary/20 flex items-center justify-center text-sm font-bold shrink-0">
+                                {currentPet.avatar_url ? (
+                                    <SecureImage
+                                        src={currentPet.avatar_url}
+                                        alt={currentPet.name}
+                                        className="w-full h-full object-cover"
+                                    />
+                                ) : (
+                                    currentPet.name?.charAt(0) || '?'
+                                )}
+                            </div>
+                        )}
+                        <div className="leading-tight min-w-0">
+                            <h1 className="text-base font-bold flex items-center gap-1.5">
+                                <span className="truncate">AG-UI 实验台</span>
+                                <span className="px-1.5 py-0.5 rounded-md bg-primary/15 text-primary text-[10px] font-semibold shrink-0">
+                                    v2
                                 </span>
-                            )}
-                        </h1>
-                        <p className="text-[11px] text-text-muted-light dark:text-text-muted-dark truncate">
-                            {currentPet
-                                ? `当前宠物：${currentPet.name}`
-                                : `agent: ${AGUI_AGENT_NAME}`}
-                        </p>
+                                {devMode && (
+                                    <span className="px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-600 text-[10px] font-semibold shrink-0">
+                                        dev
+                                    </span>
+                                )}
+                            </h1>
+                            <p className="text-[11px] text-text-muted-light dark:text-text-muted-dark truncate">
+                                {currentPet
+                                    ? `当前宠物：${currentPet.name}`
+                                    : `agent: ${AGUI_AGENT_NAME}`}
+                            </p>
+                        </div>
                     </div>
-                </div>
-                <Link
-                    to="/plan/create"
-                    className="text-xs px-3 py-1.5 rounded-full bg-primary/10 text-primary font-semibold hover:bg-primary/20 transition-colors shrink-0"
-                    aria-label="返回创建计划"
-                >
-                    返回
-                </Link>
-            </header>
+                }
+                rightSlot={
+                    <Link
+                        to="/plan/create"
+                        className="text-xs px-3 py-1.5 rounded-full bg-primary/10 text-primary font-semibold hover:bg-primary/20 transition-colors shrink-0"
+                        aria-label="返回创建计划"
+                    >
+                        返回
+                    </Link>
+                }
+            />
 
             <CopilotKitProvider
                 agents__unsafe_dev_only={{ [AGUI_AGENT_NAME]: agent }}
