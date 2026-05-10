@@ -170,7 +170,7 @@ function RunInner({ setForwardedProps }) {
     }, [events]);
 
     return (
-        <div className="relative mx-auto flex min-h-[100dvh] w-full max-w-[430px] flex-col overflow-hidden bg-white">
+        <div className="relative mx-auto flex min-h-[100dvh] w-full max-w-[430px] flex-col bg-white">
             <PlanRunHeader pet={displayPet} onBack={handleBack} />
 
             <main className="relative flex min-h-0 flex-1 flex-col px-4 pb-32">

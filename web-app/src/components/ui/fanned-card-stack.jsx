@@ -73,6 +73,7 @@ export function FannedCardStack(
     scaleFactor = 0.05,
     pivot = { x: 50, y: 100 },
     onReorder,
+    onActivate,
     className
   }
 ) {
@@ -80,6 +81,8 @@ export function FannedCardStack(
   const cardRefs = React.useRef([]);
   const itemsRef = React.useRef(items);
   const onReorderRef = React.useRef(onReorder);
+  const onActivateRef = React.useRef(onActivate);
+  const pressRef = React.useRef({ x: 0, y: 0, startedAt: 0 });
   const pendingStructuralItems = React.useRef(null);
   const isAnimating = React.useRef(false);
   const isDragging = React.useRef(false);
@@ -96,6 +99,10 @@ export function FannedCardStack(
   React.useEffect(() => {
     onReorderRef.current = onReorder;
   }, [onReorder]);
+
+  React.useEffect(() => {
+    onActivateRef.current = onActivate;
+  }, [onActivate]);
 
   const getCardStyle = React.useCallback((index, itemCount = itemsRef.current.length) => {
     return {
@@ -158,6 +165,7 @@ export function FannedCardStack(
             scale: 0.9,
             opacity: 0,
             zIndex: itemCount - index,
+            force3D: true,
           });
         }
       });
@@ -168,6 +176,7 @@ export function FannedCardStack(
         y: 0,
         x: 0,
         opacity: 1,
+        force3D: true,
         duration: 0.8,
         stagger: 0.08,
         ease: 'back.out(1.2)',
@@ -189,6 +198,7 @@ export function FannedCardStack(
           y: 0,
           zIndex: style.zIndex,
           opacity: 1,
+          force3D: true,
           overwrite: 'auto',
         });
       });
@@ -206,12 +216,30 @@ export function FannedCardStack(
           return;
         }
         isDragging.current = true;
+        pressRef.current = {
+          x: this.pointerX ?? 0,
+          y: this.pointerY ?? 0,
+          startedAt: Date.now(),
+        };
         // STOP: Kill any ongoing "snap back" animations if the user grabs the card mid-air.
         gsap.killTweensOf(this.target);
       },
       onRelease: function () {
+        const releasedItem = itemsRef.current[0];
+        const releasedItemKey = releasedItem ? getItemKey(releasedItem) : null;
         const dist = Math.sqrt(this.x * this.x + this.y * this.y);
         const THRESHOLD = 60;
+        const TAP_MOVE_THRESHOLD = 10;
+        const TAP_DURATION_THRESHOLD = 280;
+        const elapsed = Date.now() - pressRef.current.startedAt;
+        const pointerDx = (this.pointerX ?? pressRef.current.x) - pressRef.current.x;
+        const pointerDy = (this.pointerY ?? pressRef.current.y) - pressRef.current.y;
+        const pointerDist = Math.sqrt(pointerDx * pointerDx + pointerDy * pointerDy);
+        const isTap = (
+          dist <= TAP_MOVE_THRESHOLD &&
+          pointerDist <= TAP_MOVE_THRESHOLD &&
+          elapsed <= TAP_DURATION_THRESHOLD
+        );
 
         if (dist > THRESHOLD) {
           isAnimating.current = true;
@@ -237,12 +265,14 @@ export function FannedCardStack(
             },
           });
 
-          // Choreography: Throw card out -> Move to back (z-index) -> Slide back into stack
+          // Choreography: Throw card out -> Move to back (z-index) -> Slide back into stack.
+          // Keep the upstream z-index handoff because it is the core "card goes behind the stack" feel.
           timeline
             .to(this.target, {
               x: kickX,
               y: kickY,
               scale: 0.8,
+              force3D: true,
               duration: 0.2,
               ease: 'power1.out',
             })
@@ -252,6 +282,7 @@ export function FannedCardStack(
               y: 0,
               rotation: targetStyle.rotation,
               scale: targetStyle.scale,
+              force3D: true,
               duration: 0.5,
               ease: 'back.out(1.2)',
             });
@@ -263,6 +294,7 @@ export function FannedCardStack(
             timeline.to(el, {
               rotation: nextStyle.rotation,
               scale: nextStyle.scale,
+              force3D: true,
               duration: 0.5,
               ease: 'power2.out',
             }, 0.15);
@@ -271,7 +303,8 @@ export function FannedCardStack(
           gsap.to(this.target, {
             x: 0,
             y: 0,
-            duration: 0.4,
+            force3D: true,
+            duration: isTap ? 0.12 : 0.4,
             ease: 'back.out(1.5)',
             onComplete: () => {
               isDragging.current = false;
@@ -279,6 +312,12 @@ export function FannedCardStack(
               if (settledItems !== itemsRef.current) {
                 itemsRef.current = settledItems;
                 setItems(settledItems);
+              }
+              if (isTap && releasedItemKey !== null && onActivateRef.current) {
+                const activatedItem = itemsRef.current.find((item) => getItemKey(item) === releasedItemKey);
+                if (activatedItem) {
+                  onActivateRef.current(activatedItem);
+                }
               }
             },
           });
@@ -311,6 +350,7 @@ export function FannedCardStack(
               'absolute inset-0 flex items-center justify-center',
               'bg-card text-card-foreground border border-border shadow-xl',
               'rounded-2xl',
+              'transform-gpu',
               // HACK: Prevent FOUC (Flash of Unstyled Content) by starting opacity-0.
               // GSAP handles the fade-in during the initial entrance animation.
               'opacity-0',
@@ -320,6 +360,10 @@ export function FannedCardStack(
             )}
             style={{
               zIndex: items.length - index,
+              willChange: 'transform',
+              backfaceVisibility: 'hidden',
+              WebkitBackfaceVisibility: 'hidden',
+              touchAction: index === 0 ? 'none' : undefined,
             }}>
             <div
               // PATCH: removed pointer-events-none on inner wrapper to let renderItem onClick through (project-specific)

@@ -18,14 +18,29 @@ export default function FanoutSubAgentStack({ cards, buckets, openDetail }) {
 
     if (!items.length) return null;
 
+    const openCardDetail = (card, status) => {
+        if (!openDetail || !card) return;
+        openDetail({
+            kind: 'sub',
+            id: card.id,
+            title: card.taskName || (card.target ? `子 Agent ${card.target}` : '子 Agent'),
+            status,
+        });
+    };
+
+    const getCardStatus = (card) => {
+        const cardEvents = (buckets || {})[card.id] || [];
+        const lifecycleEvents = [card.dispatchEvent, card.completedEvent].filter(Boolean);
+        return deriveSubagentStatus(cardEvents, lifecycleEvents);
+    };
+
     // N=1 降级：仅一张卡时跳过 satisui FannedCardStack（无堆叠 / 无 drag / 无 GSAP），
     // 直接渲染单张 FanoutCard。容器尺寸 aspect-[3/4] w-64 与 FannedCardStack 默认一致，
     // 避免 N=1 ↔ N≥2 切换时尺寸跳变。
     if (items.length === 1) {
         const card = items[0];
         const cardEvents = (buckets || {})[card.id] || [];
-        const lifecycleEvents = [card.dispatchEvent, card.completedEvent].filter(Boolean);
-        const status = deriveSubagentStatus(cardEvents, lifecycleEvents);
+        const status = getCardStatus(card);
         return (
             <div className="mx-auto w-64" style={{ aspectRatio: '3/4' }}>
                 <FanoutCard
@@ -34,12 +49,7 @@ export default function FanoutSubAgentStack({ cards, buckets, openDetail }) {
                     status={status}
                     events={cardEvents}
                     onClick={openDetail
-                        ? () => openDetail({
-                            kind: 'sub',
-                            id: card.id,
-                            title: card.taskName || (card.target ? `子 Agent ${card.target}` : '子 Agent'),
-                            status,
-                        })
+                        ? () => openCardDetail(card, status)
                         : undefined}
                 />
             </div>
@@ -52,24 +62,16 @@ export default function FanoutSubAgentStack({ cards, buckets, openDetail }) {
                 items={items}
                 rotateFactor={6}
                 className="h-full w-full max-w-[260px]"
+                onActivate={(card) => openCardDetail(card, getCardStatus(card))}
                 renderItem={(card) => {
                     const cardEvents = (buckets || {})[card.id] || [];
-                    const lifecycleEvents = [card.dispatchEvent, card.completedEvent].filter(Boolean);
-                    const status = deriveSubagentStatus(cardEvents, lifecycleEvents);
+                    const status = getCardStatus(card);
                     return (
                         <FanoutCard
                             kind="subagent"
                             taskName={card.taskName}
                             status={status}
                             events={cardEvents}
-                            onClick={openDetail
-                                ? () => openDetail({
-                                    kind: 'sub',
-                                    id: card.id,
-                                    title: card.taskName || (card.target ? `子 Agent ${card.target}` : '子 Agent'),
-                                    status,
-                                })
-                                : undefined}
                         />
                     );
                 }}

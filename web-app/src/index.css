@@ -582,6 +582,11 @@ body::-webkit-scrollbar {
   color: #374151;
 }
 
+.agui-event-preview--compact .agui-event-preview-row.is-faded {
+  opacity: 0.5;
+  filter: none;
+}
+
 .agui-event-preview-row {
   display: flex;
   min-width: 0;

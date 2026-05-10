@@ -32,10 +32,18 @@ export default function FanoutWeekStack({ cards, buckets, openDetail }) {
 
     if (!filledCards.length) return null;
 
-    // N=1 降级：实际 Week 几乎不会出现 N=1（filledCards 始终补到 4 张占位卡），
-    // 此处保对称防御 — 若上游策略改变只传单张卡，跳过 satisui 堆叠直接渲染。
-    if (filledCards.length === 1) {
-        const card = filledCards[0];
+    const openCardDetail = (card, status) => {
+        if (!openDetail || !card) return;
+        const n = Number(card.weekNumber || card.id);
+        openDetail({
+            kind: 'week',
+            id: n,
+            title: card.taskName || `第 ${n} 周`,
+            status,
+        });
+    };
+
+    const getCardStatus = (card) => {
         const n = Number(card.weekNumber || card.id);
         const cardEvents = (buckets || {})[n] || [];
         const lifecycleEvents = [
@@ -43,7 +51,16 @@ export default function FanoutWeekStack({ cards, buckets, openDetail }) {
             card.startedEvent,
             card.completedEvent,
         ].filter(Boolean);
-        const status = deriveWeekStatus(cardEvents, lifecycleEvents);
+        return deriveWeekStatus(cardEvents, lifecycleEvents);
+    };
+
+    // N=1 降级：实际 Week 几乎不会出现 N=1（filledCards 始终补到 4 张占位卡），
+    // 此处保对称防御 — 若上游策略改变只传单张卡，跳过 satisui 堆叠直接渲染。
+    if (filledCards.length === 1) {
+        const card = filledCards[0];
+        const n = Number(card.weekNumber || card.id);
+        const cardEvents = (buckets || {})[n] || [];
+        const status = getCardStatus(card);
         return (
             <div className="mx-auto w-64" style={{ aspectRatio: '3/4' }}>
                 <FanoutCard
@@ -53,12 +70,7 @@ export default function FanoutWeekStack({ cards, buckets, openDetail }) {
                     status={status}
                     events={cardEvents}
                     onClick={openDetail
-                        ? () => openDetail({
-                            kind: 'week',
-                            id: n,
-                            title: card.taskName || `第 ${n} 周`,
-                            status,
-                        })
+                        ? () => openCardDetail(card, status)
                         : undefined}
                 />
             </div>
@@ -71,15 +83,11 @@ export default function FanoutWeekStack({ cards, buckets, openDetail }) {
                 items={filledCards}
                 rotateFactor={6}
                 className="h-full w-full max-w-[260px]"
+                onActivate={(card) => openCardDetail(card, getCardStatus(card))}
                 renderItem={(card) => {
                     const n = Number(card.weekNumber || card.id);
                     const cardEvents = (buckets || {})[n] || [];
-                    const lifecycleEvents = [
-                        card.dispatchEvent,
-                        card.startedEvent,
-                        card.completedEvent,
-                    ].filter(Boolean);
-                    const status = deriveWeekStatus(cardEvents, lifecycleEvents);
+                    const status = getCardStatus(card);
                     return (
                         <FanoutCard
                             kind="week"
@@ -87,14 +95,6 @@ export default function FanoutWeekStack({ cards, buckets, openDetail }) {
                             taskName={card.taskName}
                             status={status}
                             events={cardEvents}
-                            onClick={openDetail
-                                ? () => openDetail({
-                                    kind: 'week',
-                                    id: n,
-                                    title: card.taskName || `第 ${n} 周`,
-                                    status,
-                                })
-                                : undefined}
                         />
                     );
                 }}

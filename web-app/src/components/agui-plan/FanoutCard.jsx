@@ -1,6 +1,4 @@
 import { Bot, Loader2 } from 'lucide-react';
-import { Streamdown } from 'streamdown';
-import { cjk } from '@streamdown/cjk';
 import { cn } from '@/lib/utils';
 import EventPreviewStack from './EventPreviewStack';
 
@@ -20,8 +18,6 @@ import EventPreviewStack from './EventPreviewStack';
  *
  * 规范见 PRD ADR-003（卡面布局）+ ADR-004（莫兰迪暖系配色）+ ADR-005（详情页转场降级）。
  */
-
-const streamdownPlugins = { cjk };
 
 const ACTIVE_STATUS_KEYS = new Set(['active', 'searching', 'writing', 'planning']);
 
@@ -95,7 +91,7 @@ export default function FanoutCard({
             <div className="flex-1 overflow-hidden px-3 py-1">
                 {taskName ? (
                     <div className="line-clamp-2 text-[13px] leading-5 text-gray-700">
-                        <Streamdown plugins={streamdownPlugins}>{taskName}</Streamdown>
+                        {taskName}
                     </div>
                 ) : (
                     <span className="text-[13px] leading-5 text-gray-500">等待任务描述…</span>

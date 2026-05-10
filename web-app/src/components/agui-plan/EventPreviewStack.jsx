@@ -6,7 +6,7 @@ import { eventDone, previewCommand } from '@/utils/eventPresentation';
 /**
  * EventPreviewStack
  *
- * 事件流预览组件（最近 N 条，blur 入场 + filter 退出动画）。
+ * 事件流预览组件（最近 N 条，轻量位移动画）。
  * 当前由 FanoutCard 使用；样式 token 在 index.css 的 .agui-event-preview。
  */
 export default function EventPreviewStack({ events, className }) {
@@ -26,16 +26,15 @@ export default function EventPreviewStack({ events, className }) {
             <AnimatePresence initial={false}>
                 {events.map((event, index) => (
                     <motion.div
-                        animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                        animate={{ opacity: 1, y: 0 }}
                         className={cn(
                             'agui-event-preview-row',
                             index === 0 && events.length === 3 && 'is-faded',
                         )}
-                        exit={{ opacity: 0, y: -8, filter: 'blur(4px)' }}
-                        initial={{ opacity: 0, y: 9, filter: 'blur(5px)' }}
+                        exit={{ opacity: 0, y: -4 }}
+                        initial={{ opacity: 0, y: 4 }}
                         key={`${event.timestamp || ''}-${event.type || ''}-${event.detail?.message_id || event.detail?.call_id || index}`}
-                        layout
-                        transition={{ duration: 0.24, ease: 'easeOut' }}
+                        transition={{ duration: 0.16, ease: 'easeOut' }}
                     >
                         {eventDone(event) ? (
                             <Check className="size-3.5" />
