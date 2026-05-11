@@ -4,6 +4,7 @@ import tailwindcss from 'tailwindcss'
 import autoprefixer from 'autoprefixer'
 import path from 'path'
 import fs from 'node:fs'
+import { visualizer } from 'rollup-plugin-visualizer'
 import pkg from './package.json' with { type: 'json' }
 
 /**
@@ -46,11 +47,21 @@ const copilotkitV2CssShim = {
 }
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
   },
-  plugins: [copilotkitV2CssShim, react()],
+  plugins: [
+    copilotkitV2CssShim,
+    react(),
+    visualizer({
+      filename: 'dist/stats.html',
+      gzipSize: true,
+      brotliSize: true,
+      template: 'treemap',
+      open: false,
+    }),
+  ],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -107,4 +118,48 @@ export default defineConfig({
     host: '0.0.0.0',
     allowedHosts: true,
   },
-})
+  build: {
+    target: 'es2020',
+    cssCodeSplit: true,
+    chunkSizeWarningLimit: 800,
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'motion-vendor': ['framer-motion', 'motion'],
+          'gsap-vendor': ['gsap', '@gsap/react'],
+          'charts-vendor': ['recharts', 'react-calendar'],
+          'capacitor-vendor': [
+            '@capacitor/core',
+            '@capacitor/app',
+            '@capacitor/camera',
+            '@capacitor/filesystem',
+            '@capacitor/keyboard',
+            '@capacitor/local-notifications',
+            '@capacitor/toast',
+            '@capacitor/geolocation',
+            '@anuradev/capacitor-background-mode',
+            '@capacitor/background-runner',
+            '@ebarooni/capacitor-calendar',
+          ],
+          'copilotkit-vendor': ['@copilotkit/react-core', '@copilotkit/react-ui'],
+          'streamdown-vendor': [
+            'streamdown',
+            '@streamdown/cjk',
+            '@streamdown/code',
+            '@streamdown/math',
+            '@streamdown/mermaid',
+            'shiki',
+          ],
+        },
+      },
+    },
+  },
+  esbuild: command === 'build'
+    ? {
+        drop: ['console', 'debugger'],
+        pure: ['console.log', 'console.info', 'console.debug'],
+      }
+    : undefined,
+}))
