@@ -1,7 +1,6 @@
 import { useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
-import { LocalNotifications } from '@capacitor/local-notifications';
 import { PlanGenerationProvider } from './context/PlanGenerationProvider';
 import { MealProvider } from './context/MealProvider';
 import { PetProvider } from './context/PetProvider';
@@ -10,13 +9,13 @@ import { useUser } from './hooks/useUser';
 import { Toaster } from './components/ui/sonner';
 import Layout from './components/layout/Layout';
 import Login from './pages/Login';
-import HomePage from './pages/HomePage';
 import { useBackButton } from './hooks/useBackButton';
 import ScrollToTop from './components/ScrollToTop';
 import React from 'react';
 
-// 路由 lazy chunk —— 仅 Login / HomePage / Layout / Provider 保持静态 import，
+// 路由 lazy chunk —— 仅 Login / Layout / Provider 保持静态 import，
 // 其他页面按需加载，降低首屏 JS。Loading / Onboarding / Profile / AGUI 等访问频率低或体量大。
+const HomePage = lazy(() => import('./pages/HomePage'));
 const OnboardingName = lazy(() => import('./pages/OnboardingName'));
 const OnboardingBasic = lazy(() => import('./pages/OnboardingBasic'));
 const OnboardingHealth = lazy(() => import('./pages/OnboardingHealth'));
@@ -160,21 +159,32 @@ function AnimatedRoutes() {
 
   useEffect(() => {
     let listenerHandle = null;
+    let cancelled = false;
 
-    LocalNotifications.addListener(
-      'localNotificationActionPerformed',
-      (notification) => {
-        const route = notification.notification?.extra?.route;
-        if (route) {
-          navigate(route);
-        }
+    const setupNotificationListener = async () => {
+      try {
+        const { Capacitor } = await import('@capacitor/core');
+        if (cancelled || !Capacitor.isNativePlatform()) return;
+        const { LocalNotifications } = await import('@capacitor/local-notifications');
+        if (cancelled) return;
+        listenerHandle = await LocalNotifications.addListener(
+          'localNotificationActionPerformed',
+          (notification) => {
+            const route = notification.notification?.extra?.route;
+            if (route) {
+              navigate(route);
+            }
+          }
+        );
+      } catch (notificationError) {
+        console.warn('[App] notification listener unavailable', notificationError);
       }
-    ).then((handle) => {
-      listenerHandle = handle;
-    }).catch(() => {
-    });
+    };
+
+    setupNotificationListener();
 
     return () => {
+      cancelled = true;
       if (listenerHandle && typeof listenerHandle.remove === 'function') {
         listenerHandle.remove();
       }

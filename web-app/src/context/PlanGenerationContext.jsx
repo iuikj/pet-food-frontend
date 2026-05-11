@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { App as CapacitorApp } from '@capacitor/app';
-import { LocalNotifications } from '@capacitor/local-notifications';
 import { Capacitor } from '@capacitor/core';
 import { BackgroundMode } from '@anuradev/capacitor-background-mode';
 import realPlansApi from '../api/plans';
@@ -26,6 +25,14 @@ const MAX_LOGS = 200;
 // PR3：轮询退避策略 — 成功归零回 3s、失败指数级延长直到 12s 上限
 const POLL_BASE = 3000;
 const POLL_MAX = 12000;
+
+async function getLocalNotifications() {
+    if (!Capacitor.isNativePlatform()) {
+        return null;
+    }
+    const { LocalNotifications } = await import('@capacitor/local-notifications');
+    return LocalNotifications;
+}
 
 const INITIAL_WEEK_STATUSES = {
     1: { status: 'pending', label: '等待中' },
@@ -168,6 +175,8 @@ export const PlanGenerationProvider = ({ children }) => {
             }
 
             try {
+                const LocalNotifications = await getLocalNotifications();
+                if (!LocalNotifications) return;
                 const permission = await LocalNotifications.checkPermissions();
                 if (permission.display !== 'granted') {
                     await LocalNotifications.requestPermissions();
@@ -225,6 +234,8 @@ export const PlanGenerationProvider = ({ children }) => {
         }
 
         try {
+            const LocalNotifications = await getLocalNotifications();
+            if (!LocalNotifications) return;
             await LocalNotifications.schedule({
                 notifications: [{
                     id: 1,
@@ -685,6 +696,8 @@ export const PlanGenerationProvider = ({ children }) => {
         await disableBackgroundMode();
 
         try {
+            const LocalNotifications = await getLocalNotifications();
+            if (!LocalNotifications) return;
             await LocalNotifications.cancel({ notifications: [{ id: 1 }, { id: 100 }] });
         } catch (cancelError) {
             console.log('Failed to cancel notification:', cancelError);

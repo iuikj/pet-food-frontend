@@ -20,8 +20,8 @@ function WorkflowEventRow({ item }) {
     return (
         <motion.div
             className="agui-timeline-item"
-            initial={{ opacity: 0, y: 7, filter: 'blur(3px)' }}
-            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+            initial={{ opacity: 0, y: 7 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.22, ease: 'easeOut' }}
         >
             <div className="min-w-0 flex-1">
@@ -70,10 +70,6 @@ function buildCoTBlocks(stream) {
 
 export default function TimelineFeed({ events, emptyText, compact = false, disableNestedBlocks = false }) {
     const [sheetEvents, setSheetEvents] = useState(null);
-    const organized = useMemo(
-        () => organizeEventsForTimeline(events || [], { nested: compact }),
-        [events, compact],
-    );
     // PR3 grill #8 修复：详情页内的 TimelineFeed 必须直接铺平 events 渲染，
     // 不再二次拆解出 week_block / subagent_block，否则详情页会再渲染一张同款 fanout 卡。
     const { mainStream, weekBuckets, weekCards, subagentBuckets, subagentCards } = useMemo(() => {
@@ -86,8 +82,8 @@ export default function TimelineFeed({ events, emptyText, compact = false, disab
                 subagentCards: [],
             };
         }
-        return organized;
-    }, [disableNestedBlocks, events, organized]);
+        return organizeEventsForTimeline(events || [], { nested: compact });
+    }, [compact, disableNestedBlocks, events]);
 
     const aggregated = useMemo(() => buildCoTBlocks(mainStream), [mainStream]);
 

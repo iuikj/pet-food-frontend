@@ -347,6 +347,15 @@ function upsertCard(map, id, patch) {
     });
 }
 
+function isChronological(events) {
+    for (let i = 1; i < events.length; i += 1) {
+        const prev = events[i - 1]?.timestamp || '';
+        const next = events[i]?.timestamp || '';
+        if (prev.localeCompare(next) > 0) return false;
+    }
+    return true;
+}
+
 /** 计算事件的稳定 React key (timestamp + call_id 或 node + type) */
 export function eventKey(ev) {
     if (ev._kind === 'week_block') return 'week_block';
@@ -369,9 +378,11 @@ export function eventKey(ev) {
  * 返回 { mainStream, weekBuckets, weekCards, subagentBuckets, subagentCards }
  */
 export function organizeEventsForTimeline(events, options = {}) {
-    const sorted = [...events].sort((a, b) =>
-        (a.timestamp || '').localeCompare(b.timestamp || '')
-    );
+    const sorted = isChronological(events)
+        ? events
+        : [...events].sort((a, b) =>
+            (a.timestamp || '').localeCompare(b.timestamp || '')
+        );
     const merged = mergeToolCalls(sorted);
     if (options.nested) {
         return {

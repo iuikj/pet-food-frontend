@@ -48,6 +48,7 @@ function RunInner({ setForwardedProps }) {
         events,
         error,
         completedDetail,
+        latestPlanItems,
         isRunning,
         hasStarted,
         start,
@@ -159,16 +160,6 @@ function RunInner({ setForwardedProps }) {
         health_status: pendingPayload?.pet_information?.health_status,
     };
 
-    // 从 events 中提取 plan_board items 用于 TaskQueueCompact
-    const planItems = useMemo(() => {
-        for (let i = events.length - 1; i >= 0; i -= 1) {
-            if (events[i]?.detail?.view_type === 'plan_board') {
-                return events[i].detail.items || [];
-            }
-        }
-        return [];
-    }, [events]);
-
     return (
         <div className="relative mx-auto flex min-h-[100dvh] w-full max-w-[430px] flex-col bg-white dark:bg-gray-900">
             <PlanRunHeader pet={displayPet} onBack={handleBack} />
@@ -184,7 +175,7 @@ function RunInner({ setForwardedProps }) {
 
             {/* 底部固定区域：TaskQueueCompact + ActionBar */}
             <div className="fixed inset-x-0 bottom-0 z-30 mx-auto w-full max-w-[430px]">
-                <TaskQueueCompact items={planItems} />
+                <TaskQueueCompact items={latestPlanItems} />
                 <nav className="flex items-center gap-2 border-t border-gray-100 dark:border-gray-800 bg-white/90 dark:bg-gray-900/90 px-4 py-3 backdrop-blur-sm">
                     {hasStarted && isRunning && !error && (
                         <Button

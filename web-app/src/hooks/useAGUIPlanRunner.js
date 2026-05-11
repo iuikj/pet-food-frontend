@@ -259,6 +259,19 @@ function logAguiEvent(event) {
     });
 }
 
+function getPlanBoardItems(payload) {
+    return payload?.detail?.view_type === 'plan_board' && Array.isArray(payload.detail.items)
+        ? payload.detail.items
+        : null;
+}
+
+function syncLatestPlanItems(payload, setLatestPlanItems) {
+    const planItems = getPlanBoardItems(payload);
+    if (planItems) {
+        setLatestPlanItems(planItems);
+    }
+}
+
 export function useAGUIPlanRunner({ setForwardedProps }) {
     const { currentPet } = usePets();
     const { user } = useUser();
@@ -279,6 +292,7 @@ export function useAGUIPlanRunner({ setForwardedProps }) {
     const [error, setError] = useState(null);
     const [completedDetail, setCompletedDetail] = useState(null);
     const [hasStarted, setHasStarted] = useState(false);
+    const [latestPlanItems, setLatestPlanItems] = useState([]);
 
     // 防重入:同 timestamp+node+type+call_id 的事件只入队一次
     const seenKeysRef = useRef(new Set());
@@ -352,6 +366,7 @@ export function useAGUIPlanRunner({ setForwardedProps }) {
 
                 enqueueStateUpdate(() => {
                     setEvents((prev) => [...prev, payload]);
+                    syncLatestPlanItems(payload, setLatestPlanItems);
 
                     if (payload.type === 'completed' && payload.detail) {
                         setCompletedDetail(payload.detail);
@@ -390,6 +405,7 @@ export function useAGUIPlanRunner({ setForwardedProps }) {
                 };
                 enqueueStateUpdate(() => {
                     setEvents((prev) => [...prev, payload]);
+                    setLatestPlanItems(todos);
                 });
             },
             onTextMessageStartEvent: ({ event, state }) => {
@@ -580,6 +596,7 @@ export function useAGUIPlanRunner({ setForwardedProps }) {
                 if (!payload) return;
                 enqueueStateUpdate(() => {
                     setEvents((prev) => [...prev, payload]);
+                    syncLatestPlanItems(payload, setLatestPlanItems);
                 });
             },
             onToolCallArgsEvent: ({ event, toolCallName, partialToolCallArgs, state }) => {
@@ -645,6 +662,7 @@ export function useAGUIPlanRunner({ setForwardedProps }) {
                 if (!payload) return;
                 enqueueStateUpdate(() => {
                     setEvents((prev) => [...prev, payload]);
+                    syncLatestPlanItems(payload, setLatestPlanItems);
                 });
             },
             onToolCallEndEvent: ({ event, toolCallName, toolCallArgs, state }) => {
@@ -701,6 +719,7 @@ export function useAGUIPlanRunner({ setForwardedProps }) {
                 if (!payload) return;
                 enqueueStateUpdate(() => {
                     setEvents((prev) => [...prev, payload]);
+                    syncLatestPlanItems(payload, setLatestPlanItems);
                 });
             },
             // ─────────── DEV 探针：AG-UI 原始接收事件 ───────────
@@ -762,6 +781,7 @@ export function useAGUIPlanRunner({ setForwardedProps }) {
         rafBatcherRef.current?.cancel();
         setError(null);
         setCompletedDetail(null);
+        setLatestPlanItems([]);
         setHasStarted(true);
 
         if (runPayload?.pet_information) {
@@ -806,6 +826,7 @@ export function useAGUIPlanRunner({ setForwardedProps }) {
         rafBatcherRef.current?.cancel();
         setError(null);
         setCompletedDetail(null);
+        setLatestPlanItems([]);
     }, []);
 
     const isRunning = !!agent?.isRunning;
@@ -816,12 +837,13 @@ export function useAGUIPlanRunner({ setForwardedProps }) {
             events,
             error,
             completedDetail,
+            latestPlanItems,
             isRunning,
             hasStarted,
             start,
             cancel,
             reset,
         }),
-        [agent, events, error, completedDetail, isRunning, hasStarted, start, cancel, reset],
+        [agent, events, error, completedDetail, latestPlanItems, isRunning, hasStarted, start, cancel, reset],
     );
 }
