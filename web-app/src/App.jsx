@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { LocalNotifications } from '@capacitor/local-notifications';
@@ -9,26 +9,29 @@ import { UserProvider } from './context/UserProvider';
 import { useUser } from './hooks/useUser';
 import { Toaster } from './components/ui/sonner';
 import Layout from './components/layout/Layout';
-import CreatePlan from './pages/CreatePlan';
 import Login from './pages/Login';
-import OnboardingName from './pages/OnboardingName';
-import OnboardingBasic from './pages/OnboardingBasic';
-import OnboardingHealth from './pages/OnboardingHealth';
-import Loading from './pages/Loading';
-import PlanSummary from './pages/PlanSummary';
 import HomePage from './pages/HomePage';
-import DashboardDaily from './pages/DashboardDaily';
-import CalendarPage from './pages/CalendarPage';
-import RecipesPage from './pages/RecipesPage';
-import Profile from './pages/Profile';
-import ProfileEdit from './pages/ProfileEdit';
-import PetEdit from './pages/PetEdit';
-import WeightTrend from './pages/WeightTrend';
-import AGUITest from './pages/AGUITest';
-import AGUIPlanRun from './pages/AGUIPlanRun';
 import { useBackButton } from './hooks/useBackButton';
 import ScrollToTop from './components/ScrollToTop';
 import React from 'react';
+
+// 路由 lazy chunk —— 仅 Login / HomePage / Layout / Provider 保持静态 import，
+// 其他页面按需加载，降低首屏 JS。Loading / Onboarding / Profile / AGUI 等访问频率低或体量大。
+const OnboardingName = lazy(() => import('./pages/OnboardingName'));
+const OnboardingBasic = lazy(() => import('./pages/OnboardingBasic'));
+const OnboardingHealth = lazy(() => import('./pages/OnboardingHealth'));
+const Loading = lazy(() => import('./pages/Loading'));
+const PlanSummary = lazy(() => import('./pages/PlanSummary'));
+const CreatePlan = lazy(() => import('./pages/CreatePlan'));
+const DashboardDaily = lazy(() => import('./pages/DashboardDaily'));
+const CalendarPage = lazy(() => import('./pages/CalendarPage'));
+const RecipesPage = lazy(() => import('./pages/RecipesPage'));
+const Profile = lazy(() => import('./pages/Profile'));
+const ProfileEdit = lazy(() => import('./pages/ProfileEdit'));
+const PetEdit = lazy(() => import('./pages/PetEdit'));
+const WeightTrend = lazy(() => import('./pages/WeightTrend'));
+const AGUITest = lazy(() => import('./pages/AGUITest'));
+const AGUIPlanRun = lazy(() => import('./pages/AGUIPlanRun'));
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -140,6 +143,15 @@ function PublicRoute({ children }) {
   return children;
 }
 
+// 路由切换时的 lazy chunk 加载兜底 —— 与 SplashScreen 同色系，避免视觉跳变
+function RouteFallback() {
+  return (
+    <div className="min-h-[100dvh] flex items-center justify-center bg-background-light dark:bg-background-dark">
+      <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+    </div>
+  );
+}
+
 function AnimatedRoutes() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -177,33 +189,35 @@ function AnimatedRoutes() {
     <>
       <ScrollToTop />
       <AnimatePresence mode="wait" initial={false}>
-        <Routes location={location} key={isTabRoute ? 'tab-routes' : location.pathname}>
-          <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/calendar" element={<CalendarPage />} />
-            <Route path="/recipes" element={<RecipesPage />} />
-            <Route path="/plan/create" element={<CreatePlan />} />
-            <Route path="/plan/summary" element={<PlanSummary />} />
-            <Route path="/profile" element={<Profile />} />
-          </Route>
+        <Suspense fallback={<RouteFallback />}>
+          <Routes location={location} key={isTabRoute ? 'tab-routes' : location.pathname}>
+            <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/calendar" element={<CalendarPage />} />
+              <Route path="/recipes" element={<RecipesPage />} />
+              <Route path="/plan/create" element={<CreatePlan />} />
+              <Route path="/plan/summary" element={<PlanSummary />} />
+              <Route path="/profile" element={<Profile />} />
+            </Route>
 
-          <Route path="/onboarding/step1" element={<ProtectedRoute><OnboardingName /></ProtectedRoute>} />
-          <Route path="/onboarding/step2" element={<ProtectedRoute><OnboardingBasic /></ProtectedRoute>} />
-          <Route path="/onboarding/step3" element={<ProtectedRoute><OnboardingHealth /></ProtectedRoute>} />
-          <Route path="/planning" element={<ProtectedRoute><Loading /></ProtectedRoute>} />
-          <Route path="/profile/edit" element={<ProtectedRoute><ProfileEdit /></ProtectedRoute>} />
-          <Route path="/pet/edit/:id" element={<ProtectedRoute><PetEdit /></ProtectedRoute>} />
-          <Route path="/pet/:id/weight" element={<ProtectedRoute><WeightTrend /></ProtectedRoute>} />
-          <Route path="/dashboard/daily" element={<ProtectedRoute><DashboardDaily /></ProtectedRoute>} />
-          <Route path="/agui-test" element={<ProtectedRoute><AGUITest /></ProtectedRoute>} />
-          <Route path="/planning/detailed" element={<ProtectedRoute><AGUIPlanRun /></ProtectedRoute>} />
-          <Route path="/agui-plan" element={<Navigate to="/plan/create" replace />} />
-          <Route path="/agui-plan/run" element={<Navigate to="/planning/detailed" replace />} />
-          <Route path="/agui-plan/result" element={<Navigate to="/plan/summary" replace />} />
+            <Route path="/onboarding/step1" element={<ProtectedRoute><OnboardingName /></ProtectedRoute>} />
+            <Route path="/onboarding/step2" element={<ProtectedRoute><OnboardingBasic /></ProtectedRoute>} />
+            <Route path="/onboarding/step3" element={<ProtectedRoute><OnboardingHealth /></ProtectedRoute>} />
+            <Route path="/planning" element={<ProtectedRoute><Loading /></ProtectedRoute>} />
+            <Route path="/profile/edit" element={<ProtectedRoute><ProfileEdit /></ProtectedRoute>} />
+            <Route path="/pet/edit/:id" element={<ProtectedRoute><PetEdit /></ProtectedRoute>} />
+            <Route path="/pet/:id/weight" element={<ProtectedRoute><WeightTrend /></ProtectedRoute>} />
+            <Route path="/dashboard/daily" element={<ProtectedRoute><DashboardDaily /></ProtectedRoute>} />
+            <Route path="/agui-test" element={<ProtectedRoute><AGUITest /></ProtectedRoute>} />
+            <Route path="/planning/detailed" element={<ProtectedRoute><AGUIPlanRun /></ProtectedRoute>} />
+            <Route path="/agui-plan" element={<Navigate to="/plan/create" replace />} />
+            <Route path="/agui-plan/run" element={<Navigate to="/planning/detailed" replace />} />
+            <Route path="/agui-plan/result" element={<Navigate to="/plan/summary" replace />} />
 
-          <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+            <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
       </AnimatePresence>
     </>
   );

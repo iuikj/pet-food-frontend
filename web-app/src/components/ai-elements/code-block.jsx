@@ -8,6 +8,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import {
+  getHighlighterCore,
+  ensureLanguageLoaded,
+  normalizeLanguage,
+} from "@/lib/streamdownCodePlugin";
 import { CheckIcon, CopyIcon } from "lucide-react";
 import {
   createContext,
@@ -19,7 +24,6 @@ import {
   useRef,
   useState,
 } from "react";
-import { createHighlighter } from "shiki";
 
 // Shiki uses bitflags for font styles: 1=italic, 2=bold, 4=underline
 // oxlint-disable-next-line eslint(no-bitwise)
@@ -91,8 +95,8 @@ const CodeBlockContext = createContext({
   code: "",
 });
 
-// Highlighter cache (singleton per language)
-const highlighterCache = new Map();
+// Fixed theme pair — 与 streamdownCodePlugin 默认主题对一致，便于共享 highlighter 缓存
+const CODE_BLOCK_THEMES = Object.freeze(["github-light", "github-dark"]);
 
 // Token cache
 const tokensCache = new Map();
@@ -104,21 +108,6 @@ const getTokensCacheKey = (code, language) => {
   const start = code.slice(0, 100);
   const end = code.length > 100 ? code.slice(-100) : "";
   return `${language}:${code.length}:${start}:${end}`;
-};
-
-const getHighlighter = language => {
-  const cached = highlighterCache.get(language);
-  if (cached) {
-    return cached;
-  }
-
-  const highlighterPromise = createHighlighter({
-    langs: [language],
-    themes: ["github-light", "github-dark"],
-  });
-
-  highlighterCache.set(language, highlighterPromise);
-  return highlighterPromise;
 };
 
 // Create raw tokens for immediate display while highlighting loads
@@ -144,7 +133,8 @@ export const highlightCode = (
   // oxlint-disable-next-line eslint-plugin-promise(prefer-await-to-callbacks)
   callback
 ) => {
-  const tokensCacheKey = getTokensCacheKey(code, language);
+  const normalized = normalizeLanguage(language);
+  const tokensCacheKey = getTokensCacheKey(code, normalized);
 
   // Return cached result if available
   const cached = tokensCache.get(tokensCacheKey);
@@ -161,11 +151,12 @@ export const highlightCode = (
   }
 
   // Start highlighting in background - fire-and-forget async pattern
-  getHighlighter(language)
+  getHighlighterCore(CODE_BLOCK_THEMES)
     // oxlint-disable-next-line eslint-plugin-promise(prefer-await-to-then)
-    .then((highlighter) => {
+    .then(async (highlighter) => {
+      await ensureLanguageLoaded(highlighter, normalized);
       const availableLangs = highlighter.getLoadedLanguages();
-      const langToUse = availableLangs.includes(language) ? language : "text";
+      const langToUse = availableLangs.includes(normalized) ? normalized : "markdown";
 
       const result = highlighter.codeToTokens(code, {
         lang: langToUse,
