@@ -14,7 +14,18 @@ import {
     loadPendingPlanTask,
     savePendingPlanTask,
 } from '../utils/storage';
-import PlanGenerationContext from './PlanGenerationContextValue';
+import {
+    PlanActionsContext,
+    PlanLogContext,
+    PlanStatusContext,
+} from './PlanGenerationContextValue';
+
+// PR3：setLogs 上限，避免长任务下 logs 数组无限增长导致渲染卡顿
+const MAX_LOGS = 200;
+
+// PR3：轮询退避策略 — 成功归零回 3s、失败指数级延长直到 12s 上限
+const POLL_BASE = 3000;
+const POLL_MAX = 12000;
 
 const INITIAL_WEEK_STATUSES = {
     1: { status: 'pending', label: '等待中' },
@@ -122,7 +133,9 @@ export const PlanGenerationProvider = ({ children }) => {
 
     const abortControllerRef = useRef(null);
     const lockedApiRef = useRef(realPlansApi);
-    const pollingRef = useRef(null);
+    // PR3：轮询改为 setTimeout 链式，pollingTimerRef 取代旧 pollingRef
+    const pollingTimerRef = useRef(null);
+    const pollDelayRef = useRef(POLL_BASE);
     const statusRef = useRef(status);
     const taskIdRef = useRef(taskId);
     const resultRef = useRef(result);
@@ -141,8 +154,9 @@ export const PlanGenerationProvider = ({ children }) => {
 
     useEffect(() => {
         return () => {
-            if (pollingRef.current) {
-                clearInterval(pollingRef.current);
+            if (pollingTimerRef.current) {
+                clearTimeout(pollingTimerRef.current);
+                pollingTimerRef.current = null;
             }
         };
     }, []);
@@ -171,10 +185,14 @@ export const PlanGenerationProvider = ({ children }) => {
             return;
         }
 
-        setLogs((previousLogs) => [
-            ...previousLogs,
-            { time: new Date().toLocaleTimeString(), message },
-        ]);
+        setLogs((previousLogs) => {
+            const next = [
+                ...previousLogs,
+                { time: new Date().toLocaleTimeString(), message },
+            ];
+            // PR3：超过上限只保留最近 MAX_LOGS 条，避免长任务下数组无限增长
+            return next.length > MAX_LOGS ? next.slice(-MAX_LOGS) : next;
+        });
     }, []);
 
     const storeResult = useCallback((nextResult) => {
@@ -195,9 +213,9 @@ export const PlanGenerationProvider = ({ children }) => {
     }, []);
 
     const stopPolling = useCallback(() => {
-        if (pollingRef.current) {
-            clearInterval(pollingRef.current);
-            pollingRef.current = null;
+        if (pollingTimerRef.current) {
+            clearTimeout(pollingTimerRef.current);
+            pollingTimerRef.current = null;
         }
     }, []);
 
@@ -358,7 +376,11 @@ export const PlanGenerationProvider = ({ children }) => {
     }, [addLog, disableBackgroundMode, stopPolling]);
 
     const startPolling = useCallback(() => {
-        if (pollingRef.current) {
+        // PR3：visibility 感知 + 退避策略
+        //   - 用 setTimeout 链式而非 setInterval：每轮完成后才调度下一轮，避免在 long-running poll 期间重叠
+        //   - 当 document.hidden 时跳过本轮（不发请求），由 visibilitychange listener 在重回可见时立刻拉起一轮
+        //   - 失败时 delay *= 2 上限 12s；成功后归零回 3s，减轻后端压力
+        if (pollingTimerRef.current) {
             return;
         }
 
@@ -389,12 +411,65 @@ export const PlanGenerationProvider = ({ children }) => {
                 }
             } catch (pollingError) {
                 console.error('Polling error:', pollingError);
+                throw pollingError;
             }
         };
 
-        poll();
-        pollingRef.current = setInterval(poll, 3000);
+        const scheduleNextPoll = () => {
+            stopPolling();
+            pollingTimerRef.current = setTimeout(async () => {
+                pollingTimerRef.current = null;
+
+                // 页面不可见时跳过本轮，等待 visibilitychange listener 重新拉起
+                if (typeof document !== 'undefined' && document.hidden) {
+                    return;
+                }
+
+                try {
+                    await poll();
+                    // 成功后退避归零
+                    pollDelayRef.current = POLL_BASE;
+                } catch (err) {
+                    // 失败时退避指数级延长
+                    pollDelayRef.current = Math.min(pollDelayRef.current * 2, POLL_MAX);
+                    console.warn('[polling] tick failed, backoff to', pollDelayRef.current, err);
+                }
+
+                // 仍在 generating 才继续下一轮
+                if (statusRef.current === 'generating') {
+                    scheduleNextPoll();
+                }
+            }, pollDelayRef.current);
+        };
+
+        pollDelayRef.current = POLL_BASE;
+        // 立刻发一轮（不等首个延时），让进入 polling 路径就拿到一次结果
+        void poll().catch((err) => {
+            pollDelayRef.current = Math.min(pollDelayRef.current * 2, POLL_MAX);
+            console.warn('[polling] initial tick failed, backoff to', pollDelayRef.current, err);
+        }).finally(() => {
+            if (statusRef.current === 'generating') {
+                scheduleNextPoll();
+            }
+        });
     }, [completeGeneration, failGeneration, stopPolling]);
+
+    // PR3：visibility 感知 — 页面从隐藏切回可见时立刻重启一轮（无需等当前 backoff 计时完）
+    useEffect(() => {
+        if (typeof document === 'undefined') {
+            return undefined;
+        }
+        const onVisibility = () => {
+            if (!document.hidden && statusRef.current === 'generating' && taskIdRef.current) {
+                pollDelayRef.current = POLL_BASE;
+                // 不在 polling 中就主动启动；在 polling 中则停掉当前 timer 立即重排
+                stopPolling();
+                startPolling();
+            }
+        };
+        document.addEventListener('visibilitychange', onVisibility);
+        return () => document.removeEventListener('visibilitychange', onVisibility);
+    }, [startPolling, stopPolling]);
 
     const handleSSEEvent = useCallback((data) => {
         void (async () => {
@@ -816,7 +891,26 @@ export const PlanGenerationProvider = ({ children }) => {
         };
     }, [restoreFromBackground]);
 
-    const contextValue = useMemo(() => ({
+    // PR3：拆三层 Provider — actions（最稳定）/ status（中频）/ logs（高频）
+    //   actions 用 useMemo([]) — 这些 callback 都通过 useCallback 包过，依赖项稳定；
+    //     只在 callback 引用确实变化时才生成新 actions 对象，避免因 logs/status 变化牵动消费者重渲染
+    //   status 字段中 currentStep 由 currentStepIndex 派生，STEPS 是模块级常量始终同引用
+    //   logs 字段单独成层 — SSE 高频追加 logs/weekStatuses 时只触发订阅了 logs 层的组件重渲染
+    const actionsValue = useMemo(() => ({
+        startGeneration,
+        resetGeneration,
+        restoreFromBackground,
+        resumePendingTask,
+        completeWithAguiResult,
+    }), [
+        startGeneration,
+        resetGeneration,
+        restoreFromBackground,
+        resumePendingTask,
+        completeWithAguiResult,
+    ]);
+
+    const statusValue = useMemo(() => ({
         status,
         progress,
         currentStepIndex,
@@ -828,13 +922,6 @@ export const PlanGenerationProvider = ({ children }) => {
         error,
         result,
         currentNode,
-        logs,
-        weekStatuses,
-        startGeneration,
-        resetGeneration,
-        restoreFromBackground,
-        resumePendingTask,
-        completeWithAguiResult,
     }), [
         status,
         progress,
@@ -845,18 +932,20 @@ export const PlanGenerationProvider = ({ children }) => {
         error,
         result,
         currentNode,
-        logs,
-        weekStatuses,
-        startGeneration,
-        resetGeneration,
-        restoreFromBackground,
-        resumePendingTask,
-        completeWithAguiResult,
     ]);
 
+    const logsValue = useMemo(() => ({
+        logs,
+        weekStatuses,
+    }), [logs, weekStatuses]);
+
     return (
-        <PlanGenerationContext.Provider value={contextValue}>
-            {children}
-        </PlanGenerationContext.Provider>
+        <PlanActionsContext.Provider value={actionsValue}>
+            <PlanStatusContext.Provider value={statusValue}>
+                <PlanLogContext.Provider value={logsValue}>
+                    {children}
+                </PlanLogContext.Provider>
+            </PlanStatusContext.Provider>
+        </PlanActionsContext.Provider>
     );
 };
