@@ -108,7 +108,7 @@ export default function TimelineFeed({ events, emptyText, compact = false, disab
         return (
             <div className="flex items-center justify-center py-12">
                 <ConversationEmptyState
-                    className="text-gray-400"
+                    className="text-gray-400 dark:text-gray-500"
                     icon={<Sparkles className="size-9" />}
                     title={emptyText || '等待事件流...'}
                     description="工作流事件会在这里出现"

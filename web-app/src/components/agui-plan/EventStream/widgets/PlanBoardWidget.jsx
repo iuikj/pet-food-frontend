@@ -23,7 +23,7 @@ export default function PlanBoardWidget({ event }) {
     return (
         <Queue className="agui-plan-board">
             <div className="flex items-start gap-3 px-1 pt-1">
-                <div className="rounded-[16px] bg-white/60 p-2 text-[var(--agui-muted)]">
+                <div className="rounded-[16px] bg-white/60 dark:bg-white/10 p-2 text-[var(--agui-muted)]">
                     <ClipboardList className="size-4" />
                 </div>
                 <div className="min-w-0">

@@ -31,7 +31,7 @@ const WEEK_BG_CLASS = {
 function StatusDot({ status }) {
     const key = status?.key;
     if (ACTIVE_STATUS_KEYS.has(key)) {
-        return <Loader2 className="size-3 animate-spin text-gray-600" aria-label={status?.label || '执行中'} />;
+        return <Loader2 className="size-3 animate-spin text-gray-600 dark:text-gray-400" aria-label={status?.label || '执行中'} />;
     }
     let dotClass = 'bg-gray-400';
     if (key === 'completed') dotClass = 'bg-green-600';
@@ -49,13 +49,13 @@ function HeaderIcon({ kind, weekNumber }) {
         const n = Number(weekNumber);
         // 数字徽章保留圆形，底换 bg-white/60 让数字在莫兰迪卡上是浅色凸出而不是同色融化。
         return (
-            <div className="flex size-7 items-center justify-center rounded-full bg-white/60 text-[13px] font-semibold text-gray-700">
+            <div className="flex size-7 items-center justify-center rounded-full bg-white/60 dark:bg-white/10 text-[13px] font-semibold text-gray-700 dark:text-gray-200">
                 {Number.isFinite(n) ? n : '·'}
             </div>
         );
     }
     // SubAgent：Bot icon 直接渲染，无背景圆形。
-    return <Bot className="size-5 text-gray-700" aria-label="子 Agent" />;
+    return <Bot className="size-5 text-gray-700 dark:text-gray-300" aria-label="子 Agent" />;
 }
 
 export default function FanoutCard({
@@ -90,11 +90,11 @@ export default function FanoutCard({
 
             <div className="flex-1 overflow-hidden px-3 py-1">
                 {taskName ? (
-                    <div className="line-clamp-2 text-[13px] leading-5 text-gray-700">
+                    <div className="line-clamp-2 text-[13px] leading-5 text-gray-700 dark:text-gray-200">
                         {taskName}
                     </div>
                 ) : (
-                    <span className="text-[13px] leading-5 text-gray-500">等待任务描述…</span>
+                    <span className="text-[13px] leading-5 text-gray-500 dark:text-gray-400">等待任务描述…</span>
                 )}
             </div>
 

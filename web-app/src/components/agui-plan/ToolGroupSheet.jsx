@@ -265,20 +265,20 @@ function PlanBoardChildren({ items }) {
                 return (
                     <div key={item.id ?? i} className="flex items-center gap-1.5 text-[11px]">
                         {done ? (
-                            <CheckCircle2 className="size-3 shrink-0 text-gray-400" />
+                            <CheckCircle2 className="size-3 shrink-0 text-gray-400 dark:text-gray-500" />
                         ) : active ? (
-                            <Loader2 className="size-3 shrink-0 animate-spin text-gray-400" />
+                            <Loader2 className="size-3 shrink-0 animate-spin text-gray-400 dark:text-gray-500" />
                         ) : (
-                            <Circle className="size-3 shrink-0 text-gray-300" />
+                            <Circle className="size-3 shrink-0 text-gray-300 dark:text-gray-600" />
                         )}
-                        <span className={cn('truncate', done ? 'text-gray-400 line-through' : 'text-gray-600')}>
+                        <span className={cn('truncate', done ? 'text-gray-400 dark:text-gray-500 line-through' : 'text-gray-600 dark:text-gray-400')}>
                             {item.description || item.content || ''}
                         </span>
                     </div>
                 );
             })}
             {items.length > visible.length && (
-                <span className="text-[11px] text-gray-400">…还有 {items.length - visible.length} 项</span>
+                <span className="text-[11px] text-gray-400 dark:text-gray-500">…还有 {items.length - visible.length} 项</span>
             )}
         </div>
     );
@@ -300,7 +300,7 @@ function SearchSourcesChildren({ sources }) {
                     />
                 ))}
                 {remaining > 0 && (
-                    <span className="block text-[11px] text-gray-400">
+                    <span className="block text-[11px] text-gray-400 dark:text-gray-500">
                         …还有 {remaining} 项
                     </span>
                 )}
@@ -356,7 +356,7 @@ export default function ToolGroupSheet({ open, events = [], allEvents, onClose }
                         onClick={onClose}
                     />
                     <motion.div
-                        className="fixed inset-x-0 bottom-0 z-50 mx-auto flex w-full max-w-[430px] flex-col overflow-hidden rounded-t-2xl bg-white"
+                        className="fixed inset-x-0 bottom-0 z-50 mx-auto flex w-full max-w-[430px] flex-col overflow-hidden rounded-t-2xl bg-white dark:bg-gray-900"
                         style={{ height: `${SHEET_HEIGHT_VH}vh` }}
                         variants={panelVariants}
                         initial="hidden"
@@ -371,17 +371,17 @@ export default function ToolGroupSheet({ open, events = [], allEvents, onClose }
                         {/* 拖拽区:把手 + 居中标题 + 关闭按钮 */}
                         <div className="cursor-grab touch-none select-none active:cursor-grabbing">
                             <div className="flex justify-center pt-2 pb-1">
-                                <div className="h-1 w-9 rounded-full bg-gray-300" />
+                                <div className="h-1 w-9 rounded-full bg-gray-300 dark:bg-gray-600" />
                             </div>
-                            <div className="grid grid-cols-[40px_1fr_40px] items-center border-b border-gray-100 px-2 py-2">
+                            <div className="grid grid-cols-[40px_1fr_40px] items-center border-b border-gray-100 dark:border-gray-800 px-2 py-2">
                                 <span aria-hidden className="block size-8" />
-                                <h3 className="text-center text-[15px] font-semibold text-gray-900">
+                                <h3 className="text-center text-[15px] font-semibold text-gray-900 dark:text-gray-100">
                                     详情
                                 </h3>
                                 <button
                                     type="button"
                                     onClick={onClose}
-                                    className="ml-auto flex size-8 items-center justify-center rounded-full text-gray-400 hover:bg-gray-100"
+                                    className="ml-auto flex size-8 items-center justify-center rounded-full text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
                                     aria-label="关闭详情"
                                 >
                                     <X className="size-4" />
@@ -395,7 +395,7 @@ export default function ToolGroupSheet({ open, events = [], allEvents, onClose }
                             style={{ overscrollBehavior: 'contain' }}
                         >
                             {merged.length === 0 ? (
-                                <p className="py-6 text-center text-[13px] text-gray-400">暂无事件</p>
+                                <p className="py-6 text-center text-[13px] text-gray-400 dark:text-gray-500">暂无事件</p>
                             ) : (
                                 <ChainOfThought defaultOpen>
                                     <ChainOfThoughtContent>

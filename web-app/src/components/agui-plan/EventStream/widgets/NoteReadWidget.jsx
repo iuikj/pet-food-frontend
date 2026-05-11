@@ -19,7 +19,7 @@ export default function NoteReadWidget({ event }) {
                     <ToolInput className="agui-tool-io" input={part.input} />
                 )}
                 {noteText && (
-                    <div className="rounded-[18px] border border-white/[0.55] bg-white/[0.48] p-3 text-xs">
+                    <div className="rounded-[18px] border border-white/[0.55] dark:border-white/10 bg-white/[0.48] dark:bg-white/[0.06] p-3 text-xs">
                         <h4 className="mb-2 font-medium uppercase tracking-wide text-muted-foreground text-xs">
                             笔记
                         </h4>

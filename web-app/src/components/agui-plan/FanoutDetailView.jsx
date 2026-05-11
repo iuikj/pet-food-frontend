@@ -19,9 +19,9 @@ const ACTIVE_STATUS_KEYS = new Set(['active', 'searching', 'writing', 'planning'
 function HeaderStatusDot({ status }) {
     const key = status?.key;
     if (ACTIVE_STATUS_KEYS.has(key)) {
-        return <Loader2 className="size-3 shrink-0 animate-spin text-gray-500" aria-label={status?.label || '执行中'} />;
+        return <Loader2 className="size-3 shrink-0 animate-spin text-gray-500 dark:text-gray-400" aria-label={status?.label || '执行中'} />;
     }
-    let dotClass = 'bg-gray-300';
+    let dotClass = 'bg-gray-300 dark:bg-gray-600';
     if (key === 'completed') dotClass = 'bg-green-500';
     else if (key === 'error') dotClass = 'bg-red-500';
     return (
@@ -38,23 +38,23 @@ export default function FanoutDetailView({ card, events, allEvents, onClose }) {
 
     return (
         <motion.div
-            className="fixed inset-0 z-40 flex flex-col bg-white"
+            className="fixed inset-0 z-40 flex flex-col bg-white dark:bg-gray-900"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
             transition={{ duration: 0.18 }}
         >
-            <header className="sticky top-0 z-10 flex h-11 shrink-0 items-center gap-2 border-b border-gray-100 bg-white/95 px-3 backdrop-blur">
+            <header className="sticky top-0 z-10 flex h-11 shrink-0 items-center gap-2 border-b border-gray-100 dark:border-gray-800 bg-white/95 dark:bg-gray-900/95 px-3 backdrop-blur">
                 <button
                     type="button"
                     onClick={onClose}
-                    className="flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-[13px] text-gray-600 hover:bg-gray-100 active:bg-gray-200"
+                    className="flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-[13px] text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 active:bg-gray-200 dark:active:bg-gray-700"
                     aria-label="回到 main stream"
                 >
                     <ChevronLeft className="size-4" />
                     <span>回到 main stream</span>
                 </button>
-                <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-gray-700">
+                <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-gray-700 dark:text-gray-300">
                     {title}
                 </span>
                 <HeaderStatusDot status={card.status} />

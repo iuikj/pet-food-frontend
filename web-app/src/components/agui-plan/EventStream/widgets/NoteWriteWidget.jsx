@@ -15,7 +15,7 @@ export default function NoteWriteWidget({ event }) {
             <ToolHeader className="agui-tool-header" type={part.type} state={part.state} />
             <ToolContent className="agui-tool-content">
                 {writeContent ? (
-                    <div className="rounded-[18px] border border-white/[0.55] bg-white/[0.48] p-3 text-xs">
+                    <div className="rounded-[18px] border border-white/[0.55] dark:border-white/10 bg-white/[0.48] dark:bg-white/[0.06] p-3 text-xs">
                         <h4 className="mb-2 font-medium uppercase tracking-wide text-muted-foreground text-xs">
                             写入内容
                         </h4>

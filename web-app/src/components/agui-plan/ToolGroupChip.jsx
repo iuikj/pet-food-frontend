@@ -171,17 +171,17 @@ export default function ToolGroupChip({ events, onExpand, isStreaming = false, c
             onClick={() => onExpand?.(events)}
             className={cn(
                 'flex w-full flex-col gap-0.5 rounded-lg px-3 py-2',
-                'text-left text-[13px] text-gray-500',
-                'hover:bg-gray-50 transition-colors cursor-pointer',
+                'text-left text-[13px] text-gray-500 dark:text-gray-400',
+                'hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer',
                 className,
             )}
         >
             {hasReasoning && (
                 <div className="flex items-center gap-2">
-                    <Brain className="size-3.5 shrink-0 text-gray-400" />
+                    <Brain className="size-3.5 shrink-0 text-gray-400 dark:text-gray-500" />
                     <span className="flex-1 truncate">思考过程</span>
                     {isStreaming && (
-                        <Loader2 className="size-3 shrink-0 animate-spin text-gray-400" />
+                        <Loader2 className="size-3 shrink-0 animate-spin text-gray-400 dark:text-gray-500" />
                     )}
                 </div>
             )}
@@ -189,16 +189,16 @@ export default function ToolGroupChip({ events, onExpand, isStreaming = false, c
                 const Icon = line.icon;
                 return (
                     <div key={line.key} className="flex items-center gap-2">
-                        <Icon className="size-3.5 shrink-0 text-gray-400" />
+                        <Icon className="size-3.5 shrink-0 text-gray-400 dark:text-gray-500" />
                         <span className="shrink-0">{line.label}</span>
                         {line.detail && (
-                            <span className="min-w-0 flex-1 truncate text-gray-400">{line.detail}</span>
+                            <span className="min-w-0 flex-1 truncate text-gray-400 dark:text-gray-500">{line.detail}</span>
                         )}
                     </div>
                 );
             })}
             <div className="flex items-center justify-end pt-0.5">
-                <ChevronRight className="size-3 text-gray-300" />
+                <ChevronRight className="size-3 text-gray-300 dark:text-gray-600" />
             </div>
         </button>
     );

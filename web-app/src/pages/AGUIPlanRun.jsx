@@ -27,7 +27,7 @@ export default function AGUIPlanRun() {
 
     return (
         <div
-            className="agui-run-shell min-h-[100dvh] bg-white text-gray-900"
+            className="agui-run-shell min-h-[100dvh] bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
             data-agui-run
         >
             <CopilotKitProvider
@@ -170,7 +170,7 @@ function RunInner({ setForwardedProps }) {
     }, [events]);
 
     return (
-        <div className="relative mx-auto flex min-h-[100dvh] w-full max-w-[430px] flex-col bg-white">
+        <div className="relative mx-auto flex min-h-[100dvh] w-full max-w-[430px] flex-col bg-white dark:bg-gray-900">
             <PlanRunHeader pet={displayPet} onBack={handleBack} />
 
             <main className="relative flex min-h-0 flex-1 flex-col pb-32">
@@ -185,12 +185,12 @@ function RunInner({ setForwardedProps }) {
             {/* 底部固定区域：TaskQueueCompact + ActionBar */}
             <div className="fixed inset-x-0 bottom-0 z-30 mx-auto w-full max-w-[430px]">
                 <TaskQueueCompact items={planItems} />
-                <nav className="flex items-center gap-2 border-t border-gray-100 bg-white/90 px-4 py-3 backdrop-blur-sm">
+                <nav className="flex items-center gap-2 border-t border-gray-100 dark:border-gray-800 bg-white/90 dark:bg-gray-900/90 px-4 py-3 backdrop-blur-sm">
                     {hasStarted && isRunning && !error && (
                         <Button
                             type="button"
                             onClick={() => setShowCancelConfirm(true)}
-                            className="h-9 cursor-pointer rounded-full border border-gray-200 bg-white px-4 text-[13px] font-medium text-gray-600 hover:bg-gray-50"
+                            className="h-9 cursor-pointer rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 text-[13px] font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50"
                             variant="ghost"
                         >
                             <Square className="mr-1.5 size-3.5" />
@@ -201,7 +201,7 @@ function RunInner({ setForwardedProps }) {
                         <Button
                             type="button"
                             onClick={retry}
-                            className="h-9 cursor-pointer rounded-full border border-gray-200 bg-white px-4 text-[13px] font-medium text-gray-600 hover:bg-gray-50"
+                            className="h-9 cursor-pointer rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 text-[13px] font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50"
                             variant="ghost"
                         >
                             <RotateCcw className="mr-1.5 size-3.5" />
