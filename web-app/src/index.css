@@ -242,6 +242,14 @@
   @apply border-border;
 }
 
+/* v3 compat: preserve project's v3 borderRadius.DEFAULT = 1rem so bare
+   `rounded` still produces a soft chip look (v4 default is 0.25rem). */
+@layer utilities {
+  .rounded:not([class*="rounded-"]) {
+    border-radius: 1rem;
+  }
+}
+
 /* ============================================
    8. @layer base 最小化
    ============================================ */
