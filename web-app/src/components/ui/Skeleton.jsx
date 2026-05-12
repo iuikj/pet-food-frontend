@@ -59,4 +59,28 @@ function Text({ lines = 3, className, lineClassName, ...props }) {
 Skeleton.Circle = Circle;
 Skeleton.Text = Text;
 
+/**
+ * AvatarRowSkeleton - 头像 + 两行文字 + 右侧按钮的列表行骨架。
+ *
+ * 用于 HomePage / DashboardDaily 中今日餐食列表的 loading 占位。
+ * 结构与原内联实现完全一致：Circle 44 + h-4 w-24 / h-3 w-40 + h-8 w-16。
+ */
+export function AvatarRowSkeleton({ className }) {
+  return (
+    <div
+      className={twMerge(
+        'flex items-center gap-4 bg-white dark:bg-surface-dark p-4 rounded-2xl shadow-soft',
+        className,
+      )}
+    >
+      <Skeleton.Circle size={44} />
+      <div className="flex-1 space-y-2">
+        <Skeleton className="h-4 w-24" />
+        <Skeleton className="h-3 w-40" />
+      </div>
+      <Skeleton className="h-8 w-16 rounded-xl" />
+    </div>
+  );
+}
+
 export default Skeleton;

@@ -8,7 +8,7 @@ import { usePets } from '../hooks/usePets';
 import { useMeals } from '../hooks/useMeals';
 import MealCard from '../components/MealCard';
 import PlanDetails from './PlanDetails';
-import Skeleton from '../components/ui/Skeleton';
+import { AvatarRowSkeleton } from '../components/ui/Skeleton';
 import PageHeader from '../components/layout/PageHeader';
 import { compareWeightRecordsAsc } from '../utils/weightRecords';
 import { weightsApi, mealsApi } from '../api';
@@ -410,14 +410,7 @@ export default function DashboardDaily() {
                     {mealsLoading ? (
                         <div className="space-y-4">
                             {Array.from({ length: 3 }, (_, i) => (
-                                <div key={i} className="flex items-center gap-4 bg-white dark:bg-surface-dark p-4 rounded-2xl shadow-soft">
-                                    <Skeleton.Circle size={44} />
-                                    <div className="flex-1 space-y-2">
-                                        <Skeleton className="h-4 w-24" />
-                                        <Skeleton className="h-3 w-40" />
-                                    </div>
-                                    <Skeleton className="h-8 w-16 rounded-xl" />
-                                </div>
+                                <AvatarRowSkeleton key={i} />
                             ))}
                         </div>
                     ) : meals.length === 0 ? (

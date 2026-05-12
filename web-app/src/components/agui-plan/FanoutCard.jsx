@@ -1,6 +1,7 @@
-import { Bot, Loader2 } from 'lucide-react';
+import { Bot } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import EventPreviewStack from './EventPreviewStack';
+import StatusDot from './StatusDot';
 
 /**
  * FanoutCard — 堆叠扇形容器（satisui FannedCardStack）renderItem 内容。
@@ -19,30 +20,12 @@ import EventPreviewStack from './EventPreviewStack';
  * 规范见 PRD ADR-003（卡面布局）+ ADR-004（莫兰迪暖系配色）+ ADR-005（详情页转场降级）。
  */
 
-const ACTIVE_STATUS_KEYS = new Set(['active', 'searching', 'writing', 'planning']);
-
 const WEEK_BG_CLASS = {
     1: 'bg-week-1',
     2: 'bg-week-2',
     3: 'bg-week-3',
     4: 'bg-week-4',
 };
-
-function StatusDot({ status }) {
-    const key = status?.key;
-    if (ACTIVE_STATUS_KEYS.has(key)) {
-        return <Loader2 className="size-3 animate-spin text-gray-600 dark:text-gray-400" aria-label={status?.label || '执行中'} />;
-    }
-    let dotClass = 'bg-gray-400';
-    if (key === 'completed') dotClass = 'bg-green-600';
-    else if (key === 'error') dotClass = 'bg-red-500';
-    return (
-        <span
-            className={cn('block size-2 rounded-full', dotClass)}
-            aria-label={status?.label || '等待中'}
-        />
-    );
-}
 
 function HeaderIcon({ kind, weekNumber }) {
     if (kind === 'week') {
@@ -85,7 +68,7 @@ export default function FanoutCard({
         >
             <header className="flex h-10 shrink-0 items-center justify-between px-3">
                 <HeaderIcon kind={kind} weekNumber={weekNumber} />
-                <StatusDot status={status} />
+                <StatusDot status={status} size="sm" tone="strong" />
             </header>
 
             <div className="flex-1 overflow-hidden px-3 py-1">

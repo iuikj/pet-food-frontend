@@ -1,19 +1,18 @@
-import FanoutSubAgentStack from './FanoutSubAgentStack';
+import ParallelBlock from './ParallelBlock';
 
+/**
+ * SubAgentParallelBlock — 薄包装，转发给 ParallelBlock variant='subagent'。
+ *
+ * 实现已统一到 ParallelBlock（与 WeekParallelBlock 共用外壳）。本文件保留为
+ * 兼容入口，外部 import 链不需要改动。
+ */
 export default function SubAgentParallelBlock({ cards, buckets, openDetail }) {
-    if (!cards?.length) return null;
-
     return (
-        <section className="my-1">
-            <div className="mb-3 flex items-center justify-between">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--agui-muted)]">
-                    子 Agent 空间
-                </p>
-                <span className="rounded-full border border-white/60 dark:border-white/10 bg-white/[0.58] dark:bg-white/[0.06] px-2.5 py-1 text-[10px] text-[var(--agui-muted)] backdrop-blur-xl">
-                    {cards.length} 个任务
-                </span>
-            </div>
-            <FanoutSubAgentStack cards={cards} buckets={buckets} openDetail={openDetail} />
-        </section>
+        <ParallelBlock
+            variant="subagent"
+            cards={cards}
+            buckets={buckets}
+            openDetail={openDetail}
+        />
     );
 }
