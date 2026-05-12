@@ -256,3 +256,11 @@ VITE_RECONNECT_DELAY=3000
 - Do not use remote icon or image URLs for packaged UI assets. Copy them into `src/assets/` or `public/` first.
 - `npm run dev` is not enough to validate mobile safety. Any asset-loading or code-splitting change must be verified in production build output and on Android WebView.
 - If Android shows a white screen after a frontend optimization, first suspect production asset loading, chunk loading, or Capacitor-packaged resource behavior before blaming generic system log noise.
+
+## 前端工程规范（必读）
+
+写代码前先看 `.trellis/spec/frontend/frontend/index.md` 索引，按需阅读：
+- Directory Structure / Component / Hook / State Management
+- AG-UI Workflow（涉及 `/agui-plan` 时必读）
+- Quality Guidelines / Type Safety
+- Capacitor Guidelines / Error Handling / Asset Rules（本次新增）
