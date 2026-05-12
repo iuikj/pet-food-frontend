@@ -12,6 +12,7 @@ import Skeleton from '../components/ui/Skeleton';
 import IngredientCard from '../components/IngredientCard';
 import IngredientFormSheet from '../components/IngredientFormSheet';
 import Modal from '../components/Modal';
+import PageHeader from '../components/layout/PageHeader';
 
 const SCOPE_OPTIONS = [
     { value: 'all', label: '全部' },
@@ -369,7 +370,10 @@ export default function RecipesPage() {
         return (
             <div className="space-y-4 mt-2">
                 {/* 搜索 + 归属筛选 */}
-                <div className="space-y-2 sticky top-[128px] z-20 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md -mx-6 px-6 pb-2">
+                <div
+                    className="space-y-2 sticky z-40 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md -mx-6 px-6 py-3"
+                    style={{ top: 'calc(env(safe-area-inset-top, 0px) + 108px)' }}
+                >
                     <div className="relative">
                         <span className="material-icons-round absolute left-3 top-1/2 -translate-y-1/2 text-text-muted-light dark:text-text-muted-dark text-xl">
                             search
@@ -519,46 +523,49 @@ export default function RecipesPage() {
     };
 
     return (
-        <motion.div {...pageTransitions} className="pb-28 overflow-x-hidden">
+        <motion.div {...pageTransitions} className="pb-28 overflow-x-clip">
             {/* Header */}
-            <header className="px-6 pt-12 pb-3 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md sticky top-0 z-50">
-                <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 rounded-full bg-primary/15 flex items-center justify-center">
-                        <span className="material-icons-round text-primary text-xl">restaurant_menu</span>
+            <PageHeader
+                title={
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-primary/15 flex items-center justify-center">
+                            <span className="material-icons-round text-primary text-xl">restaurant_menu</span>
+                        </div>
+                        <div>
+                            <h1 className="text-xl font-bold text-text-main-light dark:text-text-main-dark">食谱与食材</h1>
+                            <p className="text-xs text-text-muted-light dark:text-text-muted-dark">
+                                管理饮食计划与食材库
+                            </p>
+                        </div>
                     </div>
-                    <div>
-                        <h1 className="text-xl font-bold text-text-main-light dark:text-text-main-dark">食谱与食材</h1>
-                        <p className="text-xs text-text-muted-light dark:text-text-muted-dark">
-                            管理饮食计划与食材库
-                        </p>
+                }
+                bottomSlot={
+                    <div className="flex items-center gap-1 bg-white dark:bg-surface-dark p-1 rounded-xl shadow-soft">
+                        <button
+                            onClick={() => setActiveTab('plans')}
+                            className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-1 ${
+                                activeTab === 'plans'
+                                    ? 'bg-primary text-white dark:text-gray-900 shadow-sm'
+                                    : 'text-text-muted-light dark:text-text-muted-dark'
+                            }`}
+                        >
+                            <span className="material-icons-round text-base">menu_book</span>
+                            食谱
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('ingredients')}
+                            className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-1 ${
+                                activeTab === 'ingredients'
+                                    ? 'bg-primary text-white dark:text-gray-900 shadow-sm'
+                                    : 'text-text-muted-light dark:text-text-muted-dark'
+                            }`}
+                        >
+                            <span className="material-icons-round text-base">inventory_2</span>
+                            食材库
+                        </button>
                     </div>
-                </div>
-                {/* Tabs */}
-                <div className="flex items-center gap-1 bg-white dark:bg-surface-dark p-1 rounded-xl shadow-soft">
-                    <button
-                        onClick={() => setActiveTab('plans')}
-                        className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-1 ${
-                            activeTab === 'plans'
-                                ? 'bg-primary text-white dark:text-gray-900 shadow-sm'
-                                : 'text-text-muted-light dark:text-text-muted-dark'
-                        }`}
-                    >
-                        <span className="material-icons-round text-base">menu_book</span>
-                        食谱
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('ingredients')}
-                        className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-1 ${
-                            activeTab === 'ingredients'
-                                ? 'bg-primary text-white dark:text-gray-900 shadow-sm'
-                                : 'text-text-muted-light dark:text-text-muted-dark'
-                        }`}
-                    >
-                        <span className="material-icons-round text-base">inventory_2</span>
-                        食材库
-                    </button>
-                </div>
-            </header>
+                }
+            />
 
             <main className="px-6">
                 {activeTab === 'plans' ? renderPlansTab() : renderIngredientsTab()}

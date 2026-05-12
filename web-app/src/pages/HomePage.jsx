@@ -7,7 +7,8 @@ import 'react-calendar/dist/Calendar.css';
 import { pageTransitions } from '../utils/animations';
 import PetSelectorMenu from '../components/PetSelectorMenu';
 import MealCard from '../components/MealCard';
-import Skeleton from '../components/ui/Skeleton';
+import PageHeader from '../components/layout/PageHeader';
+import { AvatarRowSkeleton } from '../components/ui/Skeleton';
 import PlanDetails from './PlanDetails';
 import ErrorAlert from '../components/ErrorAlert';
 import { usePets } from '../hooks/usePets';
@@ -157,48 +158,50 @@ export default function HomePage() {
 
     // 渲染 Header
     const renderHeader = () => (
-        <header className="px-6 pt-12 pb-4 flex justify-between items-center bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-md sticky top-0 z-50">
-            <div className="flex items-center gap-3">
-                <div className="relative">
-                    {hasPets && currentPet ? (
-                        <button onClick={() => setIsPetMenuOpen(true)}>
-                            {currentPet.avatar_url ? (
-                                <SecureImage
-                                    alt={currentPet.name}
-                                    className="w-12 h-12 rounded-full object-cover border-2 border-white dark:border-surface-dark shadow-sm"
-                                    src={currentPet.avatar_url}
-                                />
-                            ) : (
-                                <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-lg border-2 border-white dark:border-surface-dark shadow-sm">
-                                    {currentPet.name.charAt(0)}
-                                </div>
-                            )}
-                            <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-surface-dark"></div>
-                        </button>
-                    ) : (
+        <PageHeader
+            leftSlot={
+                <div className="flex items-center gap-3">
+                    <div className="relative">
+                        {hasPets && currentPet ? (
+                            <button onClick={() => setIsPetMenuOpen(true)}>
+                                {currentPet.avatar_url ? (
+                                    <SecureImage
+                                        alt={currentPet.name}
+                                        className="w-12 h-12 rounded-full object-cover border-2 border-white dark:border-surface-dark shadow-sm"
+                                        src={currentPet.avatar_url}
+                                    />
+                                ) : (
+                                    <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-lg border-2 border-white dark:border-surface-dark shadow-sm">
+                                        {currentPet.name.charAt(0)}
+                                    </div>
+                                )}
+                                <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-surface-dark"></div>
+                            </button>
+                        ) : (
+                            <button
+                                onClick={() => setIsPetMenuOpen(true)}
+                                className="w-12 h-12 rounded-full bg-gray-100 dark:bg-surface-dark border-2 border-dashed border-primary/50 flex items-center justify-center text-primary shadow-sm hover:bg-primary hover:text-white transition-all"
+                            >
+                                <span className="material-icons-round">add</span>
+                            </button>
+                        )}
+                    </div>
+                    <div>
+                        <p className="text-xs text-text-muted-light dark:text-text-muted-dark font-medium uppercase tracking-wider">
+                            {hasPets ? '计划用于' : '欢迎使用'}
+                        </p>
                         <button
                             onClick={() => setIsPetMenuOpen(true)}
-                            className="w-12 h-12 rounded-full bg-gray-100 dark:bg-surface-dark border-2 border-dashed border-primary/50 flex items-center justify-center text-primary shadow-sm hover:bg-primary hover:text-white transition-all"
+                            className="text-xl font-bold flex items-center gap-1 hover:text-primary transition-colors"
                         >
-                            <span className="material-icons-round">add</span>
+                            {currentPet ? currentPet.name : '选择宠物'}
+                            {hasPets && <span className="material-icons-round text-primary text-sm">pets</span>}
+                            {!hasPets && <span className="material-icons-round text-primary text-sm">arrow_forward_ios</span>}
                         </button>
-                    )}
+                    </div>
                 </div>
-                <div>
-                    <p className="text-xs text-text-muted-light dark:text-text-muted-dark font-medium uppercase tracking-wider">
-                        {hasPets ? '计划用于' : '欢迎使用'}
-                    </p>
-                    <button
-                        onClick={() => setIsPetMenuOpen(true)}
-                        className="text-xl font-bold flex items-center gap-1 hover:text-primary transition-colors"
-                    >
-                        {currentPet ? currentPet.name : '选择宠物'}
-                        {hasPets && <span className="material-icons-round text-primary text-sm">pets</span>}
-                        {!hasPets && <span className="material-icons-round text-primary text-sm">arrow_forward_ios</span>}
-                    </button>
-                </div>
-            </div>
-        </header>
+            }
+        />
     );
 
     // ========== 日历 & 日期选择 ==========
@@ -695,14 +698,7 @@ export default function HomePage() {
             {displayMealsLoading ? (
                 <div className="space-y-4">
                     {Array.from({ length: 3 }, (_, i) => (
-                        <div key={i} className="flex items-center gap-4 bg-white dark:bg-surface-dark p-4 rounded-2xl shadow-soft">
-                            <Skeleton.Circle size={44} />
-                            <div className="flex-1 space-y-2">
-                                <Skeleton className="h-4 w-24" />
-                                <Skeleton className="h-3 w-40" />
-                            </div>
-                            <Skeleton className="h-8 w-16 rounded-xl" />
-                        </div>
+                        <AvatarRowSkeleton key={i} />
                     ))}
                 </div>
             ) : displayMeals.length === 0 ? (
@@ -778,7 +774,7 @@ export default function HomePage() {
     return (
         <motion.div
             {...pageTransitions}
-            className="pb-24 overflow-x-hidden"
+            className="pb-24 overflow-x-clip"
         >
             {renderHeader()}
 

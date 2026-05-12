@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Toast } from '@capacitor/toast';
 import { pageTransitions } from '../utils/animations';
@@ -9,6 +9,7 @@ import { plansApi } from '../api';
 import { transformPetDietPlan } from '../models/dietPlan';
 import PlanDetails from './PlanDetails';
 import Skeleton from '../components/ui/Skeleton';
+import PageHeader from '../components/layout/PageHeader';
 
 export default function PlanSummary() {
     const navigate = useNavigate();
@@ -84,18 +85,16 @@ export default function PlanSummary() {
     // 没有 result 且不是 completed 状态 → 空状态引导
     if (routeLoading) {
         return (
-            <motion.div {...pageTransitions} className="pb-28 overflow-x-hidden">
-                <header className="px-6 pt-12 pb-4 flex justify-between items-center bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md sticky top-0 z-50">
-                    <div className="flex items-center gap-3">
-                        <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full flex items-center justify-center text-text-muted-light dark:text-text-muted-dark hover:bg-gray-100 dark:hover:bg-surface-dark transition-colors">
-                            <span className="material-icons-round text-lg">arrow_back</span>
-                        </button>
+            <motion.div {...pageTransitions} className="pb-28 overflow-x-clip">
+                <PageHeader
+                    onBack={() => navigate(-1)}
+                    title={
                         <div className="space-y-2">
                             <Skeleton className="h-5 w-40" />
                             <Skeleton className="h-3 w-28" />
                         </div>
-                    </div>
-                </header>
+                    }
+                />
                 <main className="px-6 space-y-6">
                     {/* Nutrition target skeleton */}
                     <div>
@@ -137,15 +136,8 @@ export default function PlanSummary() {
 
     if (!displayResult && status !== 'completed') {
         return (
-            <motion.div {...pageTransitions} className="pb-28 overflow-x-hidden">
-                <header className="px-6 pt-12 pb-4 flex justify-between items-center bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md sticky top-0 z-50">
-                    <div className="flex items-center gap-3">
-                        <Link to="/" className="w-10 h-10 rounded-full flex items-center justify-center text-text-muted-light dark:text-text-muted-dark hover:bg-gray-100 dark:hover:bg-surface-dark transition-colors">
-                            <span className="material-icons-round text-lg">arrow_back</span>
-                        </Link>
-                        <h1 className="text-xl font-bold">专属计划</h1>
-                    </div>
-                </header>
+            <motion.div {...pageTransitions} className="pb-28 overflow-x-clip">
+                <PageHeader title="专属计划" onBack={() => navigate('/')} />
                 <main className="px-6 flex flex-col items-center justify-center min-h-[60vh]">
                     <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-6">
                         <span className="material-icons-round text-primary text-4xl">restaurant_menu</span>
@@ -167,20 +159,12 @@ export default function PlanSummary() {
     }
 
     return (
-        <motion.div {...pageTransitions} className="pb-28 overflow-x-hidden">
-            <header className="px-6 pt-12 pb-4 flex justify-between items-center bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md sticky top-0 z-50">
-                <div className="flex items-center gap-3">
-                    <Link to="/" className="w-10 h-10 rounded-full flex items-center justify-center text-text-muted-light dark:text-text-muted-dark hover:bg-gray-100 dark:hover:bg-surface-dark transition-colors">
-                        <span className="material-icons-round text-lg">arrow_back</span>
-                    </Link>
-                    <div>
-                        <h1 className="text-xl font-bold">{petName} 的专属计划</h1>
-                        <p className="text-xs text-text-muted-light dark:text-text-muted-dark">
-                            {weeks.length} 周 • {healthStatus || '定制营养方案'}
-                        </p>
-                    </div>
-                </div>
-            </header>
+        <motion.div {...pageTransitions} className="pb-28 overflow-x-clip">
+            <PageHeader
+                title={`${petName} 的专属计划`}
+                subtitle={`${weeks.length} 周 • ${healthStatus || '定制营养方案'}`}
+                onBack={() => navigate('/')}
+            />
 
             <main className="px-6 space-y-6">
                 {/* 每日营养目标 */}

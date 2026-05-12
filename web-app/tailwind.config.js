@@ -12,6 +12,14 @@ export default {
         primary: "#A3D9A5", // Soft sage green as primary
         secondary: "#FFE898", // Warm yellow for accents
         "accent-blue": "#B2EBF2", // Soft blue for hydration/mix
+        // --- AGUI fanout 4 周色环（ADR-004，PR3 grill #8 莫兰迪 Decision A） ---
+        // 原 hex（春绿 #A3D9A5 / 夏黄 #FFE898 / 秋橙 #F5B870 / 冬蓝 #9CC4E4）→ 莫兰迪暖系
+        // 整卡纯色不透明铺满，去除左侧 accent 边带，与 detailed mode 克制语言一致。
+        "week-1": "#C9D6C9", // 雾绿（春） — 莫兰迪
+        "week-2": "#E8DDC8", // 暖米（夏） — 莫兰迪
+        "week-3": "#D9B8A8", // 烟粉（秋） — 莫兰迪
+        "week-4": "#B8C4CF", // 雾蓝灰（冬） — 莫兰迪
+        "subagent-soft": "#D5C5B8", // 米灰 — SubAgent 单一底（不透明纯色，区别 PR2.5 半透明 sage）
         "background-light": "#FAFAF9", // Warm off-white
         "background-dark": "#1C1C1E", // Soft dark gray
         "surface-light": "#FFFFFF",

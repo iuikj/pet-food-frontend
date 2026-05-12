@@ -33,5 +33,8 @@
       "interval": 0,
       "autoStart": false
     }
+  },
+  "hooks": {
+    "capacitor:sync:after": "node scripts/patch-mainactivity.js"
   }
 }

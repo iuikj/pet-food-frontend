@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import SecureImage from '../components/SecureImage';
 import TodoItemComponent from '../components/TodoItem';
 import TodoForm from '../components/TodoForm';
+import PageHeader from '../components/layout/PageHeader';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import { pageTransitions } from '../utils/animations';
@@ -494,23 +495,13 @@ export default function CalendarPage() {
     };
 
     return (
-        <motion.div {...pageTransitions} className="pb-32 overflow-x-hidden">
+        <motion.div {...pageTransitions} className="pb-32 overflow-x-clip">
             {/* Header */}
-            <header className="px-6 pt-12 pb-4 flex items-center gap-3 bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-md sticky top-0 z-50">
-                <button
-                    onClick={() => navigate('/')}
-                    aria-label="返回首页"
-                    className="w-10 h-10 rounded-full bg-white dark:bg-surface-dark shadow-sm flex items-center justify-center text-text-muted-light dark:text-text-muted-dark hover:text-primary transition-colors cursor-pointer"
-                >
-                    <span className="material-icons-round">arrow_back</span>
-                </button>
-                <div className="flex-1">
-                    <h1 className="text-xl font-bold">饮食日历</h1>
-                    <p className="text-xs text-text-muted-light dark:text-text-muted-dark">
-                        {activePets.length > 0 ? `${activePets.length} 只宠物有饮食计划` : '点击日期管理待办'}
-                    </p>
-                </div>
-            </header>
+            <PageHeader
+                title="饮食日历"
+                subtitle={activePets.length > 0 ? `${activePets.length} 只宠物有饮食计划` : '点击日期管理待办'}
+                onBack={() => navigate('/')}
+            />
 
             <main className="px-6 space-y-4">
                 {/* 日历组件 */}
