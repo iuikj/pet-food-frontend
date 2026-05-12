@@ -1,7 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import tailwindcss from 'tailwindcss'
-import autoprefixer from 'autoprefixer'
+import tailwindcss from '@tailwindcss/vite'
 import path from 'path'
 import fs from 'node:fs'
 import { visualizer } from 'rollup-plugin-visualizer'
@@ -53,6 +52,7 @@ export default defineConfig(({ command }) => ({
   },
   plugins: [
     copilotkitV2CssShim,
+    tailwindcss(),
     react(),
     visualizer({
       filename: 'dist/stats.html',
@@ -102,14 +102,6 @@ export default defineConfig(({ command }) => ({
             })
           },
         },
-      ],
-    },
-  },
-  css: {
-    postcss: {
-      plugins: [
-        tailwindcss,
-        autoprefixer,
       ],
     },
   },
