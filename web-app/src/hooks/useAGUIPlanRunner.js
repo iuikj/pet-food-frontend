@@ -252,11 +252,11 @@ function buildToolPayload({ toolName, args, status, result, callId, node, taskNa
 }
 
 function logAguiEvent(event) {
-    console.log('[AG-UI event]', event?.type, {
-        metadata: getEventMetadata(event),
-        rawMetadata: getRawEventMetadata(event),
-        event,
-    });
+    // console.log('[AG-UI event]', event?.type, {
+    //     metadata: getEventMetadata(event),
+    //     rawMetadata: getRawEventMetadata(event),
+    //     event,
+    // });
 }
 
 function getPlanBoardItems(payload) {

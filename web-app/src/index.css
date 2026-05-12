@@ -1,14 +1,265 @@
+/* ============================================
+   1. v4 入口
+   ============================================ */
+@import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
 
+/* ============================================
+   2. dark variant
+   ============================================ */
+@custom-variant dark (&:is(.dark *));
+
+/* ============================================
+   3. shadcn 主题变量（unlayered，不要放进 @layer base）
+   ============================================ */
+:root {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
+}
+
+/* ============================================
+   4. @theme inline：shadcn token alias（动态切换需要）
+   注：业务 primary/secondary 与 shadcn primary/secondary 命名冲突，
+       shadcn 用 sh-primary / sh-secondary 前缀避免覆盖业务色。
+   ============================================ */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-sh-primary: var(--primary);
+  --color-sh-primary-foreground: var(--primary-foreground);
+  --color-sh-secondary: var(--secondary);
+  --color-sh-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+}
+
+/* ============================================
+   5. @theme：业务静态 token
+   ============================================ */
+@theme {
+  --color-primary: #A3D9A5;
+  --color-secondary: #FFE898;
+  --color-accent-blue: #B2EBF2;
+
+  --color-week-1: #C9D6C9;
+  --color-week-2: #E8DDC8;
+  --color-week-3: #D9B8A8;
+  --color-week-4: #B8C4CF;
+  --color-subagent-soft: #D5C5B8;
+
+  --color-background-light: #FAFAF9;
+  --color-background-dark: #1C1C1E;
+  --color-surface-light: #FFFFFF;
+  --color-surface-dark: #2C2C2E;
+  --color-text-main-light: #2D3748;
+  --color-text-main-dark: #F7FAFC;
+  --color-text-muted-light: #718096;
+  --color-text-muted-dark: #A0AEC0;
+
+  --font-display: "Plus Jakarta Sans", sans-serif;
+  --font-sans: "Geist Variable", sans-serif;
+
+  --radius-xl: 1.5rem;
+  --radius-2xl: 2rem;
+  --radius-3xl: 2rem;
+
+  --shadow-soft: 0 4px 20px -2px rgb(0 0 0 / 0.05);
+  --shadow-glow: 0 0 15px rgb(163 217 165 / 0.4);
+  --shadow-medium: 0 8px 24px -4px rgb(0 0 0 / 0.1);
+
+  --spacing-safe-top: env(safe-area-inset-top);
+  --spacing-safe-bottom: env(safe-area-inset-bottom);
+  --spacing-safe-left: env(safe-area-inset-left);
+  --spacing-safe-right: env(safe-area-inset-right);
+
+  --animate-pulse-slow: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-spin-slow: spin 3s linear infinite;
+  --animate-shimmer: shimmer 1.5s infinite;
+  --animate-bounce-gentle: bounce-gentle 2s ease-in-out infinite;
+  --animate-float: float 3s ease-in-out infinite;
+  --animate-dot-blink: dot-blink 1.4s ease-in-out infinite;
+  --animate-paw-step: paw-step 2s ease-in-out infinite;
+}
+
+/* ============================================
+   6. @keyframes（unlayered，必须放在 @theme 块之外，issue #14622）
+   ============================================ */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes bounce-gentle {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-12px);
+  }
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 0.7;
+  }
+  50% {
+    transform: translateY(-20px) scale(1.05);
+    opacity: 1;
+  }
+}
+
+@keyframes dot-blink {
+  0%,
+  80%,
+  100% {
+    opacity: 0.3;
+    transform: scale(0.8);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes paw-step {
+  0% {
+    opacity: 0;
+    transform: scale(0.5) rotate(-15deg);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(0deg);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.5) rotate(15deg);
+  }
+}
+
+/* ============================================
+   7. unlayered border-color（PrefectHQ #377 教训，必须在 @layer base 外）
+   ============================================ */
+* {
+  @apply border-border;
+}
+
+/* v3 compat: preserve project's v3 borderRadius.DEFAULT = 1rem so bare
+   `rounded` still produces a soft chip look (v4 default is 0.25rem). */
+@layer utilities {
+  .rounded:not([class*="rounded-"]) {
+    border-radius: 1rem;
+  }
+}
+
+/* ============================================
+   8. @layer base 最小化
+   ============================================ */
 @layer base {
   /* 统一移除浏览器默认蓝色 outline，所有 focus 样式由 Tailwind ring/border 接管 */
-  input, textarea, select, button {
-    @apply outline-none;
+  input,
+  textarea,
+  select,
+  button {
+    @apply outline-hidden;
   }
   body {
     @apply bg-background-light dark:bg-background-dark text-text-main-light dark:text-text-main-dark transition-colors duration-300 antialiased font-display;
@@ -17,80 +268,47 @@
     --font-heading: var(--font-sans);
     --font-sans: 'Geist Variable', sans-serif;
   }
-  :root {
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0 0);
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.145 0 0);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.205 0 0);
-    --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.97 0 0);
-    --secondary-foreground: oklch(0.205 0 0);
-    --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
-    --accent: oklch(0.97 0 0);
-    --accent-foreground: oklch(0.205 0 0);
-    --destructive: oklch(0.577 0.245 27.325);
-    --border: oklch(0.922 0 0);
-    --input: oklch(0.922 0 0);
-    --ring: oklch(0.708 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --radius: 0.625rem;
-    --sidebar: oklch(0.985 0 0);
-    --sidebar-foreground: oklch(0.145 0 0);
-    --sidebar-primary: oklch(0.205 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.97 0 0);
-    --sidebar-accent-foreground: oklch(0.205 0 0);
-    --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.708 0 0);
-  }
-  .dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.488 0.243 264.376);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.556 0 0);
-  }
-  * {
-    @apply border-border;
-  }
   html {
     @apply font-sans;
   }
 }
+
+/* ============================================
+   9. @utility（v4 自定义 utility，不可嵌套）
+   ============================================ */
+@utility glass {
+  /* 玻璃态效果 */
+  @apply bg-white/80 dark:bg-surface-dark/80 backdrop-blur-xl;
+}
+
+@utility card-hover {
+  /* 卡片悬停效果 */
+  @apply transition-all duration-300 hover:shadow-medium hover:-translate-y-1;
+}
+
+@utility transition-smooth {
+  /* 平滑过渡 */
+  @apply transition-all duration-300 ease-in-out;
+}
+
+@utility btn-hover {
+  /* 按钮悬停效果 */
+  @apply transition-all duration-200 hover:brightness-105 active:scale-[0.98];
+}
+
+@utility btn-active {
+  /* 通用点击反馈效果 */
+  @apply transition-transform duration-100 active:scale-[0.97] active:brightness-95;
+}
+
+@utility card-active {
+  /* 卡片点击反馈 */
+  @apply transition-all duration-150 active:scale-[0.98] active:shadow-none;
+}
+
+/* ============================================
+   10. 保留：Material Icons / no-scrollbar / body / AG-UI / react-calendar / native polish
+   ============================================ */
 
 /* Material Icons Round Class */
 .material-icons-round {
@@ -292,7 +510,12 @@ body::-webkit-scrollbar {
   border-radius: 20px;
   background: rgba(247, 246, 241, 0.62);
   padding: 11px;
-  mask-image: linear-gradient(to bottom, transparent 0%, black 20%, black 100%);
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    black 20%,
+    black 100%
+  );
 }
 
 .agui-workflow-ticker-row {
@@ -326,13 +549,15 @@ body::-webkit-scrollbar {
   flex: 0 0 auto;
   border-radius: 999px;
   background: var(--agui-green);
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.9), 0 0 18px rgba(114, 170, 120, 0.55);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.9),
+    0 0 18px rgba(114, 170, 120, 0.55);
 }
 
 .agui-live-dot::after {
   position: absolute;
   inset: -5px;
-  content: "";
+  content: '';
   border-radius: inherit;
   border: 1px solid rgba(114, 170, 120, 0.34);
   animation: agui-breathe 2.2s ease-in-out infinite;
@@ -407,8 +632,14 @@ body::-webkit-scrollbar {
   bottom: 26px;
   left: 6px;
   width: 1px;
-  content: "";
-  background: linear-gradient(to bottom, transparent, var(--agui-rail) 9%, var(--agui-rail) 91%, transparent);
+  content: '';
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    var(--agui-rail) 9%,
+    var(--agui-rail) 91%,
+    transparent
+  );
 }
 
 .agui-workflow-content::after {
@@ -417,8 +648,13 @@ body::-webkit-scrollbar {
   left: 6px;
   width: 1px;
   height: 64px;
-  content: "";
-  background: linear-gradient(to bottom, transparent, rgba(114, 170, 120, 0.45), transparent);
+  content: '';
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(114, 170, 120, 0.45),
+    transparent
+  );
   animation: agui-line-flow 3.2s ease-in-out infinite;
 }
 
@@ -496,7 +732,9 @@ body::-webkit-scrollbar {
   border-radius: 20px;
   border: 1px solid rgba(0, 0, 0, 0.06);
   background: rgba(255, 255, 255, 0.82);
-  transition: transform 220ms ease, border-color 220ms ease;
+  transition:
+    transform 220ms ease,
+    border-color 220ms ease;
 }
 
 .agui-agent-card.is-open {
@@ -570,15 +808,20 @@ body::-webkit-scrollbar {
   border-radius: 20px;
   background: rgba(247, 246, 241, 0.62);
   padding: 10px;
-  mask-image: linear-gradient(to bottom, transparent 0%, black 22%, black 100%);
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    black 22%,
+    black 100%
+  );
 }
 
 /* PATCH (Session 2 P5 step 3): suppress browser scroll anchoring on every element
    while a fanned-card stack is actively being swiped. Prevents StickToBottom and any
    other scroll container from re-snapping mid-flip when card animations cause micro
    layout twitches. The flag is set on documentElement by fanned-card-stack.jsx. */
-[data-fanned-swiping="true"],
-[data-fanned-swiping="true"] * {
+[data-fanned-swiping='true'],
+[data-fanned-swiping='true'] * {
   overflow-anchor: none;
 }
 
@@ -653,7 +896,9 @@ body::-webkit-scrollbar {
   cursor: pointer;
   font-size: 11px;
   font-weight: 700;
-  transition: background-color 180ms ease, transform 120ms ease;
+  transition:
+    background-color 180ms ease,
+    transform 120ms ease;
 }
 
 .agui-agent-toggle:active {
@@ -803,7 +1048,9 @@ body::-webkit-scrollbar {
   border-radius: 20px;
   padding: 8px 10px;
   cursor: pointer;
-  transition: background-color 180ms ease, transform 120ms ease;
+  transition:
+    background-color 180ms ease,
+    transform 120ms ease;
 }
 
 .agui-plan-drawer-trigger:hover:not(:disabled) {
@@ -828,7 +1075,8 @@ body::-webkit-scrollbar {
 }
 
 @keyframes agui-breathe {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 0.18;
     transform: scale(0.88);
   }
@@ -839,7 +1087,8 @@ body::-webkit-scrollbar {
 }
 
 @keyframes agui-soft-pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 0.78;
   }
   50% {
@@ -880,39 +1129,6 @@ html {
 
 html::-webkit-scrollbar {
   display: none;
-}
-
-@layer utilities {
-
-  /* 玻璃态效果 */
-  .glass {
-    @apply bg-white/80 dark:bg-surface-dark/80 backdrop-blur-xl;
-  }
-
-  /* 卡片悬停效果 */
-  .card-hover {
-    @apply transition-all duration-300 hover:shadow-medium hover:-translate-y-1;
-  }
-
-  /* 平滑过渡 */
-  .transition-smooth {
-    @apply transition-all duration-300 ease-in-out;
-  }
-
-  /* 按钮悬停效果 */
-  .btn-hover {
-    @apply transition-all duration-200 hover:brightness-105 active:scale-[0.98];
-  }
-
-  /* 通用点击反馈效果 */
-  .btn-active {
-    @apply transition-transform duration-100 active:scale-[0.97] active:brightness-95;
-  }
-
-  /* 卡片点击反馈 */
-  .card-active {
-    @apply transition-all duration-150 active:scale-[0.98] active:shadow-none;
-  }
 }
 
 /* ============================================

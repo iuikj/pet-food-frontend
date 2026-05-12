@@ -13,7 +13,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## 技术栈
 
 - **前端框架**: React 19.2 + React Router 7
-- **样式**: TailwindCSS 3.4
+- **样式**: TailwindCSS 4.x (CSS-first, @tailwindcss/vite)
 - **动画**: Framer Motion 12
 - **移动端**: Capacitor 8
 - **构建**: Vite 7
@@ -202,21 +202,30 @@ PlanGenerationProvider (计划生成)
 ### 分析 (`/api/v1/analysis/`)
 - `GET /nutrition` - 营养分析
 
-## 样式系统
+### Tailwind v4 CSS-first 模式
+- `src/index.css` 的 `@import "tailwindcss"` 是唯一入口（同时 `@import "tw-animate-css"`、`@import "shadcn/tailwind.css"`、`@import "@fontsource-variable/geist"`）
+- **没有** `tailwind.config.js`，所有 token 在 CSS 中声明
+- shadcn 主题：`:root` / `.dark` 的 `oklch()` 变量保持 unlayered；`@theme inline { --color-sh-primary: var(--primary); ... }` 块负责把 shadcn 变量暴露成 Tailwind 工具类
+- 业务静态 token（`primary`、`secondary`、`week-1..4`、`subagent-soft`、`background-light/dark` 等）放入 `@theme { --color-* }` 块
+- 暗色模式：`@custom-variant dark (&:is(.dark *))` 替代 v3 的 `darkMode: 'class'`
+- 动画：使用 `tw-animate-css`，**不再**依赖 `tailwindcss-animate`
+- 自定义 utility（`glass`、`card-hover`、`transition-smooth`、`btn-hover`、`btn-active`、`card-active`）用顶层 `@utility name { ... }` 定义，**不再**写在 `@layer utilities` 内
+- 自定义 `@keyframes`（`shimmer`、`bounce-gentle`、`float`、`dot-blink`、`paw-step`、`pulse-slow`、`spin-slow`）必须放在 `@theme` 块**外**（unlayered，issue #14622 限制）
+- `* { @apply border-border }` 必须 unlayered（PrefectHQ #377 教训）；`outline-none` 统一改为 `outline-hidden`
 
-### Tailwind 主题
+### 主题色
 - Primary: `#A3D9A5` (sage green)
 - Secondary: `#FFE898` (warm yellow)
-- Dark mode: class-based
+- Dark mode: class-based（通过 `@custom-variant dark` 实现）
 
-### 自定义工具类 (index.css)
+### 自定义工具类 (index.css `@utility`)
 - `.glass` - 玻璃态效果
 - `.card-hover` - 卡片悬停
 - `.btn-active` - 点击反馈
 - `.no-scrollbar` - 隐藏滚动条
 
 ### 移动端优化
-- `pb-safe`, `pt-safe` - 安全区域适配
+- `pb-safe`, `pt-safe` - 安全区域适配（由 `@theme` 中 `--spacing-safe-*` 提供）
 - `-webkit-tap-highlight-color: transparent` - 禁用点击高亮
 - `overscroll-behavior: contain` - 防止过度滚动
 
@@ -247,6 +256,8 @@ VITE_RECONNECT_DELAY=3000
 6. **环境变量**: 开发时确保 `VITE_API_BASE_URL` 指向正确的后端地址
 7. **页面组件**: 使用 JSX（非 TypeScript），但 API 层使用 TypeScript
 8. **ESLint**: 忽略以大写字母或下划线开头的未使用变量 (`varsIgnorePattern: '^[A-Z_]'`)
+9. **Tailwind v4 兼容**：浏览器最低要求 Chrome 111+/Safari 16.4+。Android 10+ 且联网更新 WebView 安全；Android 7-9 或无 GMS 设备会白屏（已知限制，不做 PostCSS fallback）。任何 CSS / token 变更必须做 Android Release 包真机回归。
+
 ## Icon Localization Rule
 
 - For `web-app/`, core UI icons must stay local to the project.
