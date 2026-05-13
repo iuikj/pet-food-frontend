@@ -79,7 +79,7 @@ export default function BottomNav() {
     if (keyboardVisible) return null;
 
     return (
-        <nav className="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-surface-dark/90 backdrop-blur-lg border-t border-gray-100 dark:border-gray-800 pt-2 px-6 rounded-t-3xl shadow-[0_-5px_20px_rgba(0,0,0,0.03)] z-50 safe-area-x" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1.5rem)' }}>
+        <nav className="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-surface-dark/90 backdrop-blur-lg border-t border-gray-100 dark:border-gray-800 pb-safe pt-2 px-6 pb-6 rounded-t-3xl shadow-[0_-5px_20px_rgba(0,0,0,0.03)] z-50">
             <div className="flex justify-between items-center">
                 {navItems.map((item) => {
                     if (item.isFab) {
