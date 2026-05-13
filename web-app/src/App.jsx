@@ -5,6 +5,7 @@ import { PlanGenerationProvider } from './context/PlanGenerationProvider';
 import { MealProvider } from './context/MealProvider';
 import { PetProvider } from './context/PetProvider';
 import { UserProvider } from './context/UserProvider';
+import { AuthEntryProvider } from './context/AuthEntryProvider';
 import { useUser } from './hooks/useUser';
 import { AnchoredToastProvider, ToastProvider } from './components/ui/toast';
 import Layout from './components/layout/Layout';
@@ -31,6 +32,7 @@ const PetEdit = lazy(() => import('./pages/PetEdit'));
 const WeightTrend = lazy(() => import('./pages/WeightTrend'));
 const AGUITest = lazy(() => import('./pages/AGUITest'));
 const AGUIPlanRun = lazy(() => import('./pages/AGUIPlanRun'));
+const RestrictedPreview = lazy(() => import('./pages/RestrictedPreview'));
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -116,13 +118,41 @@ function SplashScreen() {
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated, isLoading } = useUser();
+  const location = useLocation();
 
   if (isLoading) {
     return <SplashScreen />;
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    return (
+      <RestrictedPreview
+        autoPrompt
+        target={`${location.pathname}${location.search}${location.hash}`}
+        type="default"
+      />
+    );
+  }
+
+  return children;
+}
+
+function PreviewableRoute({ children, previewType }) {
+  const { isAuthenticated, isLoading } = useUser();
+  const location = useLocation();
+
+  if (isLoading) {
+    return <SplashScreen />;
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <RestrictedPreview
+        autoPrompt={location.pathname !== '/'}
+        target={`${location.pathname}${location.search}${location.hash}`}
+        type={previewType}
+      />
+    );
   }
 
   return children;
@@ -201,13 +231,13 @@ function AnimatedRoutes() {
       <AnimatePresence mode="wait" initial={false}>
         <Suspense fallback={<RouteFallback />}>
           <Routes location={location} key={isTabRoute ? 'tab-routes' : location.pathname}>
-            <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+            <Route element={<Layout />}>
               <Route path="/" element={<HomePage />} />
-              <Route path="/calendar" element={<CalendarPage />} />
-              <Route path="/recipes" element={<RecipesPage />} />
-              <Route path="/plan/create" element={<CreatePlan />} />
-              <Route path="/plan/summary" element={<PlanSummary />} />
-              <Route path="/profile" element={<Profile />} />
+              <Route path="/calendar" element={<PreviewableRoute previewType="calendar"><CalendarPage /></PreviewableRoute>} />
+              <Route path="/recipes" element={<PreviewableRoute previewType="recipes"><RecipesPage /></PreviewableRoute>} />
+              <Route path="/plan/create" element={<PreviewableRoute previewType="plan"><CreatePlan /></PreviewableRoute>} />
+              <Route path="/plan/summary" element={<PreviewableRoute previewType="summary"><PlanSummary /></PreviewableRoute>} />
+              <Route path="/profile" element={<PreviewableRoute previewType="profile"><Profile /></PreviewableRoute>} />
             </Route>
 
             <Route path="/onboarding/step1" element={<ProtectedRoute><OnboardingName /></ProtectedRoute>} />
@@ -242,9 +272,11 @@ function App() {
             <PlanGenerationProvider>
               <ToastProvider position="top-center">
                 <AnchoredToastProvider>
-                  <ErrorBoundary>
-                    <AnimatedRoutes />
-                  </ErrorBoundary>
+                  <AuthEntryProvider>
+                    <ErrorBoundary>
+                      <AnimatedRoutes />
+                    </ErrorBoundary>
+                  </AuthEntryProvider>
                 </AnchoredToastProvider>
               </ToastProvider>
             </PlanGenerationProvider>

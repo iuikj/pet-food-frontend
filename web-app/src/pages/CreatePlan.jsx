@@ -12,10 +12,14 @@ import { formatPetAge } from '../utils/petUtils';
 import { mockPets } from '../mock/data/pets';
 import { petsApi } from '../api';
 import { getApiErrorMessage } from '../api/client';
+import { useUser } from '../hooks/useUser';
+import { useAuthEntry } from '../hooks/useAuthEntry';
 
 export default function Home() {
     const navigate = useNavigate();
     const { pets, currentPet, setCurrentPet, isLoading } = usePets();
+    const { isAuthenticated } = useUser();
+    const { requireAuth } = useAuthEntry();
     const [selectedPetId, setSelectedPetId] = useState(null);
     const [requirement, setRequirement] = useState('');
     const [selectedTags, setSelectedTags] = useState([]);
@@ -85,6 +89,10 @@ export default function Home() {
     });
 
     const handleGeneratePlan = async () => {
+        if (!isAuthenticated) {
+            requireAuth('/plan/create', { context: 'plan' });
+            return;
+        }
         if (isPreparingDetailed) return;
         setGenerationError('');
         // 设置当前宠物到 context
@@ -125,6 +133,15 @@ export default function Home() {
             sessionStorage.removeItem('pending_special_requirements');
         }
         navigate('/planning');
+    };
+
+    const handleAddPet = (event) => {
+        event?.preventDefault();
+        if (!isAuthenticated) {
+            requireAuth('/onboarding/step1', { context: 'pet' });
+            return;
+        }
+        navigate('/onboarding/step1');
     };
 
     // 宠物类型显示
@@ -190,6 +207,7 @@ export default function Home() {
                             </p>
                             <Link
                                 to="/onboarding/step1"
+                                onClick={handleAddPet}
                                 className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-xl font-semibold hover:brightness-110 transition-all"
                             >
                                 <span className="material-icons-round text-lg">add</span>
@@ -237,7 +255,7 @@ export default function Home() {
                             })}
                             {/* 添加新宠物按钮 */}
                             <div className="min-w-[140px] bg-gray-50 dark:bg-surface-dark/50 p-4 rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700 flex flex-col items-center justify-center gap-2 hover:border-primary/50 hover:bg-primary/5 transition-all duration-300 cursor-pointer group">
-                                <Link to="/onboarding/step1" className="flex flex-col items-center gap-2 w-full h-full justify-center">
+                                <Link to="/onboarding/step1" onClick={handleAddPet} className="flex flex-col items-center gap-2 w-full h-full justify-center">
                                     <div className="w-12 h-12 rounded-full bg-white dark:bg-surface-dark flex items-center justify-center text-gray-400 group-hover:text-primary transition-colors shadow-sm">
                                         <span className="material-icons-round">add</span>
                                     </div>

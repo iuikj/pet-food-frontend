@@ -18,6 +18,11 @@ import { calendarApi, mealsApi } from '../api';
 import { usePlanGeneration } from '../hooks/usePlanGeneration';
 import { WEEK_DAY_LABELS } from '../utils/calendarConstants';
 import WeightRecordSheet from '../components/WeightRecordSheet';
+import { useUser } from '../hooks/useUser';
+import { useAuthEntry } from '../hooks/useAuthEntry';
+
+const MotionDiv = motion.div;
+const MotionSpan = motion.span;
 
 /** YYYY-MM-DD 格式化 */
 function formatDate(date) {
@@ -35,12 +40,6 @@ function buildDateMap(days) {
     return map;
 }
 
-// 辅助函数
-const getMealTypeName = (type) => {
-    const names = { breakfast: '早餐', lunch: '午餐', dinner: '晚餐', snack: '加餐' };
-    return names[type] || type;
-};
-
 function mapApiMealToCard(m) {
     return {
         id: m.id,
@@ -56,9 +55,13 @@ function mapApiMealToCard(m) {
 export default function HomePage() {
     const navigate = useNavigate();
     const [isPetMenuOpen, setIsPetMenuOpen] = useState(false);
-    const { pets, currentPet, setCurrentPet, activePlanData, isLoading: petsLoading } = usePets();
+    const { pets, currentPet, setCurrentPet } = usePets();
     const { meals, nutritionSummary, isLoading: mealsLoading, error: mealsError, toggleMealComplete } = useMeals();
     const { status: genStatus } = usePlanGeneration();
+    const { isAuthenticated } = useUser();
+    const { requireAuth } = useAuthEntry();
+    const [mountedAt] = useState(() => Date.now());
+    const currentPetId = currentPet?.id;
 
     // 餐食详情弹窗状态
     const [selectedMeal, setSelectedMeal] = useState(null);
@@ -71,33 +74,58 @@ export default function HomePage() {
         latest: latestWeight,
         history: weightHistory,
         record: recordWeight,
-    } = useWeights(currentPet?.id, 7);
+    } = useWeights(currentPetId, 7);
+    const latestWeightRecordedDate = latestWeight?.recorded_date;
 
     // 跳转到体重曲线详情页（需先选中宠物）
     const goToWeightTrend = useCallback(() => {
-        if (!currentPet?.id) {
+        if (!isAuthenticated) {
+            requireAuth('/profile', { context: 'profile' });
+            return;
+        }
+        if (!currentPetId) {
             setIsPetMenuOpen(true);
             return;
         }
-        navigate(`/pet/${currentPet.id}/weight`);
-    }, [currentPet?.id, navigate]);
+        navigate(`/pet/${currentPetId}/weight`);
+    }, [currentPetId, isAuthenticated, navigate, requireAuth]);
 
     // 快速打开记录抽屉（需先选中宠物）
     const openWeightSheet = useCallback(() => {
-        if (!currentPet?.id) {
+        if (!isAuthenticated) {
+            requireAuth('/profile', { context: 'profile' });
+            return;
+        }
+        if (!currentPetId) {
             setIsPetMenuOpen(true);
             return;
         }
         setWeightSheetOpen(true);
-    }, [currentPet?.id]);
+    }, [currentPetId, isAuthenticated, requireAuth]);
+
+    const openPetEntry = useCallback(() => {
+        if (!isAuthenticated) {
+            requireAuth('/onboarding/step1', { context: 'pet' });
+            return;
+        }
+        setIsPetMenuOpen(true);
+    }, [isAuthenticated, requireAuth]);
+
+    const goToPlanCreate = useCallback(() => {
+        if (!isAuthenticated) {
+            requireAuth('/plan/create', { context: 'plan' });
+            return;
+        }
+        navigate('/plan/create');
+    }, [isAuthenticated, navigate, requireAuth]);
 
     // 计算距上次记录天数
-    const getDaysAgo = () => {
-        if (!latestWeight?.recorded_date) return null;
-        const diff = Math.floor((Date.now() - new Date(latestWeight.recorded_date).getTime()) / 86400000);
+    const daysAgoLabel = useMemo(() => {
+        if (!latestWeightRecordedDate) return null;
+        const diff = Math.floor((mountedAt - new Date(latestWeightRecordedDate).getTime()) / 86400000);
         if (diff === 0) return '今天';
         return `${diff}天前`;
-    };
+    }, [latestWeightRecordedDate, mountedAt]);
 
     // --- 迷你体重趋势 SVG ---
     const renderWeightSparkline = (data, w = 100, h = 40) => {
@@ -163,7 +191,7 @@ export default function HomePage() {
                 <div className="flex items-center gap-3">
                     <div className="relative">
                         {hasPets && currentPet ? (
-                            <button onClick={() => setIsPetMenuOpen(true)}>
+                            <button onClick={openPetEntry}>
                                 {currentPet.avatar_url ? (
                                     <SecureImage
                                         alt={currentPet.name}
@@ -179,7 +207,7 @@ export default function HomePage() {
                             </button>
                         ) : (
                             <button
-                                onClick={() => setIsPetMenuOpen(true)}
+                                onClick={openPetEntry}
                                 className="w-12 h-12 rounded-full bg-gray-100 dark:bg-surface-dark border-2 border-dashed border-primary/50 flex items-center justify-center text-primary shadow-sm hover:bg-primary hover:text-white transition-all"
                             >
                                 <span className="material-icons-round">add</span>
@@ -191,7 +219,7 @@ export default function HomePage() {
                             {hasPets ? '计划用于' : '欢迎使用'}
                         </p>
                         <button
-                            onClick={() => setIsPetMenuOpen(true)}
+                            onClick={openPetEntry}
                             className="text-xl font-bold flex items-center gap-1 hover:text-primary transition-colors"
                         >
                             {currentPet ? currentPet.name : '选择宠物'}
@@ -217,10 +245,10 @@ export default function HomePage() {
 
     // 加载月度日历数据
     const fetchCalendarData = useCallback(async (date) => {
-        if (!currentPet?.id) return;
+        if (!currentPetId) return;
         try {
             const res = await calendarApi.getMonthlyCalendar(
-                currentPet.id, date.getFullYear(), date.getMonth() + 1
+                currentPetId, date.getFullYear(), date.getMonth() + 1
             );
             if (res.code === 0 && res.data?.days) {
                 setCalendarData(res.data.days);
@@ -228,9 +256,13 @@ export default function HomePage() {
                 setCalendarData([]);
             }
         } catch { setCalendarData([]); }
-    }, [currentPet?.id]);
+    }, [currentPetId]);
 
-    useEffect(() => { fetchCalendarData(calendarActiveDate); }, [fetchCalendarData, calendarActiveDate]);
+    useEffect(() => {
+        setTimeout(() => {
+            fetchCalendarData(calendarActiveDate);
+        }, 0);
+    }, [fetchCalendarData, calendarActiveDate]);
 
     // 点击日期 → 在主页原地加载该日餐食
     const handleDayClick = useCallback((date) => {
@@ -247,14 +279,18 @@ export default function HomePage() {
 
     // selectedDate 变化时加载指定日期餐食
     useEffect(() => {
-        if (!selectedDate || !currentPet?.id) {
-            setDateMeals([]);
-            setDateNutritionSummary(null);
+        if (!selectedDate || !currentPetId) {
+            setTimeout(() => {
+                setDateMeals([]);
+                setDateNutritionSummary(null);
+            }, 0);
             return;
         }
         let cancelled = false;
-        setDateMealsLoading(true);
-        mealsApi.getMealsByDate(currentPet.id, formatDate(selectedDate))
+        setTimeout(() => {
+            if (!cancelled) setDateMealsLoading(true);
+        }, 0);
+        mealsApi.getMealsByDate(currentPetId, formatDate(selectedDate))
             .then(res => {
                 if (cancelled) return;
                 if (res.code === 0 && res.data?.meals) {
@@ -273,7 +309,7 @@ export default function HomePage() {
             })
             .finally(() => { if (!cancelled) setDateMealsLoading(false); });
         return () => { cancelled = true; };
-    }, [selectedDate, currentPet?.id]);
+    }, [selectedDate, currentPetId]);
 
     // 展示的餐食：选中日期 or 今日
     const displayMeals = selectedDate ? dateMeals : meals;
@@ -294,7 +330,7 @@ export default function HomePage() {
             return;
         }
 
-        if (isSelectedDateInFuture || !currentPet?.id) {
+        if (isSelectedDateInFuture || !currentPetId) {
             return;
         }
 
@@ -315,7 +351,7 @@ export default function HomePage() {
                 await mealsApi.completeMeal(mealId);
             }
 
-            const res = await mealsApi.getMealsByDate(currentPet.id, formatDate(selectedDate));
+            const res = await mealsApi.getMealsByDate(currentPetId, formatDate(selectedDate));
             if (res.code === 0 && res.data?.meals) {
                 setDateMeals(res.data.meals.map(mapApiMealToCard));
                 setDateNutritionSummary(res.data.nutrition_summary || null);
@@ -325,7 +361,7 @@ export default function HomePage() {
             setDateMeals(prevMeals);
             setDateNutritionSummary(prevSummary);
         }
-    }, [selectedDate, toggleMealComplete, isSelectedDateInFuture, currentPet?.id, dateMeals, dateNutritionSummary]);
+    }, [selectedDate, toggleMealComplete, isSelectedDateInFuture, currentPetId, dateMeals, dateNutritionSummary]);
 
     // --- react-calendar 回调 ---
     const handleActiveStartDateChange = ({ activeStartDate }) => {
@@ -394,13 +430,13 @@ export default function HomePage() {
                     className="text-sm text-primary font-medium hover:opacity-80 transition-opacity flex items-center gap-1"
                 >
                     日历
-                    <motion.span
+                    <MotionSpan
                         className="material-icons-round text-sm"
                         animate={{ rotate: isCalendarExpanded ? 180 : 0 }}
                         transition={{ duration: 0.2 }}
                     >
                         expand_more
-                    </motion.span>
+                    </MotionSpan>
                 </button>
             </div>
 
@@ -442,7 +478,7 @@ export default function HomePage() {
             )}
 
             {/* 展开：react-calendar 月历 */}
-            <motion.div
+            <MotionDiv
                 initial={false}
                 animate={{
                     height: isCalendarExpanded ? 'auto' : 0,
@@ -483,7 +519,7 @@ export default function HomePage() {
                         </button>
                     </div>
                 </div>
-            </motion.div>
+            </MotionDiv>
         </section>
     );
 
@@ -500,10 +536,10 @@ export default function HomePage() {
                 <p className="text-sm text-text-muted-light dark:text-text-muted-dark opacity-80 mb-6 max-w-[240px]">
                     添加您的爱宠信息，为它量身定制专属的科学营养计划。
                 </p>
-                <Link to="/onboarding/step1" className="bg-primary text-white dark:text-gray-900 font-bold py-3 px-8 rounded-xl shadow-glow hover:shadow-glow-lg hover:brightness-110 hover:-translate-y-0.5 active:scale-[0.97] transition-all duration-200 flex items-center gap-2">
+                <button type="button" onClick={openPetEntry} className="bg-primary text-white dark:text-gray-900 font-bold py-3 px-8 rounded-xl shadow-glow hover:shadow-glow-lg hover:brightness-110 hover:-translate-y-0.5 active:scale-[0.97] transition-all duration-200 flex items-center gap-2">
                     <span className="material-icons-round text-lg">add</span>
                     立即添加
-                </Link>
+                </button>
             </div>
         </section>
     );
@@ -529,10 +565,10 @@ export default function HomePage() {
                 <p className="text-sm text-text-muted-light dark:text-text-muted-dark px-4 mb-2 max-w-[260px]">
                     让 AI 助手为您的爱宠定制科学营养的每日食谱
                 </p>
-                <Link to="/plan/create" className="bg-primary text-white dark:text-gray-900 font-bold py-3 px-6 rounded-xl shadow-glow hover:shadow-glow-lg hover:brightness-110 hover:-translate-y-0.5 active:scale-[0.97] transition-all duration-200 flex items-center gap-2 mt-1">
+                <button type="button" onClick={goToPlanCreate} className="bg-primary text-white dark:text-gray-900 font-bold py-3 px-6 rounded-xl shadow-glow hover:shadow-glow-lg hover:brightness-110 hover:-translate-y-0.5 active:scale-[0.97] transition-all duration-200 flex items-center gap-2 mt-1">
                     <span className="material-icons-round text-lg">auto_awesome</span>
                     开启规划
-                </Link>
+                </button>
             </div>
         </section>
     );
@@ -757,7 +793,7 @@ export default function HomePage() {
                     <div>
                         <h4 className="font-bold text-yellow-900 dark:text-yellow-100">记录体重</h4>
                         <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
-                            {getDaysAgo() ? `上次：${getDaysAgo()}` : '点击记录'}
+                            {daysAgoLabel ? `上次：${daysAgoLabel}` : '点击记录'}
                         </p>
                     </div>
                     <div className="flex items-end gap-1 mt-auto">
@@ -772,7 +808,7 @@ export default function HomePage() {
     };
 
     return (
-        <motion.div
+        <MotionDiv
             {...pageTransitions}
             className="pb-24 overflow-x-clip"
         >
@@ -824,6 +860,6 @@ export default function HomePage() {
                     />
                 )}
             </AnimatePresence>
-        </motion.div>
+        </MotionDiv>
     );
 }
