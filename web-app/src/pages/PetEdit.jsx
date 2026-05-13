@@ -5,8 +5,9 @@ import { usePets } from '../hooks/usePets';
 import usePhotoSelect from '../hooks/usePhotoSelect';
 import SecureImage from '../components/SecureImage';
 import PetIcon from '../components/icons/PetIcon';
-import Modal from '../components/Modal';
+import ConfirmDialog from '../components/ui/ConfirmDialog';
 import PageHeader from '../components/layout/PageHeader';
+import { FormTextField, FormTextareaField, InlineTagInput } from '../components/ui/form-fields';
 import { fromMonths, toMonths } from '../utils/petUtils';
 
 const GENDER_OPTIONS = [
@@ -243,24 +244,15 @@ export default function PetEdit() {
                 </div>
 
                 <div className="space-y-5">
-                    <div className="space-y-2">
-                        <label className="block text-sm font-semibold text-text-main-light dark:text-text-main-dark">
-                            宠物名称 *
-                        </label>
-                        <div className="relative bg-white dark:bg-surface-dark rounded-2xl shadow-soft transition-all focus-within:ring-2 focus-within:ring-primary/50 focus-within:shadow-glow">
-                            <span className="absolute left-4 top-1/2 -translate-y-1/2 material-icons-round text-text-muted-light dark:text-text-muted-dark text-xl">
-                                pets
-                            </span>
-                            <input
-                                type="text"
-                                name="name"
-                                value={formData.name}
-                                onChange={handleInputChange}
-                                className="w-full bg-transparent border-none py-4 pl-12 pr-4 text-text-main-light dark:text-text-main-dark focus:ring-0 rounded-2xl"
-                                placeholder="请输入宠物名称"
-                            />
-                        </div>
-                    </div>
+                    <FormTextField
+                        label="宠物名称 *"
+                        icon="pets"
+                        type="text"
+                        name="name"
+                        value={formData.name}
+                        onChange={handleInputChange}
+                        placeholder="请输入宠物名称"
+                    />
 
                     <div className="space-y-2">
                         <label className="block text-sm font-semibold text-text-main-light dark:text-text-main-dark">
@@ -308,79 +300,57 @@ export default function PetEdit() {
                         </div>
                     </div>
 
-                    <div className="space-y-2">
-                        <label className="block text-sm font-semibold text-text-main-light dark:text-text-main-dark">
-                            品种
-                        </label>
-                        <div className="relative bg-white dark:bg-surface-dark rounded-2xl shadow-soft transition-all focus-within:ring-2 focus-within:ring-primary/50 focus-within:shadow-glow">
-                            <span className="absolute left-4 top-1/2 -translate-y-1/2 material-icons-round text-text-muted-light dark:text-text-muted-dark text-xl">
-                                category
-                            </span>
-                            <input
-                                type="text"
-                                name="breed"
-                                value={formData.breed}
-                                onChange={handleInputChange}
-                                className="w-full bg-transparent border-none py-4 pl-12 pr-4 text-text-main-light dark:text-text-main-dark focus:ring-0 rounded-2xl"
-                                placeholder="请输入品种"
-                            />
-                        </div>
-                    </div>
+                    <FormTextField
+                        label="品种"
+                        icon="category"
+                        type="text"
+                        name="breed"
+                        value={formData.breed}
+                        onChange={handleInputChange}
+                        placeholder="请输入品种"
+                    />
 
                     <div className="space-y-2">
                         <label className="block text-sm font-semibold text-text-main-light dark:text-text-main-dark">
                             年龄
                         </label>
                         <div className="grid grid-cols-2 gap-3">
-                            <div className="relative bg-white dark:bg-surface-dark rounded-2xl shadow-soft transition-all focus-within:ring-2 focus-within:ring-primary/50 focus-within:shadow-glow">
-                                <span className="absolute left-4 top-1/2 -translate-y-1/2 material-icons-round text-text-muted-light dark:text-text-muted-dark text-xl">
-                                    cake
-                                </span>
-                                <input
-                                    type="number"
-                                    min="0"
-                                    name="ageYears"
-                                    value={formData.ageYears}
-                                    onChange={handleInputChange}
-                                    className="w-full bg-transparent border-none py-4 pl-12 pr-10 text-text-main-light dark:text-text-main-dark focus:ring-0 rounded-2xl"
-                                    placeholder="0"
-                                />
-                                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-text-muted-light dark:text-text-muted-dark">岁</span>
-                            </div>
-                            <div className="relative bg-white dark:bg-surface-dark rounded-2xl shadow-soft transition-all focus-within:ring-2 focus-within:ring-primary/50 focus-within:shadow-glow">
-                                <input
-                                    type="number"
-                                    min="0"
-                                    max="11"
-                                    name="ageMonths"
-                                    value={formData.ageMonths}
-                                    onChange={handleInputChange}
-                                    className="w-full bg-transparent border-none py-4 pl-5 pr-14 text-text-main-light dark:text-text-main-dark focus:ring-0 rounded-2xl"
-                                    placeholder="0"
-                                />
-                                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-text-muted-light dark:text-text-muted-dark">个月</span>
-                            </div>
+                            <FormTextField
+                                fieldClassName="gap-0"
+                                icon="cake"
+                                type="number"
+                                min="0"
+                                name="ageYears"
+                                value={formData.ageYears}
+                                onChange={handleInputChange}
+                                placeholder="0"
+                                trailingText="岁"
+                            />
+                            <FormTextField
+                                fieldClassName="gap-0"
+                                type="number"
+                                min="0"
+                                max="11"
+                                name="ageMonths"
+                                value={formData.ageMonths}
+                                onChange={handleInputChange}
+                                placeholder="0"
+                                trailingText="个月"
+                            />
                         </div>
                     </div>
 
                     <div className="space-y-2">
-                        <label className="block text-sm font-semibold text-text-main-light dark:text-text-main-dark">
-                            体重 (kg)
-                        </label>
-                        <div className="relative bg-white dark:bg-surface-dark rounded-2xl shadow-soft transition-all focus-within:ring-2 focus-within:ring-primary/50 focus-within:shadow-glow">
-                            <span className="absolute left-4 top-1/2 -translate-y-1/2 material-icons-round text-text-muted-light dark:text-text-muted-dark text-xl">
-                                monitor_weight
-                            </span>
-                            <input
-                                type="number"
-                                step="0.1"
-                                name="weight"
-                                value={formData.weight}
-                                onChange={handleInputChange}
-                                className="w-full bg-transparent border-none py-4 pl-12 pr-4 text-text-main-light dark:text-text-main-dark focus:ring-0 rounded-2xl"
-                                placeholder="kg"
-                            />
-                        </div>
+                        <FormTextField
+                            label="体重 (kg)"
+                            icon="monitor_weight"
+                            type="number"
+                            step="0.1"
+                            name="weight"
+                            value={formData.weight}
+                            onChange={handleInputChange}
+                            placeholder="kg"
+                        />
                         <Link
                             to={`/pet/${id}/weight`}
                             className="flex items-center justify-between bg-primary/10 dark:bg-primary/5 rounded-2xl px-4 py-3 mt-2 hover:bg-primary/20 active:scale-[0.98] transition-all"
@@ -416,10 +386,8 @@ export default function PetEdit() {
                                         </button>
                                     </span>
                                 ))}
-                                <input
-                                    className="flex-1 min-w-[120px] border-none focus:ring-0 bg-transparent text-sm text-text-main-light dark:text-text-main-dark p-0"
+                                <InlineTagInput
                                     placeholder="输入过敏原后按回车添加"
-                                    type="text"
                                     value={allergenInput}
                                     onChange={(e) => setAllergenInput(e.target.value)}
                                     onKeyDown={(e) => {
@@ -452,10 +420,8 @@ export default function PetEdit() {
                                         </button>
                                     </span>
                                 ))}
-                                <input
-                                    className="flex-1 min-w-[120px] border-none focus:ring-0 bg-transparent text-sm text-text-main-light dark:text-text-main-dark p-0"
+                                <InlineTagInput
                                     placeholder="输入健康问题后按回车添加"
-                                    type="text"
                                     value={issueInput}
                                     onChange={(e) => setIssueInput(e.target.value)}
                                     onKeyDown={(e) => {
@@ -470,40 +436,24 @@ export default function PetEdit() {
                         </div>
                     </div>
 
-                    <div className="space-y-2">
-                        <label className="block text-sm font-semibold text-text-main-light dark:text-text-main-dark">
-                            健康状态（补充描述，可选）
-                        </label>
-                        <div className="relative bg-white dark:bg-surface-dark rounded-2xl shadow-soft transition-all focus-within:ring-2 focus-within:ring-primary/50 focus-within:shadow-glow">
-                            <span className="absolute left-4 top-1/2 -translate-y-1/2 material-icons-round text-text-muted-light dark:text-text-muted-dark text-xl">
-                                favorite
-                            </span>
-                            <input
-                                type="text"
-                                name="health_status"
-                                value={formData.health_status}
-                                onChange={handleInputChange}
-                                className="w-full bg-transparent border-none py-4 pl-12 pr-4 text-text-main-light dark:text-text-main-dark focus:ring-0 rounded-2xl"
-                                placeholder="例如：术后恢复中、活泼好动"
-                            />
-                        </div>
-                    </div>
+                    <FormTextField
+                        label="健康状态（补充描述，可选）"
+                        icon="favorite"
+                        type="text"
+                        name="health_status"
+                        value={formData.health_status}
+                        onChange={handleInputChange}
+                        placeholder="例如：术后恢复中、活泼好动"
+                    />
 
-                    <div className="space-y-2">
-                        <label className="block text-sm font-semibold text-text-main-light dark:text-text-main-dark">
-                            特殊需求（可选）
-                        </label>
-                        <div className="relative bg-white dark:bg-surface-dark rounded-2xl shadow-soft transition-all focus-within:ring-2 focus-within:ring-primary/50 focus-within:shadow-glow">
-                            <textarea
-                                name="special_requirements"
-                                value={formData.special_requirements}
-                                onChange={handleInputChange}
-                                rows={3}
-                                className="w-full bg-transparent border-none py-4 px-4 text-text-main-light dark:text-text-main-dark focus:ring-0 rounded-2xl resize-none"
-                                placeholder="例如：需要低脂饮食、挑食、偏好湿粮"
-                            />
-                        </div>
-                    </div>
+                    <FormTextareaField
+                        label="特殊需求（可选）"
+                        name="special_requirements"
+                        value={formData.special_requirements}
+                        onChange={handleInputChange}
+                        rows={3}
+                        placeholder="例如：需要低脂饮食、挑食、偏好湿粮"
+                    />
                 </div>
             </main>
 
@@ -527,15 +477,15 @@ export default function PetEdit() {
                 </button>
             </div>
 
-            <Modal
-                isOpen={showDeleteConfirm}
-                onClose={() => setShowDeleteConfirm(false)}
+            <ConfirmDialog
+                open={showDeleteConfirm}
+                onOpenChange={setShowDeleteConfirm}
                 onConfirm={handleDelete}
                 title="删除宠物"
-                message={`确定要删除 "${formData.name || '这只宠物'}" 吗？此操作无法撤销。`}
+                description={`确定要删除 "${formData.name || '这只宠物'}" 吗？此操作无法撤销。`}
                 confirmText="删除"
                 cancelText="取消"
-                type="danger"
+                destructive
             />
         </MotionDiv>
     );

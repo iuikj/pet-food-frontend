@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import usePhotoSelect from '../hooks/usePhotoSelect';
 import PetIcon from '../components/icons/PetIcon';
 import OnboardingLayout from '../components/OnboardingLayout';
+import { FormTextField } from '../components/ui/form-fields';
 
 export default function OnboardingName() {
     const navigate = useNavigate();
@@ -78,19 +79,19 @@ export default function OnboardingName() {
 
                     {/* 名字输入 */}
                     <div className="bg-surface-light dark:bg-surface-dark rounded-2xl p-6 shadow-soft">
-                        <label className="text-sm font-semibold text-text-main-light dark:text-text-main-dark ml-1 mb-4 block">
-                            宠物名字
-                        </label>
-                        <div className="relative bg-background-light dark:bg-background-dark rounded-2xl shadow-inner transition-all focus-within:ring-2 focus-within:ring-primary/50 focus-within:shadow-glow">
-                            <input
+                        <div className="relative">
+                            <FormTextField
+                                label="宠物名字"
                                 value={petName}
                                 onChange={(e) => setPetName(e.target.value)}
-                                className="w-full bg-transparent border-none py-4 pl-5 pr-12 text-lg font-medium text-text-main-light dark:text-text-main-dark focus:ring-0 placeholder-gray-300 dark:placeholder-gray-600 rounded-2xl"
                                 placeholder="例如：Cooper"
                                 type="text"
                                 maxLength={20}
+                                inputClassName="bg-background-light dark:bg-background-dark shadow-inner [&_[data-slot=input]]:pr-12 [&_[data-slot=input]]:text-lg [&_[data-slot=input]]:font-medium [&_[data-slot=input]]:placeholder:text-gray-300 dark:[&_[data-slot=input]]:placeholder:text-gray-600"
                             />
-                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-primary"><PetIcon size={24} /></span>
+                            <span className="pointer-events-none absolute right-4 top-[calc(50%+12px)] -translate-y-1/2 text-primary">
+                                <PetIcon size={24} />
+                            </span>
                         </div>
                     </div>
                 </div>

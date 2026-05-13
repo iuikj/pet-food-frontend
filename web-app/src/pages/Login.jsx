@@ -5,6 +5,18 @@ import { useUser } from '../hooks/useUser';
 import FormField from '../components/FormField';
 import ErrorAlert from '../components/ErrorAlert';
 import AppIcon from '../components/AppIcon';
+import { Button } from '../components/ui/button';
+import {
+    Dialog,
+    DialogClose,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogPanel,
+    DialogPopup,
+    DialogTitle,
+} from '../components/ui/dialog';
+import { OTPField, OTPFieldInput, OTPFieldSeparator } from '../components/ui/otp-field';
 import { showToast } from '../utils/toast';
 import { isMockMode, setMockMode, isManualOverride } from '../mock/mockMode';
 
@@ -160,6 +172,34 @@ function mapResetErrorToFields(message) {
     }
 
     return null;
+}
+
+function VerificationCodeField({ value, onChange, invalid, ariaLabel }) {
+    const handleValueChange = (nextValue) => {
+        onChange(nextValue.replace(/[^\d]/g, '').slice(0, 6));
+    };
+
+    return (
+        <OTPField
+            aria-label={ariaLabel}
+            className="shrink-0 gap-1.5"
+            length={6}
+            onValueChange={handleValueChange}
+            validationType="numeric"
+            value={value}
+        >
+            {Array.from({ length: 6 }, (_, index) => (
+                <React.Fragment key={index}>
+                    {index === 3 && <OTPFieldSeparator />}
+                    <OTPFieldInput
+                        aria-invalid={invalid || undefined}
+                        aria-label={`${ariaLabel}第 ${index + 1} 位`}
+                        className="size-8 rounded-xl bg-surface-light dark:bg-gray-800 sm:size-8"
+                    />
+                </React.Fragment>
+            ))}
+        </OTPField>
+    );
 }
 
 export default function Login() {
@@ -704,31 +744,20 @@ export default function Login() {
 
                             {isRegister && (
                                 <div className="space-y-2">
-                                    <label className="text-sm font-semibold text-text-main-light dark:text-text-main-dark" htmlFor="code">
+                                    <label className="text-sm font-semibold text-text-main-light dark:text-text-main-dark" id="register-code-label">
                                         验证码（可选）
                                     </label>
                                     <div className="flex gap-3">
-                                        <div className={`flex-1 bg-surface-light dark:bg-gray-800 rounded-xl border transition-all flex items-center px-4 py-3 ${
-                                            fieldErrors.code
-                                                ? 'border-red-400 focus-within:border-red-500 focus-within:ring-2 focus-within:ring-red-500/10'
-                                                : 'border-gray-200 dark:border-gray-700 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20'
-                                        }`}>
-                                            <span className="material-icons-round text-text-muted-light dark:text-text-muted-dark mr-3 text-xl">pin</span>
-                                            <input
-                                                className="bg-transparent border-none p-0 w-full text-sm font-medium focus:ring-0 focus:outline-none placeholder-gray-400 dark:placeholder-gray-500"
-                                                id="code"
-                                                placeholder="6位数字验证码"
-                                                type="text"
-                                                inputMode="numeric"
-                                                maxLength={6}
-                                                value={code}
-                                                onChange={(e) => {
-                                                    setCode(e.target.value.replace(/[^\d]/g, ''));
-                                                    setError('');
-                                                    clearFieldError('code');
-                                                }}
-                                            />
-                                        </div>
+                                        <VerificationCodeField
+                                            ariaLabel="注册验证码"
+                                            invalid={Boolean(fieldErrors.code)}
+                                            value={code}
+                                            onChange={(nextCode) => {
+                                                setCode(nextCode);
+                                                setError('');
+                                                clearFieldError('code');
+                                            }}
+                                        />
                                         <button
                                             type="button"
                                             onClick={handleSendCode}
@@ -836,143 +865,122 @@ export default function Login() {
                 </div>
             </MotionDiv>
 
-            <AnimatePresence>
-                {resetModalOpen && (
-                    <MotionDiv
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-30 flex items-center justify-center p-4"
-                    >
-                        <div
-                            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-                            onClick={handleCloseResetModal}
-                        />
-
-                        <MotionDiv
-                            initial={{ opacity: 0, y: 20, scale: 0.96 }}
-                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                            exit={{ opacity: 0, y: 20, scale: 0.96 }}
-                            transition={{ type: 'spring', damping: 24, stiffness: 260 }}
-                            className="relative w-full max-w-md rounded-3xl bg-white dark:bg-surface-dark shadow-2xl p-6"
+            <Dialog
+                open={resetModalOpen}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        handleCloseResetModal();
+                    }
+                }}
+            >
+                <DialogPopup className="max-w-md rounded-3xl border-0 bg-white shadow-2xl dark:bg-surface-dark">
+                    <DialogHeader className="flex-row items-start justify-between gap-4 p-6 pb-3 text-left">
+                        <div>
+                            <DialogTitle className="text-xl font-bold text-text-main-light dark:text-text-main-dark">
+                                重置密码
+                            </DialogTitle>
+                            <DialogDescription className="mt-2 text-sm leading-6 text-text-muted-light dark:text-text-muted-dark">
+                                请输入注册邮箱。若该邮箱已注册，系统会发送 6 位验证码；收到后再设置新密码。
+                            </DialogDescription>
+                        </div>
+                        <DialogClose
+                            aria-label="关闭重置密码"
+                            className="size-10 shrink-0 rounded-full bg-gray-100 text-text-muted-light transition-colors hover:text-primary dark:bg-gray-800 dark:text-text-muted-dark"
+                            render={<Button size="icon-sm" variant="ghost" />}
                         >
-                            <div className="flex items-start justify-between gap-4 mb-5">
-                                <div>
-                                    <h2 className="text-xl font-bold text-text-main-light dark:text-text-main-dark">
-                                        重置密码
-                                    </h2>
-                                    <p className="mt-2 text-sm text-text-muted-light dark:text-text-muted-dark leading-6">
-                                        请输入注册邮箱。若该邮箱已注册，系统会发送 6 位验证码；收到后再设置新密码。
-                                    </p>
-                                </div>
-                                <button
-                                    type="button"
-                                    onClick={handleCloseResetModal}
-                                    className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-text-muted-light dark:text-text-muted-dark hover:text-primary transition-colors"
-                                >
-                                    <span className="material-icons-round">close</span>
-                                </button>
-                            </div>
+                            <span className="material-icons-round">close</span>
+                        </DialogClose>
+                    </DialogHeader>
 
+                    <form onSubmit={handleResetPasswordSubmit} className="contents" noValidate>
+                        <DialogPanel className="space-y-4 px-6 pb-4 pt-2">
                             <AnimatePresence>
                                 {resetError && (
                                     <ErrorAlert error={resetError} onClose={() => setResetError('')} />
                                 )}
                             </AnimatePresence>
 
-                            <form onSubmit={handleResetPasswordSubmit} className="space-y-4 mt-4" noValidate>
-                                <FormField
-                                    id="reset-email"
-                                    label="注册邮箱"
-                                    type="email"
-                                    value={resetForm.email}
-                                    onChange={(val) => handleResetFormChange('email', val)}
-                                    placeholder="example@email.com"
-                                    icon="email"
-                                    error={resetFieldErrors.email}
-                                    validate={validateEmail}
-                                    required
-                                />
+                            <FormField
+                                id="reset-email"
+                                label="注册邮箱"
+                                type="email"
+                                value={resetForm.email}
+                                onChange={(val) => handleResetFormChange('email', val)}
+                                placeholder="example@email.com"
+                                icon="email"
+                                error={resetFieldErrors.email}
+                                validate={validateEmail}
+                                required
+                            />
 
-                                <div className="space-y-2">
-                                    <label className="text-sm font-semibold text-text-main-light dark:text-text-main-dark" htmlFor="reset-code">
-                                        验证码
-                                    </label>
-                                    <div className="flex gap-3">
-                                        <div className={`flex-1 bg-surface-light dark:bg-gray-800 rounded-xl border transition-all flex items-center px-4 py-3 ${
-                                            resetFieldErrors.code
-                                                ? 'border-red-400 focus-within:border-red-500 focus-within:ring-2 focus-within:ring-red-500/10'
-                                                : 'border-gray-200 dark:border-gray-700 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20'
-                                        }`}>
-                                            <span className="material-icons-round text-text-muted-light dark:text-text-muted-dark mr-3 text-xl">mark_email_read</span>
-                                            <input
-                                                id="reset-code"
-                                                type="text"
-                                                inputMode="numeric"
-                                                maxLength={6}
-                                                value={resetForm.code}
-                                                onChange={(e) => handleResetFormChange('code', e.target.value.replace(/[^\d]/g, ''))}
-                                                placeholder="6位数字验证码"
-                                                className="bg-transparent border-none p-0 w-full text-sm font-medium focus:ring-0 focus:outline-none placeholder-gray-400 dark:placeholder-gray-500"
-                                            />
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={handleSendResetCode}
-                                            disabled={resetCountdown > 0 || !resetForm.email.trim() || resetSubmitting}
-                                            className="px-5 py-3 bg-primary hover:bg-primary/90 text-white dark:text-gray-900 rounded-xl font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap transition-all active:scale-95 shadow-sm"
-                                        >
-                                            {resetCountdown > 0 ? `${resetCountdown}s` : resetCodeSent ? '重新发送' : '发送'}
-                                        </button>
-                                    </div>
-                                    <p className="text-xs text-text-muted-light dark:text-text-muted-dark leading-5">
-                                        {resetCodeSent
-                                            ? '验证码已发送到当前邮箱。若修改邮箱地址，需要重新发送验证码。'
-                                            : '如果该邮箱已注册，您将收到 6 位数字验证码。'}
-                                    </p>
-                                    {resetFieldErrors.code && (
-                                        <p className="text-xs text-red-500">{resetFieldErrors.code}</p>
-                                    )}
-                                </div>
-
-                                <FormField
-                                    id="reset-password"
-                                    label="新密码"
-                                    type="password"
-                                    value={resetForm.newPassword}
-                                    onChange={(val) => handleResetFormChange('newPassword', val)}
-                                    placeholder="至少 6 个字符，最多 72 字节"
-                                    icon="lock_reset"
-                                    error={resetFieldErrors.newPassword}
-                                    validate={validateRegisterPassword}
-                                    required
-                                    showPasswordToggle
-                                />
-                                <p className="text-xs text-text-muted-light dark:text-text-muted-dark leading-5 -mt-2 px-1">
-                                    {PASSWORD_HELPER_TEXT}
-                                </p>
-
-                                <div className="flex gap-3 pt-2">
-                                    <button
+                            <div className="space-y-2">
+                                <label className="text-sm font-semibold text-text-main-light dark:text-text-main-dark" id="reset-code-label">
+                                    验证码
+                                </label>
+                                <div className="flex gap-3">
+                                    <VerificationCodeField
+                                        ariaLabel="重置密码验证码"
+                                        invalid={Boolean(resetFieldErrors.code)}
+                                        value={resetForm.code}
+                                        onChange={(nextCode) => handleResetFormChange('code', nextCode)}
+                                    />
+                                    <Button
                                         type="button"
-                                        onClick={handleCloseResetModal}
-                                        className="flex-1 py-3 px-4 rounded-xl bg-gray-100 dark:bg-gray-800 text-text-main-light dark:text-text-main-dark font-bold transition-all active:scale-[0.98]"
+                                        onClick={handleSendResetCode}
+                                        disabled={resetCountdown > 0 || !resetForm.email.trim() || resetSubmitting}
+                                        className="rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-primary/90 dark:text-gray-900"
                                     >
-                                        取消
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        disabled={resetSubmitting}
-                                        className="flex-1 py-3 px-4 rounded-xl bg-primary text-white dark:text-gray-900 font-bold transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                        {resetSubmitting ? '提交中...' : '确认重置'}
-                                    </button>
+                                        {resetCountdown > 0 ? `${resetCountdown}s` : resetCodeSent ? '重新发送' : '发送'}
+                                    </Button>
                                 </div>
-                            </form>
-                        </MotionDiv>
-                    </MotionDiv>
-                )}
-            </AnimatePresence>
+                                <p className="text-xs leading-5 text-text-muted-light dark:text-text-muted-dark">
+                                    {resetCodeSent
+                                        ? '验证码已发送到当前邮箱。若修改邮箱地址，需要重新发送验证码。'
+                                        : '如果该邮箱已注册，您将收到 6 位数字验证码。'}
+                                </p>
+                                {resetFieldErrors.code && (
+                                    <p className="text-xs text-red-500">{resetFieldErrors.code}</p>
+                                )}
+                            </div>
+
+                            <FormField
+                                id="reset-password"
+                                label="新密码"
+                                type="password"
+                                value={resetForm.newPassword}
+                                onChange={(val) => handleResetFormChange('newPassword', val)}
+                                placeholder="至少 6 个字符，最多 72 字节"
+                                icon="lock_reset"
+                                error={resetFieldErrors.newPassword}
+                                validate={validateRegisterPassword}
+                                required
+                                showPasswordToggle
+                            />
+                            <p className="-mt-2 px-1 text-xs leading-5 text-text-muted-light dark:text-text-muted-dark">
+                                {PASSWORD_HELPER_TEXT}
+                            </p>
+                        </DialogPanel>
+
+                        <DialogFooter className="grid grid-cols-2 gap-3 border-0 bg-transparent px-6 pb-6 pt-2 sm:grid-cols-2">
+                            <DialogClose
+                                render={<Button variant="secondary" />}
+                                disabled={resetSubmitting}
+                                className="h-12 rounded-xl font-bold"
+                            >
+                                取消
+                            </DialogClose>
+                            <Button
+                                type="submit"
+                                loading={resetSubmitting}
+                                disabled={resetSubmitting}
+                                className="h-12 rounded-xl bg-primary font-bold text-white dark:text-gray-900"
+                            >
+                                {resetSubmitting ? '提交中...' : '确认重置'}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogPopup>
+            </Dialog>
         </div>
     );
 }

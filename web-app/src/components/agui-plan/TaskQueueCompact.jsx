@@ -1,22 +1,16 @@
-import { useMemo, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { useEffect, useMemo, useState } from 'react';
 import { CheckCircle2, Circle, ChevronUp, Loader2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-const overlayVariants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1 },
-};
-
-const drawerVariants = {
-    hidden: { y: '100%', opacity: 0 },
-    visible: {
-        y: 0,
-        opacity: 1,
-        transition: { type: 'spring', damping: 28, stiffness: 320 },
-    },
-    exit: { y: '100%', opacity: 0, transition: { duration: 0.2 } },
-};
+import { Button } from '@/components/ui/button';
+import { registerBackButtonHandler } from '@/hooks/useBackButton';
+import {
+    Drawer,
+    DrawerClose,
+    DrawerHeader,
+    DrawerPanel,
+    DrawerPopup,
+    DrawerTitle,
+} from '@/components/ui/drawer';
 
 function TaskItem({ item }) {
     const done = item.status === 'done' || item.status === 'completed';
@@ -41,50 +35,42 @@ function TaskItem({ item }) {
 }
 
 export function TaskQueueDrawer({ open, items = [], onClose }) {
+    useEffect(() => {
+        if (!open) return undefined;
+        return registerBackButtonHandler(() => {
+            onClose?.();
+            return true;
+        });
+    }, [open, onClose]);
+
     return (
-        <AnimatePresence>
-            {open && (
-                <>
-                    <motion.div
-                        className="fixed inset-0 z-50 bg-black/30 backdrop-blur-sm"
-                        variants={overlayVariants}
-                        initial="hidden"
-                        animate="visible"
-                        exit="hidden"
-                        onClick={onClose}
-                    />
-                    <motion.div
-                        className="fixed inset-x-0 bottom-0 z-50 max-h-[70vh] overflow-hidden rounded-t-2xl bg-white dark:bg-gray-900"
-                        variants={drawerVariants}
-                        initial="hidden"
-                        animate="visible"
-                        exit="exit"
+        <Drawer open={open} onOpenChange={(nextOpen) => !nextOpen && onClose?.()} position="bottom">
+            <DrawerPopup className="bg-white dark:bg-gray-900 [--drawer-height:min(70vh,560px)]" showBar>
+                <DrawerHeader className="flex-row items-center justify-between border-b border-gray-100 px-4 py-3 dark:border-gray-800">
+                    <DrawerTitle className="text-[15px] font-semibold text-gray-900 dark:text-gray-100">
+                        任务队列
+                    </DrawerTitle>
+                    <DrawerClose
+                        aria-label="关闭任务队列"
+                        className="text-gray-400 hover:bg-gray-100 dark:text-gray-500 dark:hover:bg-gray-800"
+                        render={<Button size="icon-sm" variant="ghost" />}
                     >
-                        <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 px-4 py-3">
-                            <h3 className="text-[15px] font-semibold text-gray-900 dark:text-gray-100">任务队列</h3>
-                            <button
-                                type="button"
-                                onClick={onClose}
-                                className="flex size-8 items-center justify-center rounded-full text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
-                            >
-                                <X className="size-4" />
-                            </button>
+                        <X className="size-4" />
+                    </DrawerClose>
+                </DrawerHeader>
+                <DrawerPanel className="px-4 py-3" scrollFade={false}>
+                    {items.length === 0 ? (
+                        <p className="py-6 text-center text-[13px] text-gray-400 dark:text-gray-500">暂无任务</p>
+                    ) : (
+                        <div className="space-y-0.5">
+                            {items.map((item, i) => (
+                                <TaskItem key={item.id ?? i} item={item} />
+                            ))}
                         </div>
-                        <div className="overflow-y-auto px-4 py-3" style={{ maxHeight: 'calc(70vh - 56px)' }}>
-                            {items.length === 0 ? (
-                                <p className="py-6 text-center text-[13px] text-gray-400 dark:text-gray-500">暂无任务</p>
-                            ) : (
-                                <div className="space-y-0.5">
-                                    {items.map((item, i) => (
-                                        <TaskItem key={item.id ?? i} item={item} />
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    </motion.div>
-                </>
-            )}
-        </AnimatePresence>
+                    )}
+                </DrawerPanel>
+            </DrawerPopup>
+        </Drawer>
     );
 }
 

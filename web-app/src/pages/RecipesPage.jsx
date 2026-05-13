@@ -11,7 +11,8 @@ import PetIcon from '../components/icons/PetIcon';
 import Skeleton from '../components/ui/Skeleton';
 import IngredientCard from '../components/IngredientCard';
 import IngredientFormSheet from '../components/IngredientFormSheet';
-import Modal from '../components/Modal';
+import ConfirmDialog from '../components/ui/ConfirmDialog';
+import { FormTextField } from '../components/ui/form-fields';
 import PageHeader from '../components/layout/PageHeader';
 
 const SCOPE_OPTIONS = [
@@ -375,15 +376,13 @@ export default function RecipesPage() {
                     style={{ top: 'calc(env(safe-area-inset-top, 0px) + 108px)' }}
                 >
                     <div className="relative">
-                        <span className="material-icons-round absolute left-3 top-1/2 -translate-y-1/2 text-text-muted-light dark:text-text-muted-dark text-xl">
-                            search
-                        </span>
-                        <input
+                        <FormTextField
+                            icon="search"
                             type="text"
                             value={ingredients.keyword}
                             onChange={(e) => ingredients.setKeyword(e.target.value)}
                             placeholder="搜索食材名称"
-                            className="w-full bg-white dark:bg-surface-dark rounded-xl pl-10 pr-3 py-2.5 text-sm shadow-soft focus:outline-none focus:ring-2 focus:ring-primary"
+                            inputClassName="rounded-xl shadow-soft focus-within:ring-primary [&_[data-slot=input]]:py-2.5 [&_[data-slot=input]]:pl-10 [&_[data-slot=input]]:pr-8 [&_[data-slot=input]]:text-sm"
                         />
                         {ingredients.keyword && (
                             <button
@@ -572,49 +571,18 @@ export default function RecipesPage() {
             </main>
 
             {/* 计划删除确认弹窗 */}
-            <AnimatePresence>
-                {deletingId && (
-                    <Motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center px-8"
-                        onClick={() => setDeletingId(null)}
-                    >
-                        <Motion.div
-                            initial={{ scale: 0.9, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0.9, opacity: 0 }}
-                            onClick={(e) => e.stopPropagation()}
-                            className="bg-white dark:bg-surface-dark rounded-3xl p-6 w-full max-w-sm shadow-xl"
-                        >
-                            <div className="flex flex-col items-center text-center">
-                                <div className="w-14 h-14 rounded-full bg-red-50 dark:bg-red-900/20 flex items-center justify-center mb-4">
-                                    <span className="material-icons-round text-red-500 text-2xl">delete_forever</span>
-                                </div>
-                                <h3 className="font-bold text-lg mb-2">确认删除食谱？</h3>
-                                <p className="text-sm text-text-muted-light dark:text-text-muted-dark mb-6">
-                                    删除后将无法恢复，确定要继续吗？
-                                </p>
-                                <div className="flex gap-3 w-full">
-                                    <button
-                                        onClick={() => setDeletingId(null)}
-                                        className="flex-1 py-3 rounded-xl bg-gray-100 dark:bg-gray-700 text-text-main-light dark:text-text-main-dark font-medium hover:bg-gray-200 transition-colors"
-                                    >
-                                        取消
-                                    </button>
-                                    <button
-                                        onClick={confirmDelete}
-                                        className="flex-1 py-3 rounded-xl bg-red-500 text-white font-bold hover:bg-red-600 transition-colors"
-                                    >
-                                        确认删除
-                                    </button>
-                                </div>
-                            </div>
-                        </Motion.div>
-                    </Motion.div>
-                )}
-            </AnimatePresence>
+            <ConfirmDialog
+                open={!!deletingId}
+                onOpenChange={(open) => {
+                    if (!open) setDeletingId(null);
+                }}
+                onConfirm={confirmDelete}
+                title="确认删除食谱？"
+                description="删除后将无法恢复，确定要继续吗？"
+                confirmText="确认删除"
+                cancelText="取消"
+                destructive
+            />
 
             {/* 食材表单抽屉 */}
             <IngredientFormSheet
@@ -626,15 +594,17 @@ export default function RecipesPage() {
             />
 
             {/* 食材删除确认 */}
-            <Modal
-                isOpen={!!pendingDeleteIng}
-                onClose={() => setPendingDeleteIng(null)}
+            <ConfirmDialog
+                open={!!pendingDeleteIng}
+                onOpenChange={(open) => {
+                    if (!open) setPendingDeleteIng(null);
+                }}
                 onConfirm={handleConfirmDeleteIng}
                 title="删除该食材？"
-                message={pendingDeleteIng ? `将从您的自定义食材中移除「${pendingDeleteIng.name}」` : ''}
+                description={pendingDeleteIng ? `将从您的自定义食材中移除「${pendingDeleteIng.name}」` : ''}
                 confirmText="删除"
                 cancelText="取消"
-                type="danger"
+                destructive
             />
         </Motion.div>
     );

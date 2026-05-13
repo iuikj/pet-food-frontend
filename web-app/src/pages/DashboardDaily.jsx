@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion as Motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import SecureImage from '../components/SecureImage';
 import ErrorAlert from '../components/ErrorAlert';
@@ -10,15 +10,25 @@ import MealCard from '../components/MealCard';
 import PlanDetails from './PlanDetails';
 import { AvatarRowSkeleton } from '../components/ui/Skeleton';
 import PageHeader from '../components/layout/PageHeader';
+import WeightRecordSheet from '../components/WeightRecordSheet';
 import { compareWeightRecordsAsc } from '../utils/weightRecords';
 import { weightsApi, mealsApi } from '../api';
 import { getApiErrorMessage } from '../api/client';
+import { showToast } from '../utils/toast';
+
+function formatDaysAgo(recordedDate) {
+    if (!recordedDate) return null;
+    const diff = Math.floor((Date.now() - new Date(recordedDate).getTime()) / 86400000);
+    if (diff === 0) return '今天';
+    return `${diff}天前`;
+}
 
 export default function DashboardDaily() {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const targetDate = searchParams.get('date'); // YYYY-MM-DD or null
     const { currentPet } = usePets();
+    const currentPetId = currentPet?.id;
     const { meals: todayMeals, nutritionSummary: todayNutrition, isLoading: todayLoading, error: todayError, toggleMealComplete } = useMeals();
 
     // 指定日期的餐食数据
@@ -32,90 +42,100 @@ export default function DashboardDaily() {
 
     // 获取指定日期餐食
     useEffect(() => {
-        if (!targetDate || !currentPet?.id) return;
         let cancelled = false;
-        setDateMealsLoading(true);
-        mealsApi.getMealsByDate(currentPet.id, targetDate)
-            .then(res => {
-                if (cancelled) return;
-                if (res.code === 0 && res.data?.meals) {
-                    // 映射为与 useMeals 一致的格式
-                    setDateMeals(res.data.meals.map(m => ({
-                        id: m.id,
-                        type: m.meal_type,
-                        name: m.name || m.meal_type,
-                        time: m.scheduled_time || '',
-                        calories: m.calories || 0,
-                        isCompleted: m.is_completed || false,
-                        _raw: m,
-                    })));
-                } else {
-                    setDateMeals([]);
+        void (async () => {
+            if (!targetDate || !currentPetId) return;
+            setDateMealsLoading(true);
+            try {
+                const res = await mealsApi.getMealsByDate(currentPetId, targetDate);
+                if (!cancelled) {
+                    if (res.code === 0 && res.data?.meals) {
+                        // 映射为与 useMeals 一致的格式
+                        setDateMeals(res.data.meals.map(m => ({
+                            id: m.id,
+                            type: m.meal_type,
+                            name: m.name || m.meal_type,
+                            time: m.scheduled_time || '',
+                            calories: m.calories || 0,
+                            isCompleted: m.is_completed || false,
+                            _raw: m,
+                        })));
+                    } else {
+                        setDateMeals([]);
+                    }
                 }
-            })
-            .catch(() => { if (!cancelled) setDateMeals([]); })
-            .finally(() => { if (!cancelled) setDateMealsLoading(false); });
+            } catch {
+                if (!cancelled) setDateMeals([]);
+            } finally {
+                if (!cancelled) setDateMealsLoading(false);
+            }
+        })();
         return () => { cancelled = true; };
-    }, [targetDate, currentPet?.id]);
+    }, [targetDate, currentPetId]);
 
     const [selectedMeal, setSelectedMeal] = useState(null);
 
     // 体重相关
-    const [showWeightModal, setShowWeightModal] = useState(false);
-    const [weightInput, setWeightInput] = useState('');
-    const [weightSaving, setWeightSaving] = useState(false);
-    const [weightError, setWeightError] = useState('');
+    const [weightSheetOpen, setWeightSheetOpen] = useState(false);
     const [weightHistory, setWeightHistory] = useState([]);
     const [latestWeight, setLatestWeight] = useState(null);
+    const [daysAgoText, setDaysAgoText] = useState(null);
 
     const fetchWeightData = useCallback(async () => {
-        if (!currentPet?.id) return;
+        if (!currentPetId) return;
         try {
             const [histRes, latestRes] = await Promise.all([
-                weightsApi.getWeightHistory(currentPet.id, 30),
-                weightsApi.getLatestWeight(currentPet.id),
+                weightsApi.getWeightHistory(currentPetId, 30),
+                weightsApi.getLatestWeight(currentPetId),
             ]);
             if (histRes.code === 0) setWeightHistory(histRes.data || []);
-            if (latestRes.code === 0) setLatestWeight(latestRes.data);
+            if (latestRes.code === 0) {
+                setLatestWeight(latestRes.data);
+                setDaysAgoText(formatDaysAgo(latestRes.data?.recorded_date));
+            }
         } catch {
             // silent
         }
-    }, [currentPet?.id]);
+    }, [currentPetId]);
 
-    useEffect(() => { fetchWeightData(); }, [fetchWeightData]);
+    useEffect(() => {
+        void (async () => {
+            await fetchWeightData();
+        })();
+    }, [fetchWeightData]);
 
-    const handleSaveWeight = async () => {
-        const value = parseFloat(weightInput);
-        if (!value || value <= 0 || !currentPet?.id) {
-            setWeightError('请输入有效体重');
-            return;
+    const handleSaveWeight = async ({ weight, recorded_date, notes }) => {
+        const value = Number(weight);
+        if (!value || value <= 0 || !currentPetId) {
+            const message = '请输入有效体重';
+            await showToast.error(message);
+            return { success: false, message };
         }
-        setWeightError('');
-        setWeightSaving(true);
+
         try {
-            const res = await weightsApi.recordWeight({ pet_id: currentPet.id, weight: value });
+            const res = await weightsApi.recordWeight({
+                pet_id: currentPetId,
+                weight: value,
+                recorded_date: recorded_date || undefined,
+                notes: notes || undefined,
+            });
             if (res.code === 0) {
                 setLatestWeight(res.data);
-                setShowWeightModal(false);
-                setWeightInput('');
-                setWeightError('');
+                setDaysAgoText(formatDaysAgo(res.data?.recorded_date));
                 await fetchWeightData(); // 刷新趋势图
+                await showToast.success('体重已记录');
+                return { success: true, data: res.data };
             } else {
-                setWeightError(res.message || '保存失败');
+                const message = res.message || '保存失败';
+                await showToast.error(message);
+                return { success: false, message };
             }
         } catch (err) {
             console.error('Failed to record weight:', err);
-            setWeightError(getApiErrorMessage(err, '保存失败'));
-        } finally {
-            setWeightSaving(false);
+            const message = getApiErrorMessage(err, '保存失败');
+            await showToast.error(message);
+            return { success: false, message };
         }
-    };
-
-    const getDaysAgo = () => {
-        if (!latestWeight?.recorded_date) return null;
-        const diff = Math.floor((Date.now() - new Date(latestWeight.recorded_date).getTime()) / 86400000);
-        if (diff === 0) return '今天';
-        return `${diff}天前`;
     };
 
     const handleMealCardClick = (mealId) => {
@@ -255,7 +275,7 @@ export default function DashboardDaily() {
             return;
         }
 
-        if (isDateInFuture || !currentPet?.id) {
+        if (isDateInFuture || !currentPetId) {
             return;
         }
 
@@ -274,7 +294,7 @@ export default function DashboardDaily() {
                 await mealsApi.completeMeal(mealId);
             }
 
-            const res = await mealsApi.getMealsByDate(currentPet.id, targetDate);
+            const res = await mealsApi.getMealsByDate(currentPetId, targetDate);
             if (res.code === 0 && res.data?.meals) {
                 setDateMeals(res.data.meals.map(m => ({
                     id: m.id,
@@ -290,7 +310,7 @@ export default function DashboardDaily() {
             console.error('Failed to toggle dated meal completion:', error);
             setDateMeals(prevMeals);
         }
-    }, [targetDate, toggleMealComplete, isDateInFuture, currentPet?.id, dateMeals]);
+    }, [targetDate, toggleMealComplete, isDateInFuture, currentPetId, dateMeals]);
 
     // 本周日历
     const getThisWeekDays = () => {
@@ -315,7 +335,7 @@ export default function DashboardDaily() {
     const weekDays = getThisWeekDays();
 
     return (
-        <motion.div {...pageTransitions} className="pb-24 overflow-x-clip">
+        <Motion.div {...pageTransitions} className="pb-24 overflow-x-clip">
             {/* Header */}
             <PageHeader
                 leftSlot={
@@ -448,18 +468,14 @@ export default function DashboardDaily() {
                         </div>
                     </div>
                     <button
-                        onClick={() => {
-                            setWeightInput(latestWeight ? String(latestWeight.weight) : String(currentPet?.weight || ''));
-                            setWeightError('');
-                            setShowWeightModal(true);
-                        }}
+                        onClick={() => setWeightSheetOpen(true)}
                         className="bg-secondary/30 dark:bg-secondary/10 p-5 rounded-2xl flex flex-col justify-between h-36 relative overflow-hidden hover:shadow-medium hover:scale-105 transition-all duration-300 text-left"
                     >
                         <span className="material-icons-round absolute -right-2 -bottom-4 text-6xl text-secondary opacity-50">monitor_weight</span>
                         <div>
                             <h4 className="font-bold text-yellow-900 dark:text-yellow-100">当前体重</h4>
                             <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
-                                {getDaysAgo() ? `上次：${getDaysAgo()}` : '点击记录'}
+                                {daysAgoText ? `上次：${daysAgoText}` : '点击记录'}
                             </p>
                         </div>
                         {renderWeightTrend()}
@@ -484,71 +500,14 @@ export default function DashboardDaily() {
                 )}
             </AnimatePresence>
 
-            {/* 体重输入弹窗 */}
-            <AnimatePresence>
-                {showWeightModal && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center px-8"
-                        onClick={() => setShowWeightModal(false)}
-                    >
-                        <motion.div
-                            initial={{ scale: 0.9, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0.9, opacity: 0 }}
-                            onClick={(e) => e.stopPropagation()}
-                            className="bg-white dark:bg-surface-dark rounded-3xl p-6 w-full max-w-sm shadow-xl"
-                        >
-                            <div className="flex flex-col items-center text-center">
-                                <div className="w-14 h-14 rounded-full bg-secondary/20 flex items-center justify-center mb-4">
-                                    <span className="material-icons-round text-yellow-600 text-2xl">monitor_weight</span>
-                                </div>
-                                <h3 className="font-bold text-lg mb-2">记录体重</h3>
-                                <p className="text-sm text-text-muted-light dark:text-text-muted-dark mb-4">
-                                    为 {currentPet?.name || '宠物'} 记录今日体重
-                                </p>
-                                <div className="flex items-center gap-2 mb-6 w-full max-w-[200px]">
-                                    <input
-                                        type="number"
-                                        step="0.1"
-                                        min="0.1"
-                                        max="500"
-                                        value={weightInput}
-                                        onChange={(e) => setWeightInput(e.target.value)}
-                                        placeholder="0.0"
-                                        className="w-full text-center text-3xl font-bold bg-gray-50 dark:bg-gray-800 rounded-2xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-primary"
-                                        autoFocus
-                                    />
-                                    <span className="text-lg font-medium text-text-muted-light dark:text-text-muted-dark shrink-0">kg</span>
-                                </div>
-                                {weightError && (
-                                    <p className="text-xs text-red-500 mb-4">{weightError}</p>
-                                )}
-                                <div className="flex gap-3 w-full">
-                                    <button
-                                        onClick={() => {
-                                            setShowWeightModal(false);
-                                            setWeightError('');
-                                        }}
-                                        className="flex-1 py-3 rounded-xl bg-gray-100 dark:bg-gray-700 text-text-main-light dark:text-text-main-dark font-medium hover:bg-gray-200 transition-colors"
-                                    >
-                                        取消
-                                    </button>
-                                    <button
-                                        onClick={handleSaveWeight}
-                                        disabled={weightSaving || !weightInput || parseFloat(weightInput) <= 0}
-                                        className="flex-1 py-3 rounded-xl bg-primary text-white dark:text-gray-900 font-bold hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                        {weightSaving ? '保存中...' : '保存'}
-                                    </button>
-                                </div>
-                            </div>
-                        </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-        </motion.div>
+            {/* 体重记录抽屉 */}
+            <WeightRecordSheet
+                isOpen={weightSheetOpen}
+                onClose={() => setWeightSheetOpen(false)}
+                onSubmit={handleSaveWeight}
+                petName={currentPet?.name}
+                defaultWeight={latestWeight?.weight ?? currentPet?.weight ?? 0}
+            />
+        </Motion.div>
     );
 }

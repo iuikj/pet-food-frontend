@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion as Motion, AnimatePresence } from 'framer-motion';
 import {
     LineChart,
     Line,
@@ -16,7 +16,7 @@ import { compareWeightRecordsAsc, compareWeightRecordsDesc } from '../utils/weig
 import { usePets } from '../hooks/usePets';
 import { useWeights } from '../hooks/useWeights';
 import Skeleton from '../components/ui/Skeleton';
-import Modal from '../components/Modal';
+import ConfirmDialog from '../components/ui/ConfirmDialog';
 import WeightRecordSheet from '../components/WeightRecordSheet';
 import PageHeader from '../components/layout/PageHeader';
 
@@ -152,7 +152,7 @@ export default function WeightTrend() {
     }
 
     return (
-        <motion.div {...pageTransitions} className="min-h-[100dvh] pb-24 overflow-x-clip bg-background-light dark:bg-background-dark">
+        <Motion.div {...pageTransitions} className="min-h-[100dvh] pb-24 overflow-x-clip bg-background-light dark:bg-background-dark">
             {/* Header */}
             <PageHeader
                 title="体重曲线"
@@ -404,16 +404,18 @@ export default function WeightTrend() {
             />
 
             {/* 删除确认 */}
-            <Modal
-                isOpen={!!pendingDelete}
-                onClose={() => setPendingDelete(null)}
+            <ConfirmDialog
+                open={!!pendingDelete}
+                onOpenChange={(open) => {
+                    if (!open) setPendingDelete(null);
+                }}
                 onConfirm={handleConfirmDelete}
                 title="删除该条记录？"
-                message={pendingDelete ? `${longDate(pendingDelete.recorded_date)}：${Number(pendingDelete.weight).toFixed(1)} kg` : ''}
+                description={pendingDelete ? `${longDate(pendingDelete.recorded_date)}：${Number(pendingDelete.weight).toFixed(1)} kg` : ''}
                 confirmText="删除"
                 cancelText="取消"
-                type="danger"
+                destructive
             />
-        </motion.div>
+        </Motion.div>
     );
 }

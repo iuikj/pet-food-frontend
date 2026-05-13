@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { usePets } from '../hooks/usePets';
 import OnboardingLayout from '../components/OnboardingLayout';
 import EnhancedTagSelect from '../components/EnhancedTagSelect';
+import { InlineTagInput } from '../components/ui/form-fields';
 
 export default function OnboardingHealth() {
     const navigate = useNavigate();
@@ -141,10 +142,9 @@ export default function OnboardingHealth() {
                                         </button>
                                     </span>
                                 ))}
-                                <input
-                                    className="flex-1 min-w-[100px] border-none focus:ring-0 bg-transparent text-sm text-text-main-light dark:text-text-main-dark p-0"
+                                <InlineTagInput
+                                    className="min-w-[100px]"
                                     placeholder="输入过敏原后按回车添加"
-                                    type="text"
                                     value={allergenInput}
                                     onChange={(e) => setAllergenInput(e.target.value)}
                                     onKeyDown={(e) => {
@@ -185,10 +185,9 @@ export default function OnboardingHealth() {
                                         </button>
                                     </span>
                                 ))}
-                                <input
-                                    className="flex-1 min-w-[100px] border-none focus:ring-0 bg-transparent text-sm text-text-main-light dark:text-text-main-dark p-0"
+                                <InlineTagInput
+                                    className="min-w-[100px]"
                                     placeholder="输入健康问题后按回车添加"
-                                    type="text"
                                     value={issueInput}
                                     onChange={(e) => setIssueInput(e.target.value)}
                                     onKeyDown={(e) => {

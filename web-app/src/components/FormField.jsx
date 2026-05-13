@@ -1,5 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState } from 'react';
+import { motion as Motion, AnimatePresence } from 'framer-motion';
+import { Field, FieldError, FieldLabel } from './ui/field';
+import { Input } from './ui/input';
 
 /**
  * 自定义表单字段组件
@@ -34,11 +36,6 @@ export default function FormField({
 }) {
     const [showPassword, setShowPassword] = useState(false);
     const [touched, setTouched] = useState(false);
-    const [internalError, setInternalError] = useState('');
-
-    // 使用外部错误或内部验证错误
-    const displayError = externalError || (touched ? internalError : '');
-    const hasError = !!displayError;
 
     // 验证逻辑
     const validateField = (val) => {
@@ -68,60 +65,58 @@ export default function FormField({
         return '';
     };
 
+    // 使用外部错误或内部验证错误
+    const displayError = externalError || (touched ? validateField(value) : '');
+    const hasError = !!displayError;
+
     // 失焦时触发验证
     const handleBlur = () => {
         setTouched(true);
-        setInternalError(validateField(value));
     };
-
-    // 值变化时重新验证（仅在已触摸后）
-    useEffect(() => {
-        if (touched) {
-            setInternalError(validateField(value));
-        }
-    }, [value, touched]);
 
     const inputType = showPasswordToggle && type === 'password'
         ? (showPassword ? 'text' : 'password')
         : type;
 
     return (
-        <div className={`space-y-1 ${className}`}>
+        <Field className={`items-stretch gap-1 ${className}`}>
             {label && (
-                <label
+                <FieldLabel
                     className="text-xs font-bold text-text-muted-light uppercase tracking-wider ml-1"
                     htmlFor={id}
                 >
                     {label}
                     {required && <span className="text-red-500 ml-0.5">*</span>}
-                </label>
+                </FieldLabel>
             )}
 
-            <div
-                className={`
-                    bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm 
-                    border-2 transition-all duration-200
-                    flex items-center px-4 py-3
-                    ${hasError
-                        ? 'border-red-400 focus-within:border-red-500 focus-within:ring-4 focus-within:ring-red-500/10'
-                        : 'border-transparent focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/10'
-                    }
-                `}
-            >
+            <div className="relative w-full">
                 {icon && (
-                    <span className={`material-icons-round mr-3 ${hasError ? 'text-red-400' : 'text-text-muted-light'}`}>
+                    <span className={`material-icons-round pointer-events-none absolute left-4 top-1/2 z-10 -translate-y-1/2 ${hasError ? 'text-red-400' : 'text-text-muted-light'}`}>
                         {icon}
                     </span>
                 )}
 
-                <input
+                <Input
+                    aria-invalid={hasError || undefined}
+                    className={`
+                        w-full bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm transition-all duration-200
+                        ${hasError
+                            ? 'border-red-400 focus-within:border-red-500 focus-within:ring-4 focus-within:ring-red-500/10'
+                            : 'border-transparent focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/10'
+                        }
+                        [&_[data-slot=input]]:h-auto [&_[data-slot=input]]:py-3 [&_[data-slot=input]]:text-sm [&_[data-slot=input]]:font-medium [&_[data-slot=input]]:focus:ring-0
+                        ${icon ? '[&_[data-slot=input]]:pl-12' : '[&_[data-slot=input]]:pl-4'}
+                        ${showPasswordToggle && type === 'password' ? '[&_[data-slot=input]]:pr-12' : '[&_[data-slot=input]]:pr-4'}
+                    `}
                     id={id}
-                    type={inputType}
-                    value={value}
-                    onChange={(e) => onChange(e.target.value)}
+                    nativeInput
                     onBlur={handleBlur}
+                    onChange={(e) => onChange(e.target.value)}
                     placeholder={placeholder}
-                    className="bg-transparent border-none p-0 w-full text-sm font-medium focus:ring-0 focus:outline-none placeholder-gray-400"
+                    type={inputType}
+                    unstyled
+                    value={value}
                     {...props}
                 />
 
@@ -130,7 +125,7 @@ export default function FormField({
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
                         aria-label={showPassword ? '隐藏密码' : '显示密码'}
-                        className="text-text-muted-light hover:text-text-main-light focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded transition-colors ml-2 active:scale-95 cursor-pointer"
+                        className="absolute right-3 top-1/2 z-10 -translate-y-1/2 rounded text-text-muted-light transition-colors hover:text-text-main-light focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 active:scale-95 cursor-pointer"
                     >
                         <span className="material-icons-round">
                             {showPassword ? 'visibility' : 'visibility_off'}
@@ -139,21 +134,24 @@ export default function FormField({
                 )}
             </div>
 
-            {/* 错误提示 */}
             <AnimatePresence>
                 {displayError && (
-                    <motion.p
+                    <Motion.div
                         initial={{ opacity: 0, y: -5, height: 0 }}
                         animate={{ opacity: 1, y: 0, height: 'auto' }}
                         exit={{ opacity: 0, y: -5, height: 0 }}
                         transition={{ duration: 0.2 }}
-                        className="text-sm text-red-500 ml-1 flex items-center gap-1"
                     >
-                        <span className="material-icons-round text-sm">error_outline</span>
-                        {displayError}
-                    </motion.p>
+                        <FieldError
+                            className="ml-1 flex items-center gap-1 text-sm text-red-500"
+                            match={false}
+                        >
+                            <span className="material-icons-round text-sm">error_outline</span>
+                            {displayError}
+                        </FieldError>
+                    </Motion.div>
                 )}
             </AnimatePresence>
-        </div>
+        </Field>
     );
 }

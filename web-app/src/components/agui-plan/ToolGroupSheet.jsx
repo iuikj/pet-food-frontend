@@ -1,5 +1,3 @@
-import { useEffect } from 'react';
-import { AnimatePresence, motion } from 'framer-motion'; // eslint-disable-line no-unused-vars
 import {
     X,
     FileText,
@@ -13,7 +11,18 @@ import {
     Circle,
     Loader2,
 } from 'lucide-react';
+import { useEffect } from 'react';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { registerBackButtonHandler } from '@/hooks/useBackButton';
+import {
+    Drawer,
+    DrawerClose,
+    DrawerHeader,
+    DrawerPanel,
+    DrawerPopup,
+    DrawerTitle,
+} from '@/components/ui/drawer';
 import {
     ChainOfThought,
     ChainOfThoughtContent,
@@ -28,13 +37,6 @@ import {
     isTaskDispatchToolEvent,
 } from './ToolGroupChip';
 import { toAiSdkSources } from '@/lib/aiElementsAdapter';
-
-const overlayVariants = { hidden: { opacity: 0 }, visible: { opacity: 1 } };
-const panelVariants = {
-    hidden: { y: '100%', opacity: 0 },
-    visible: { y: 0, opacity: 1, transition: { type: 'spring', damping: 28, stiffness: 320 } },
-    exit: { y: '100%', opacity: 0, transition: { duration: 0.2 } },
-};
 
 // === Step 映射常量 ===
 
@@ -313,21 +315,6 @@ function SearchSourcesChildren({ sources }) {
 
 // === Sheet 主组件 ===
 
-const SHEET_HEIGHT_VH = 75;
-const CLOSE_OFFSET_PX = 80;
-const CLOSE_VELOCITY_PX_S = 500;
-
-function useBodyScrollLock(active) {
-    useEffect(() => {
-        if (!active) return undefined;
-        const prev = document.body.style.overflow;
-        document.body.style.overflow = 'hidden';
-        return () => {
-            document.body.style.overflow = prev;
-        };
-    }, [active]);
-}
-
 export default function ToolGroupSheet({ open, events = [], allEvents, onClose }) {
     const merged = mergeConsecutiveReasoning(events).filter(
         (ev) => !isPhaseMarkerEvent(ev) && !isTaskDispatchToolEvent(ev),
@@ -335,94 +322,62 @@ export default function ToolGroupSheet({ open, events = [], allEvents, onClose }
     // 详情页传入 allEvents（task 全量事件，含 mainStream + 所有 buckets）；主流页未传时退化为 events
     const lookupPool = Array.isArray(allEvents) ? allEvents : events;
 
-    useBodyScrollLock(open);
-
-    const handleDragEnd = (_e, info) => {
-        if (info.offset.y > CLOSE_OFFSET_PX || info.velocity.y > CLOSE_VELOCITY_PX_S) {
+    useEffect(() => {
+        if (!open) return undefined;
+        return registerBackButtonHandler(() => {
             onClose?.();
-        }
-    };
+            return true;
+        });
+    }, [open, onClose]);
 
     return (
-        <AnimatePresence>
-            {open && (
-                <>
-                    <motion.div
-                        className="fixed inset-0 z-50 bg-black/30 backdrop-blur-sm"
-                        variants={overlayVariants}
-                        initial="hidden"
-                        animate="visible"
-                        exit="hidden"
-                        onClick={onClose}
-                    />
-                    <motion.div
-                        className="fixed inset-x-0 bottom-0 z-50 mx-auto flex w-full max-w-[430px] flex-col overflow-hidden rounded-t-2xl bg-white dark:bg-gray-900"
-                        style={{ height: `${SHEET_HEIGHT_VH}vh` }}
-                        variants={panelVariants}
-                        initial="hidden"
-                        animate="visible"
-                        exit="exit"
-                        drag="y"
-                        dragConstraints={{ top: 0, bottom: 0 }}
-                        dragElastic={{ top: 0, bottom: 0.5 }}
-                        dragMomentum={false}
-                        onDragEnd={handleDragEnd}
+        <Drawer open={open} onOpenChange={(nextOpen) => !nextOpen && onClose?.()} position="bottom">
+            <DrawerPopup
+                className="mx-auto max-w-[430px] bg-white dark:bg-gray-900 [--drawer-height:75vh]"
+                showBar
+            >
+                <DrawerHeader className="grid grid-cols-[40px_1fr_40px] items-center border-b border-gray-100 px-2 py-3 dark:border-gray-800">
+                    <span aria-hidden className="block size-8" />
+                    <DrawerTitle className="text-center text-[15px] font-semibold text-gray-900 dark:text-gray-100">
+                        详情
+                    </DrawerTitle>
+                    <DrawerClose
+                        aria-label="关闭详情"
+                        className="ml-auto text-gray-400 hover:bg-gray-100 dark:text-gray-500 dark:hover:bg-gray-800"
+                        render={<Button size="icon-sm" variant="ghost" />}
                     >
-                        {/* 拖拽区:把手 + 居中标题 + 关闭按钮 */}
-                        <div className="cursor-grab touch-none select-none active:cursor-grabbing">
-                            <div className="flex justify-center pt-2 pb-1">
-                                <div className="h-1 w-9 rounded-full bg-gray-300 dark:bg-gray-600" />
-                            </div>
-                            <div className="grid grid-cols-[40px_1fr_40px] items-center border-b border-gray-100 dark:border-gray-800 px-2 py-2">
-                                <span aria-hidden className="block size-8" />
-                                <h3 className="text-center text-[15px] font-semibold text-gray-900 dark:text-gray-100">
-                                    详情
-                                </h3>
-                                <button
-                                    type="button"
-                                    onClick={onClose}
-                                    className="ml-auto flex size-8 items-center justify-center rounded-full text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
-                                    aria-label="关闭详情"
-                                >
-                                    <X className="size-4" />
-                                </button>
-                            </div>
-                        </div>
+                        <X className="size-4" />
+                    </DrawerClose>
+                </DrawerHeader>
 
-                        {/* 内容区:独立 scroll,overscroll 不穿透 */}
-                        <div
-                            className="flex-1 overflow-y-auto px-4 py-3"
-                            style={{ overscrollBehavior: 'contain' }}
-                        >
-                            {merged.length === 0 ? (
-                                <p className="py-6 text-center text-[13px] text-gray-400 dark:text-gray-500">暂无事件</p>
-                            ) : (
-                                <ChainOfThought defaultOpen>
-                                    <ChainOfThoughtContent>
-                                        {merged.map((ev, i) => {
-                                            const step = mapEventToStep(ev, lookupPool);
-                                            const key =
-                                                ev.detail?.call_id ||
-                                                ev.detail?.message_id ||
-                                                `${step.keyHint}-${i}`;
-                                            return (
-                                                <ChainOfThoughtStep
-                                                    key={key}
-                                                    icon={step.icon}
-                                                    label={step.label}
-                                                    status={step.status}
-                                                >
-                                                    {step.children}
-                                                </ChainOfThoughtStep>
-                                            );
-                                        })}
-                                    </ChainOfThoughtContent>
-                                </ChainOfThought>
-                            )}
-                        </div>
-                    </motion.div>
-                </>
-            )}
-        </AnimatePresence>
+                <DrawerPanel className="px-4 py-3" scrollFade={false}>
+                    {merged.length === 0 ? (
+                        <p className="py-6 text-center text-[13px] text-gray-400 dark:text-gray-500">暂无事件</p>
+                    ) : (
+                        <ChainOfThought defaultOpen>
+                            <ChainOfThoughtContent>
+                                {merged.map((ev, i) => {
+                                    const step = mapEventToStep(ev, lookupPool);
+                                    const key =
+                                        ev.detail?.call_id ||
+                                        ev.detail?.message_id ||
+                                        `${step.keyHint}-${i}`;
+                                    return (
+                                        <ChainOfThoughtStep
+                                            key={key}
+                                            icon={step.icon}
+                                            label={step.label}
+                                            status={step.status}
+                                        >
+                                            {step.children}
+                                        </ChainOfThoughtStep>
+                                    );
+                                })}
+                            </ChainOfThoughtContent>
+                        </ChainOfThought>
+                    )}
+                </DrawerPanel>
+            </DrawerPopup>
+        </Drawer>
     );
 }

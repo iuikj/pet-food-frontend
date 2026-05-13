@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Toast } from '@capacitor/toast';
+import { motion as Motion, AnimatePresence } from 'framer-motion';
 import { pageTransitions } from '../utils/animations';
 import { usePlanGeneration } from '../hooks/usePlanGeneration';
 import { usePets } from '../hooks/usePets';
 import { plansApi } from '../api';
 import { transformPetDietPlan } from '../models/dietPlan';
+import { showToast } from '../utils/toast';
 import PlanDetails from './PlanDetails';
 import Skeleton from '../components/ui/Skeleton';
 import PageHeader from '../components/layout/PageHeader';
@@ -31,7 +31,7 @@ export default function PlanSummary() {
     // 支持从食谱列表页通过 planId 路由跳转查看
     const routePlanId = location.state?.planId;
     const [routeResult, setRouteResult] = useState(null);
-    const [routeLoading, setRouteLoading] = useState(false);
+    const [routeLoading, setRouteLoading] = useState(Boolean(routePlanId));
 
     // 确定展示用的 planId — 优先路由传入，其次生成产出
     const effectivePlanId = routePlanId || generatedPlanId;
@@ -40,7 +40,9 @@ export default function PlanSummary() {
     useEffect(() => {
         if (!routePlanId) return;
         let cancelled = false;
-        setRouteLoading(true);
+        requestAnimationFrame(() => {
+            if (!cancelled) setRouteLoading(true);
+        });
         plansApi.getPlan(routePlanId).then(res => {
             if (cancelled) return;
             if (res.code === 0 && res.data) {
@@ -62,7 +64,6 @@ export default function PlanSummary() {
     const displayResult = routePlanId ? routeResult : result;
 
     // 从转换后的 result 提取数据（统一格式：{ ai_suggestions, weeks[] }）
-    const aiSuggestions = displayResult?.ai_suggestions || '';
     const weeks = displayResult?.weeks || [];
     const petName = currentPet?.name || '您的爱宠';
     const healthStatus = currentPet?.health_status || '';
@@ -85,7 +86,7 @@ export default function PlanSummary() {
     // 没有 result 且不是 completed 状态 → 空状态引导
     if (routeLoading) {
         return (
-            <motion.div {...pageTransitions} className="pb-28 overflow-x-clip">
+            <Motion.div {...pageTransitions} className="pb-28 overflow-x-clip">
                 <PageHeader
                     onBack={() => navigate(-1)}
                     title={
@@ -130,13 +131,13 @@ export default function PlanSummary() {
                         ))}
                     </div>
                 </main>
-            </motion.div>
+            </Motion.div>
         );
     }
 
     if (!displayResult && status !== 'completed') {
         return (
-            <motion.div {...pageTransitions} className="pb-28 overflow-x-clip">
+            <Motion.div {...pageTransitions} className="pb-28 overflow-x-clip">
                 <PageHeader title="专属计划" onBack={() => navigate('/')} />
                 <main className="px-6 flex flex-col items-center justify-center min-h-[60vh]">
                     <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-6">
@@ -154,12 +155,12 @@ export default function PlanSummary() {
                         创建计划
                     </button>
                 </main>
-            </motion.div>
+            </Motion.div>
         );
     }
 
     return (
-        <motion.div {...pageTransitions} className="pb-28 overflow-x-clip">
+        <Motion.div {...pageTransitions} className="pb-28 overflow-x-clip">
             <PageHeader
                 title={`${petName} 的专属计划`}
                 subtitle={`${weeks.length} 周 • ${healthStatus || '定制营养方案'}`}
@@ -237,17 +238,17 @@ export default function PlanSummary() {
                                         <span className="material-icons-round text-primary text-lg">event_note</span>
                                         <h4 className="font-bold text-base">第 {currentWeek.week} 周 饮食原则</h4>
                                     </div>
-                                    <motion.span
+                                    <Motion.span
                                         className="material-icons-round text-text-muted-light dark:text-text-muted-dark text-lg"
                                         animate={{ rotate: isPrincipleExpanded ? 180 : 0 }}
                                         transition={{ duration: 0.2 }}
                                     >
                                         expand_more
-                                    </motion.span>
+                                    </Motion.span>
                                 </button>
                                 <AnimatePresence initial={false}>
                                     {isPrincipleExpanded && (
-                                        <motion.div
+                                        <Motion.div
                                             initial={{ height: 0, opacity: 0 }}
                                             animate={{ height: 'auto', opacity: 1 }}
                                             exit={{ height: 0, opacity: 0 }}
@@ -267,7 +268,7 @@ export default function PlanSummary() {
                                                     </div>
                                                 )}
                                             </div>
-                                        </motion.div>
+                                        </Motion.div>
                                     )}
                                 </AnimatePresence>
                             </div>
@@ -358,17 +359,17 @@ export default function PlanSummary() {
                                     <span className="material-icons-round text-primary">verified</span>
                                     <h3 className="font-bold text-text-main-light dark:text-text-main-dark">第 {currentWeek.week} 周建议</h3>
                                 </div>
-                                <motion.span
+                                <Motion.span
                                     className="material-icons-round text-text-muted-light dark:text-text-muted-dark text-lg"
                                     animate={{ rotate: isSuggestionsExpanded ? 180 : 0 }}
                                     transition={{ duration: 0.2 }}
                                 >
                                     expand_more
-                                </motion.span>
+                                </Motion.span>
                             </button>
                             <AnimatePresence initial={false}>
                                 {isSuggestionsExpanded && (
-                                    <motion.div
+                                    <Motion.div
                                         initial={{ height: 0, opacity: 0 }}
                                         animate={{ height: 'auto', opacity: 1 }}
                                         exit={{ height: 0, opacity: 0 }}
@@ -390,7 +391,7 @@ export default function PlanSummary() {
                                                 </div>
                                             )}
                                         </div>
-                                    </motion.div>
+                                    </Motion.div>
                                 )}
                             </AnimatePresence>
                         </div>
@@ -413,11 +414,7 @@ export default function PlanSummary() {
                                         setActivePlanData(currentPet.id, displayResult);
                                     }
                                     setIsSaved(true);
-                                    try {
-                                        await Toast.show({ text: '食谱已保存并应用', duration: 'short' });
-                                    } catch {
-                                        // Capacitor Toast 在 web 环境可能不可用
-                                    }
+                                    await showToast.success('食谱已保存并应用');
                                 } catch (err) {
                                     console.error('Confirm plan failed, fallback to local:', err);
                                     // 降级：confirm 失败时仍本地应用（计划数据已在前端）
@@ -426,11 +423,7 @@ export default function PlanSummary() {
                                         setActivePlanData(currentPet.id, displayResult);
                                     }
                                     setIsSaved(true);
-                                    try {
-                                        await Toast.show({ text: '食谱已本地应用（云端保存失败）', duration: 'short' });
-                                    } catch {
-                                        // ignore
-                                    }
+                                    await showToast.info('食谱已本地应用（云端保存失败）');
                                 }
                             }}
                             disabled={isCurrentPlanActive || isSaved}
@@ -473,6 +466,6 @@ export default function PlanSummary() {
                     />
                 )}
             </AnimatePresence>
-        </motion.div>
+        </Motion.div>
     );
 }

@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion as Motion } from 'framer-motion';
 import usePhotoSelect from '../hooks/usePhotoSelect';
 import SecureImage from '../components/SecureImage';
 import PageHeader from '../components/layout/PageHeader';
+import { FormTextField } from '../components/ui/form-fields';
 import { useUser } from '../hooks/useUser';
 
 export default function ProfileEdit() {
@@ -95,7 +96,7 @@ export default function ProfileEdit() {
     }
 
     return (
-        <motion.div
+        <Motion.div
             initial={{ opacity: 0, x: 50 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -50 }}
@@ -143,60 +144,34 @@ export default function ProfileEdit() {
                 </div>
 
                 <div className="space-y-5">
-                    <div className="space-y-2">
-                        <label className="block text-sm font-semibold text-text-main-light dark:text-text-main-dark">
-                            昵称
-                        </label>
-                        <div className="relative bg-white dark:bg-surface-dark rounded-2xl shadow-soft transition-all focus-within:ring-2 focus-within:ring-primary/50 focus-within:shadow-glow">
-                            <span className="absolute left-4 top-1/2 -translate-y-1/2 material-icons-round text-text-muted-light dark:text-text-muted-dark text-xl">
-                                person
-                            </span>
-                            <input
-                                type="text"
-                                name="nickname"
-                                value={formData.nickname}
-                                onChange={handleInputChange}
-                                className="w-full bg-transparent border-none py-4 pl-12 pr-4 text-text-main-light dark:text-text-main-dark focus:ring-0 rounded-2xl"
-                                placeholder="请输入昵称"
-                            />
-                        </div>
-                    </div>
+                    <FormTextField
+                        label="昵称"
+                        icon="person"
+                        type="text"
+                        name="nickname"
+                        value={formData.nickname}
+                        onChange={handleInputChange}
+                        placeholder="请输入昵称"
+                    />
 
-                    <div className="space-y-2">
-                        <label className="block text-sm font-semibold text-text-main-light dark:text-text-main-dark">
-                            邮箱 <span className="text-text-muted-light dark:text-text-muted-dark font-normal">(不可修改)</span>
-                        </label>
-                        <div className="relative bg-gray-100 dark:bg-gray-800 rounded-2xl shadow-soft">
-                            <span className="absolute left-4 top-1/2 -translate-y-1/2 material-icons-round text-text-muted-light dark:text-text-muted-dark text-xl">
-                                email
-                            </span>
-                            <input
-                                type="email"
-                                value={user?.email || ''}
-                                disabled
-                                className="w-full bg-transparent border-none py-4 pl-12 pr-4 text-text-muted-light dark:text-text-muted-dark rounded-2xl cursor-not-allowed"
-                            />
-                        </div>
-                    </div>
+                    <FormTextField
+                        label="邮箱 (不可修改)"
+                        icon="email"
+                        type="email"
+                        value={user?.email || ''}
+                        disabled
+                        inputClassName="bg-gray-100 dark:bg-gray-800 [&_[data-slot=input]]:cursor-not-allowed [&_[data-slot=input]]:text-text-muted-light dark:[&_[data-slot=input]]:text-text-muted-dark"
+                    />
 
-                    <div className="space-y-2">
-                        <label className="block text-sm font-semibold text-text-main-light dark:text-text-main-dark">
-                            手机号 <span className="text-text-muted-light dark:text-text-muted-dark font-normal">(可选)</span>
-                        </label>
-                        <div className="relative bg-white dark:bg-surface-dark rounded-2xl shadow-soft transition-all focus-within:ring-2 focus-within:ring-primary/50 focus-within:shadow-glow">
-                            <span className="absolute left-4 top-1/2 -translate-y-1/2 material-icons-round text-text-muted-light dark:text-text-muted-dark text-xl">
-                                phone
-                            </span>
-                            <input
-                                type="tel"
-                                name="phone"
-                                value={formData.phone}
-                                onChange={handleInputChange}
-                                className="w-full bg-transparent border-none py-4 pl-12 pr-4 text-text-main-light dark:text-text-main-dark focus:ring-0 rounded-2xl"
-                                placeholder="请输入手机号"
-                            />
-                        </div>
-                    </div>
+                    <FormTextField
+                        label="手机号 (可选)"
+                        icon="phone"
+                        type="tel"
+                        name="phone"
+                        value={formData.phone}
+                        onChange={handleInputChange}
+                        placeholder="请输入手机号"
+                    />
                 </div>
 
                 {user?.is_pro && (
@@ -233,6 +208,6 @@ export default function ProfileEdit() {
                     )}
                 </button>
             </div>
-        </motion.div>
+        </Motion.div>
     );
 }

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion as Motion, AnimatePresence } from 'framer-motion';
 import StepIndicator from './StepIndicator';
 
 /**
@@ -22,7 +22,10 @@ export default function OnboardingLayout({
 
     return (
         <div className="flex flex-col min-h-[100dvh] bg-background-light dark:bg-background-dark overflow-hidden">
-            <header className="flex-shrink-0 px-6 pt-12 pb-4 flex items-center justify-between bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-md z-50">
+            <header
+                className="flex-shrink-0 px-6 pb-4 flex items-center justify-between bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-md z-50"
+                style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 1rem)' }}
+            >
                 <Link
                     to={backLink}
                     className="w-10 h-10 rounded-full bg-white dark:bg-surface-dark shadow-sm flex items-center justify-center text-text-muted-light dark:text-text-muted-dark hover:text-primary transition-colors"
@@ -43,7 +46,7 @@ export default function OnboardingLayout({
 
             <main className="flex-1 overflow-y-auto overflow-x-clip px-6">
                 <AnimatePresence mode="wait">
-                    <motion.div
+                    <Motion.div
                         key={location.pathname}
                         initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
@@ -52,12 +55,12 @@ export default function OnboardingLayout({
                         className="w-full max-w-lg mx-auto pb-32"
                     >
                         {children}
-                    </motion.div>
+                    </Motion.div>
                 </AnimatePresence>
             </main>
 
             {showNextButton && (
-                <div className="flex-shrink-0 px-6 pb-6 pt-4 bg-background-light dark:bg-background-dark border-t border-gray-100 dark:border-gray-800 safe-area-bottom">
+                <div className="flex-shrink-0 px-6 pt-4 bg-background-light dark:bg-background-dark border-t border-gray-100 dark:border-gray-800" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1.5rem)' }}>
                     <button
                         onClick={onNext}
                         disabled={nextDisabled || isSubmitting}

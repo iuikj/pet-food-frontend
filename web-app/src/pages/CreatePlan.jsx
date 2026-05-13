@@ -5,6 +5,7 @@ import { Eye, Workflow } from 'lucide-react';
 import SecureImage from '../components/SecureImage';
 import PetIcon from '../components/icons/PetIcon';
 import PageHeader from '../components/layout/PageHeader';
+import { FormTextareaField } from '../components/ui/form-fields';
 import { pageTransitions } from '../utils/animations';
 import { usePets } from '../hooks/usePets';
 import { formatPetAge } from '../utils/petUtils';
@@ -317,17 +318,17 @@ export default function Home() {
                         <p className="text-sm text-text-muted-light dark:text-text-muted-dark mt-1 pl-8">描述它的特殊需求或健康目标。</p>
                     </div>
                     <div className="bg-white dark:bg-surface-dark p-5 rounded-3xl shadow-soft hover:shadow-medium transition-all duration-300 space-y-4">
-                        <div className="relative">
-                            <textarea
-                                value={requirement}
-                                onChange={(e) => setRequirement(e.target.value)}
-                                className="w-full bg-background-light dark:bg-background-dark border-0 rounded-2xl p-4 text-sm min-h-[140px] resize-none focus:ring-2 focus:ring-primary/50 focus:shadow-glow transition-all duration-200 placeholder-text-muted-light/50 dark:placeholder-text-muted-dark/50"
-                                placeholder={selectedPet
-                                    ? `例如：${selectedPet.name}最近有点超重，我想给它制定一个减肥计划。希望能增加关节保护的营养...`
-                                    : '例如：我的宠物最近有点超重，我想给它制定一个减肥计划...'
-                                }
-                            ></textarea>
-                        </div>
+                        <FormTextareaField
+                            label=""
+                            value={requirement}
+                            onChange={(e) => setRequirement(e.target.value)}
+                            rows={5}
+                            className="gap-0"
+                            placeholder={selectedPet
+                                ? `例如：${selectedPet.name}最近有点超重，我想给它制定一个减肥计划。希望能增加关节保护的营养...`
+                                : '例如：我的宠物最近有点超重，我想给它制定一个减肥计划...'
+                            }
+                        />
                         <div className="space-y-2">
                             <p className="text-xs font-semibold text-text-muted-light dark:text-text-muted-dark uppercase tracking-wide">推荐标签</p>
                             <div className="flex flex-wrap gap-2">

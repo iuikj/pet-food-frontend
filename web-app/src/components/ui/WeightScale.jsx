@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useCallback, useState } from 'react';
+import { Input } from './input';
 
 const TICK_WIDTH = 8; // px per 0.1kg tick
 const TICKS_PER_KG = 10;
@@ -115,9 +116,13 @@ export default function WeightScale({ value = 0, onChange, min = 0, max = 100, s
     return (
         <div className="w-full space-y-3">
             {/* 数字显示 — 点击可直接输入 */}
-            <div className="flex items-baseline justify-center gap-1">
+                <div className="flex items-baseline justify-center gap-1">
                 {editing ? (
-                    <input
+                    <Input
+                        aria-label="体重输入"
+                        className="w-24 border-none bg-transparent shadow-none ring-0 before:hidden focus-within:ring-0 [&_[data-slot=input]]:h-auto [&_[data-slot=input]]:border-b-2 [&_[data-slot=input]]:border-primary [&_[data-slot=input]]:bg-transparent [&_[data-slot=input]]:px-0 [&_[data-slot=input]]:py-0 [&_[data-slot=input]]:text-center [&_[data-slot=input]]:text-4xl [&_[data-slot=input]]:font-bold [&_[data-slot=input]]:text-text-main-light dark:[&_[data-slot=input]]:text-text-main-dark [&_[data-slot=input]]:focus:ring-0"
+                        nativeInput
+                        unstyled
                         type="number"
                         step="0.1"
                         autoFocus
@@ -130,7 +135,6 @@ export default function WeightScale({ value = 0, onChange, min = 0, max = 100, s
                                 handleDirectInput();
                             }
                         }}
-                        className="w-24 text-center text-4xl font-bold bg-transparent border-b-2 border-primary text-text-main-light dark:text-text-main-dark focus:outline-none"
                     />
                 ) : (
                     <button

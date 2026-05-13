@@ -1,11 +1,32 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion as Motion, AnimatePresence } from 'framer-motion';
 import IngredientIcon from './IngredientIcon';
+import { Button } from './ui/button';
+import {
+    Drawer,
+    DrawerFooter,
+    DrawerHeader,
+    DrawerPanel,
+    DrawerPopup,
+    DrawerTitle,
+} from './ui/drawer';
+import { Field, FieldError, FieldLabel } from './ui/field';
+import { Input } from './ui/input';
+import {
+    Select,
+    SelectItem,
+    SelectPopup,
+    SelectTrigger,
+    SelectValue,
+} from './ui/select';
+import { Textarea } from './ui/textarea';
 import {
     EMOJI_MAP,
     listEmojiKeys,
     listMaterialIconKeys,
 } from '../utils/ingredientIcons';
+import { registerBackButtonHandler } from '../hooks/useBackButton';
+import { showToast } from '../utils/toast';
 
 /**
  * 食材表单抽屉
@@ -81,6 +102,15 @@ const EMPTY_FORM = {
     icon_key: '',
 };
 
+function uniqueNonEmpty(values) {
+    const set = new Set();
+    for (const value of values) {
+        const nextValue = String(value || '').trim();
+        if (nextValue) set.add(nextValue);
+    }
+    return Array.from(set);
+}
+
 export default function IngredientFormSheet({
     isOpen,
     onClose,
@@ -122,29 +152,85 @@ export default function IngredientFormSheet({
         setOpenGroups({ mineral: false, vitamin: false, fatty: false, other: false });
     }, [isOpen, initial]);
 
-    const categoryOptions = useMemo(() => {
-        const set = new Set();
-        for (const c of categories) {
-            if (c?.category) set.add(c.category);
-        }
-        return Array.from(set);
-    }, [categories]);
+    useEffect(() => {
+        if (!isOpen) return undefined;
+        return registerBackButtonHandler(() => {
+            if (saving) return true;
+            onClose?.();
+            return true;
+        });
+    }, [isOpen, onClose, saving]);
+
+    const categoryOptions = useMemo(
+        () => uniqueNonEmpty(categories.map((c) => c?.category)),
+        [categories],
+    );
 
     const subCategoryOptions = useMemo(() => {
         if (!basic.category) return [];
-        const set = new Set();
-        for (const c of categories) {
-            if (c?.category === basic.category && c?.sub_category) set.add(c.sub_category);
-        }
-        return Array.from(set);
+        return uniqueNonEmpty(
+            categories
+                .filter((c) => c?.category === basic.category)
+                .map((c) => c?.sub_category),
+        );
     }, [categories, basic.category]);
+
+    const hasCategoryOptions = categoryOptions.length > 0;
+    const hasSubCategoryOptions = subCategoryOptions.length > 0;
+    const categoryIsStale = Boolean(basic.category) && !categoryOptions.includes(basic.category);
+    const subCategoryIsStale = Boolean(basic.sub_category) && !subCategoryOptions.includes(basic.sub_category);
+
+    const categorySelectItems = useMemo(() => {
+        const items = categoryOptions.map((value) => ({ value, label: value, stale: false }));
+        if (categoryIsStale) {
+            items.unshift({
+                value: basic.category,
+                label: `${basic.category}（已不可用）`,
+                stale: true,
+            });
+        }
+        return items;
+    }, [basic.category, categoryIsStale, categoryOptions]);
+
+    const subCategorySelectItems = useMemo(() => {
+        const items = subCategoryOptions.map((value) => ({ value, label: value, stale: false }));
+        if (subCategoryIsStale) {
+            items.unshift({
+                value: basic.sub_category,
+                label: `${basic.sub_category}（已不可用）`,
+                stale: true,
+            });
+        }
+        return items;
+    }, [basic.sub_category, subCategoryIsStale, subCategoryOptions]);
 
     const handleBasicChange = (key) => (e) => {
         setBasic((prev) => ({ ...prev, [key]: e.target.value }));
     };
 
+    const handleCategoryChange = (value) => {
+        setBasic((prev) => ({
+            ...prev,
+            category: value || '',
+            sub_category: '',
+        }));
+    };
+
+    const handleSubCategoryChange = (value) => {
+        setBasic((prev) => ({ ...prev, sub_category: value || '' }));
+    };
+
     const handleNutChange = (key) => (e) => {
         setNutrients((prev) => ({ ...prev, [key]: e.target.value }));
+    };
+
+    const setError = async (message) => {
+        setErrorMsg(message);
+        try {
+            await showToast.error(message);
+        } catch {
+            // Toast failure should never block form validation feedback.
+        }
     };
 
     const handleSubmit = async () => {
@@ -152,11 +238,31 @@ export default function IngredientFormSheet({
         const category = basic.category.trim();
         const sub_category = basic.sub_category.trim();
         if (!name) {
-            setErrorMsg('请输入食材名称');
+            await setError('请输入食材名称');
             return;
         }
-        if (!category || !sub_category) {
-            setErrorMsg('请填写大类别和子类别');
+        if (!hasCategoryOptions) {
+            await setError('分类数据不可用，请稍后重试');
+            return;
+        }
+        if (!category) {
+            await setError('请选择大类别');
+            return;
+        }
+        if (categoryIsStale) {
+            await setError('当前大类别已不可用，请重新选择');
+            return;
+        }
+        if (!hasSubCategoryOptions) {
+            await setError('当前大类别暂无可用子类别');
+            return;
+        }
+        if (!sub_category) {
+            await setError('请选择子类别');
+            return;
+        }
+        if (subCategoryIsStale) {
+            await setError('当前子类别已不可用，请重新选择');
             return;
         }
 
@@ -176,7 +282,7 @@ export default function IngredientFormSheet({
             }
             const num = Number(raw);
             if (!Number.isFinite(num) || num < 0) {
-                setErrorMsg(`营养字段数值无效：${key}`);
+                await setError(`营养字段数值无效：${key}`);
                 return;
             }
             payload[key] = num;
@@ -187,9 +293,14 @@ export default function IngredientFormSheet({
         try {
             const res = await onSubmit?.(payload);
             if (res?.success) {
+                try {
+                    await showToast.success(isEdit ? '食材已更新' : '食材已创建');
+                } catch {
+                    // Inline state and closing behavior are enough if toast is unavailable.
+                }
                 onClose?.();
             } else {
-                setErrorMsg(res?.message || '保存失败');
+                await setError(res?.message || '保存失败');
             }
         } finally {
             setSaving(false);
@@ -197,47 +308,21 @@ export default function IngredientFormSheet({
     };
 
     return (
-        <AnimatePresence>
-            {isOpen && (
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="fixed inset-0 z-[90] flex items-end justify-center"
-                    onClick={onClose}
-                >
-                    <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+        <Drawer open={isOpen} onOpenChange={(open) => !open && !saving && onClose?.()} position="bottom">
+            <DrawerPopup
+                className="mx-auto max-w-md bg-white dark:bg-surface-dark [--drawer-height:min(92vh,820px)]"
+                showBar
+            >
+                <DrawerHeader className="items-center px-6 pb-3 pt-5 text-center">
+                    <DrawerTitle className="text-lg font-bold text-text-main-light dark:text-text-main-dark">
+                        {isEdit ? '编辑自定义食材' : '添加自定义食材'}
+                    </DrawerTitle>
+                    <p className="mt-0.5 text-xs text-text-muted-light dark:text-text-muted-dark">
+                        所有营养数值按每 100 g 可食部分填写
+                    </p>
+                </DrawerHeader>
 
-                    <motion.div
-                        initial={{ y: '100%' }}
-                        animate={{ y: 0 }}
-                        exit={{ y: '100%' }}
-                        transition={{ type: 'spring', damping: 28, stiffness: 260 }}
-                        onClick={(e) => e.stopPropagation()}
-                        className="relative w-full max-w-md bg-white dark:bg-surface-dark rounded-t-3xl shadow-2xl flex flex-col"
-                        style={{ maxHeight: '92vh' }}
-                    >
-                        {/* 顶部把手 */}
-                        <div className="flex justify-center pt-3 pb-2 flex-shrink-0">
-                            <div className="w-10 h-1 rounded-full bg-gray-300 dark:bg-gray-600" />
-                        </div>
-
-                        {/* 标题 */}
-                        <div className="text-center px-6 pb-3 flex-shrink-0">
-                            <h3 className="text-lg font-bold">
-                                {isEdit ? '编辑自定义食材' : '添加自定义食材'}
-                            </h3>
-                            <p className="text-xs text-text-muted-light dark:text-text-muted-dark mt-0.5">
-                                所有营养数值按每 100 g 可食部分填写
-                            </p>
-                        </div>
-
-                        {/* 可滚动内容 */}
-                        <div
-                            className="flex-1 overflow-y-auto px-6 pb-4 space-y-4 no-scrollbar"
-                            style={{ overscrollBehavior: 'contain' }}
-                        >
+                <DrawerPanel className="space-y-4 px-6 pb-4 pt-1" scrollFade={false}>
                             {/* 图标选择 */}
                             <Section title="图标">
                                 <IconPicker
@@ -256,6 +341,7 @@ export default function IngredientFormSheet({
                             {/* 基础信息 */}
                             <Section title="基础信息" required>
                                 <TextField
+                                    name="ingredient-name"
                                     label="名称"
                                     value={basic.name}
                                     onChange={handleBasicChange('name')}
@@ -263,30 +349,51 @@ export default function IngredientFormSheet({
                                     required
                                 />
                                 <div className="grid grid-cols-2 gap-3">
-                                    <TextField
+                                    <SelectField
                                         label="大类别"
                                         value={basic.category}
-                                        onChange={handleBasicChange('category')}
-                                        placeholder="例如：海鲜"
+                                        items={categorySelectItems}
+                                        onValueChange={handleCategoryChange}
+                                        placeholder={hasCategoryOptions ? '选择大类' : '暂无分类'}
+                                        disabled={!hasCategoryOptions || saving}
+                                        invalid={categoryIsStale || (!hasCategoryOptions && !saving)}
+                                        error={
+                                            !hasCategoryOptions
+                                                ? '分类不可用'
+                                                : categoryIsStale
+                                                    ? '已不可用'
+                                                    : ''
+                                        }
                                         required
-                                        list="ingredient-cat-list"
                                     />
-                                    <TextField
+                                    <SelectField
                                         label="子类别"
                                         value={basic.sub_category}
-                                        onChange={handleBasicChange('sub_category')}
-                                        placeholder="例如：鱼"
+                                        items={subCategorySelectItems}
+                                        onValueChange={handleSubCategoryChange}
+                                        placeholder={
+                                            basic.category
+                                                ? hasSubCategoryOptions || subCategoryIsStale
+                                                    ? '选择子类'
+                                                    : '暂无子类'
+                                                : '先选大类'
+                                        }
+                                        disabled={!basic.category || categoryIsStale || !hasSubCategoryOptions || saving}
+                                        invalid={subCategoryIsStale || (Boolean(basic.category) && !hasSubCategoryOptions)}
+                                        error={
+                                            !basic.category
+                                                ? ''
+                                                : subCategoryIsStale
+                                                    ? '已不可用'
+                                                    : !hasSubCategoryOptions
+                                                        ? '无可用子类'
+                                                        : ''
+                                        }
                                         required
-                                        list="ingredient-subcat-list"
                                     />
                                 </div>
-                                <datalist id="ingredient-cat-list">
-                                    {categoryOptions.map((c) => <option key={c} value={c} />)}
-                                </datalist>
-                                <datalist id="ingredient-subcat-list">
-                                    {subCategoryOptions.map((c) => <option key={c} value={c} />)}
-                                </datalist>
-                                <TextField
+                                <TextareaField
+                                    name="ingredient-note"
                                     label="备注"
                                     value={basic.note}
                                     onChange={handleBasicChange('note')}
@@ -358,39 +465,30 @@ export default function IngredientFormSheet({
                             {errorMsg && (
                                 <p className="text-xs text-red-500 text-center">{errorMsg}</p>
                             )}
-                        </div>
+                </DrawerPanel>
 
-                        {/* 底部操作条 */}
-                        <div
-                            className="flex gap-3 px-6 pt-3 pb-6 bg-white dark:bg-surface-dark border-t border-gray-100 dark:border-gray-800 flex-shrink-0"
-                            style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}
-                        >
-                            <button
-                                onClick={onClose}
-                                disabled={saving}
-                                className="flex-1 py-3 rounded-xl bg-gray-100 dark:bg-gray-800 text-text-main-light dark:text-text-main-dark font-bold disabled:opacity-50 active:scale-[0.98] transition-transform"
-                            >
-                                取消
-                            </button>
-                            <button
-                                onClick={handleSubmit}
-                                disabled={saving}
-                                className="flex-1 py-3 rounded-xl bg-primary text-white dark:text-gray-900 font-bold disabled:opacity-50 active:scale-[0.98] transition-transform flex items-center justify-center gap-2"
-                            >
-                                {saving ? (
-                                    <>
-                                        <span className="material-icons-round text-base animate-spin">refresh</span>
-                                        保存中
-                                    </>
-                                ) : (
-                                    isEdit ? '保存修改' : '创建食材'
-                                )}
-                            </button>
-                        </div>
-                    </motion.div>
-                </motion.div>
-            )}
-        </AnimatePresence>
+                <DrawerFooter className="grid grid-cols-2 gap-3 border-t border-gray-100 bg-white px-6 pt-3 dark:border-gray-800 dark:bg-surface-dark">
+                    <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={onClose}
+                        disabled={saving}
+                        className="h-12 rounded-xl font-bold"
+                    >
+                        取消
+                    </Button>
+                    <Button
+                        type="button"
+                        onClick={handleSubmit}
+                        loading={saving}
+                        disabled={saving}
+                        className="h-12 rounded-xl bg-primary font-bold text-white dark:text-gray-900"
+                    >
+                        {isEdit ? '保存修改' : '创建食材'}
+                    </Button>
+                </DrawerFooter>
+            </DrawerPopup>
+        </Drawer>
     );
 }
 
@@ -421,17 +519,17 @@ function CollapsibleSection({ title, isOpen, onToggle, children }) {
                 <span className="text-sm font-bold text-text-main-light dark:text-text-main-dark">
                     {title}
                 </span>
-                <motion.span
+                <Motion.span
                     className="material-icons-round text-text-muted-light dark:text-text-muted-dark"
                     animate={{ rotate: isOpen ? 180 : 0 }}
                     transition={{ duration: 0.2 }}
                 >
                     expand_more
-                </motion.span>
+                </Motion.span>
             </button>
             <AnimatePresence initial={false}>
                 {isOpen && (
-                    <motion.div
+                    <Motion.div
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: 'auto', opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
@@ -439,29 +537,104 @@ function CollapsibleSection({ title, isOpen, onToggle, children }) {
                         className="overflow-hidden"
                     >
                         <div className="px-3 pb-3 pt-1">{children}</div>
-                    </motion.div>
+                    </Motion.div>
                 )}
             </AnimatePresence>
         </section>
     );
 }
 
-function TextField({ label, value, onChange, placeholder, required, list }) {
+function TextField({ label, value, onChange, placeholder, required, name }) {
     return (
-        <div>
-            <label className="block text-xs font-semibold text-text-muted-light dark:text-text-muted-dark mb-1">
+        <Field name={name} className="gap-1">
+            <FieldLabel className="text-xs font-semibold text-text-muted-light dark:text-text-muted-dark">
                 {label}
                 {required && <span className="text-red-500 ml-0.5">*</span>}
-            </label>
-            <input
+            </FieldLabel>
+            <Input
                 type="text"
                 value={value}
                 onChange={onChange}
                 placeholder={placeholder}
-                list={list}
-                className="w-full bg-gray-50 dark:bg-gray-800 text-text-main-light dark:text-text-main-dark rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                required={required}
+                className="rounded-xl bg-gray-50 dark:bg-gray-800"
             />
-        </div>
+        </Field>
+    );
+}
+
+function TextareaField({ label, value, onChange, placeholder, name }) {
+    return (
+        <Field name={name} className="gap-1">
+            <FieldLabel className="text-xs font-semibold text-text-muted-light dark:text-text-muted-dark">
+                {label}
+            </FieldLabel>
+            <Textarea
+                value={value}
+                onChange={onChange}
+                placeholder={placeholder}
+                rows={2}
+                maxLength={200}
+                className="rounded-xl bg-gray-50 dark:bg-gray-800"
+            />
+        </Field>
+    );
+}
+
+function SelectField({
+    label,
+    value,
+    items,
+    onValueChange,
+    placeholder,
+    disabled,
+    invalid,
+    error,
+    required,
+}) {
+    return (
+        <Field className="gap-1" disabled={disabled}>
+            <FieldLabel className="text-xs font-semibold text-text-muted-light dark:text-text-muted-dark">
+                {label}
+                {required && <span className="text-red-500 ml-0.5">*</span>}
+            </FieldLabel>
+            <Select
+                items={items.map((item) => ({ label: item.label, value: item.value }))}
+                value={value || null}
+                onValueChange={onValueChange}
+            >
+                <SelectTrigger
+                    aria-invalid={invalid || undefined}
+                    disabled={disabled}
+                    className="min-w-0 rounded-xl bg-gray-50 dark:bg-gray-800"
+                >
+                    <SelectValue placeholder={placeholder} />
+                </SelectTrigger>
+                <SelectPopup alignItemWithTrigger={false} className="max-h-64">
+                    {items.length > 0 ? (
+                        items.map((item) => (
+                            <SelectItem
+                                key={item.value}
+                                value={item.value}
+                                disabled={item.stale}
+                                className={item.stale ? 'text-red-500' : undefined}
+                            >
+                                {item.label}
+                            </SelectItem>
+                        ))
+                    ) : (
+                        <div className="px-2 py-2 text-sm text-muted-foreground">
+                            暂无可选项
+                        </div>
+                    )}
+                </SelectPopup>
+            </Select>
+            {error && (
+                <FieldError match className="text-xs text-red-500">
+                    {error}
+                </FieldError>
+            )}
+        </Field>
     );
 }
 
@@ -469,12 +642,16 @@ function NumberGrid({ fields, values, onChange }) {
     return (
         <div className="grid grid-cols-2 gap-3">
             {fields.map(([key, label, unit, step]) => (
-                <div key={key}>
-                    <label className="block text-xs text-text-muted-light dark:text-text-muted-dark mb-1">
+                <Field key={key} className="items-stretch gap-1">
+                    <FieldLabel className="block text-xs text-text-muted-light dark:text-text-muted-dark">
                         {label}
                         {unit && <span className="ml-1">({unit})</span>}
-                    </label>
-                    <input
+                    </FieldLabel>
+                    <Input
+                        aria-label={label}
+                        className="rounded-lg bg-gray-50 text-text-main-light dark:bg-gray-800 dark:text-text-main-dark focus-within:ring-2 focus-within:ring-primary/50 [&_[data-slot=input]]:h-auto [&_[data-slot=input]]:px-3 [&_[data-slot=input]]:py-2 [&_[data-slot=input]]:text-sm [&_[data-slot=input]]:focus:ring-0"
+                        nativeInput
+                        unstyled
                         type="number"
                         inputMode="decimal"
                         step={step}
@@ -482,9 +659,8 @@ function NumberGrid({ fields, values, onChange }) {
                         value={values[key] ?? ''}
                         onChange={onChange(key)}
                         placeholder="—"
-                        className="w-full bg-gray-50 dark:bg-gray-800 text-text-main-light dark:text-text-main-dark rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                     />
-                </div>
+                </Field>
             ))}
         </div>
     );

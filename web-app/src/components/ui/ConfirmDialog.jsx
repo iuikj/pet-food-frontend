@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/alert-dialog';
 
 /**
- * 通用确认弹窗，基于 shadcn AlertDialog。
+ * 通用确认弹窗，基于 COSS/Base UI AlertDialog。
  *
  * @param {object} props
  * @param {boolean} props.open
@@ -33,6 +33,11 @@ export default function ConfirmDialog({
     onConfirm,
     destructive = false,
 }) {
+    const handleConfirm = () => {
+        onConfirm?.();
+        onOpenChange?.(false);
+    };
+
     return (
         <AlertDialog open={open} onOpenChange={onOpenChange}>
             <AlertDialogContent className="max-w-sm mx-4 rounded-3xl bg-white dark:bg-surface-dark border-0 shadow-xl">
@@ -49,7 +54,7 @@ export default function ConfirmDialog({
                         {cancelText}
                     </AlertDialogCancel>
                     <AlertDialogAction
-                        onClick={onConfirm}
+                        onClick={handleConfirm}
                         className={`flex-1 rounded-xl font-bold border-0 ${
                             destructive
                                 ? 'bg-red-500 text-white hover:bg-red-600'

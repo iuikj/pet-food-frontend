@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { App as CapacitorApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
-import { Toast } from '@capacitor/toast';
+import { showToast } from '../utils/toast';
 
 const overlayBackHandlers = [];
 
@@ -47,11 +47,7 @@ export function useBackButton() {
                 } else {
                     // 第一次按返回，提示用户
                     lastBackPress.current = now;
-                    Toast.show({
-                        text: '再按一次退出应用',
-                        duration: 'short',
-                        position: 'bottom'
-                    });
+                    showToast.info('再按一次退出应用');
                 }
                 return;
             }

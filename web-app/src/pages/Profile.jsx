@@ -1,18 +1,18 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion as Motion } from 'framer-motion';
 import SecureImage from '../components/SecureImage';
 import { pageTransitions } from '../utils/animations';
 import { usePets } from '../hooks/usePets';
 import { useUser } from '../hooks/useUser';
 import PetCard from '../components/PetCard';
-import Modal from '../components/Modal';
+import ConfirmDialog from '../components/ui/ConfirmDialog';
 import Skeleton from '../components/ui/Skeleton';
 import PageHeader from '../components/layout/PageHeader';
 
 export default function Profile() {
     const navigate = useNavigate();
-    const { pets, deletePet, isLoading: petsLoading } = usePets();
+    const { pets, deletePet } = usePets();
     const { user, logout, isLoading: userLoading } = useUser();
 
     // Modal 状态
@@ -88,7 +88,7 @@ export default function Profile() {
     }
 
     return (
-        <motion.div
+        <Motion.div
             {...pageTransitions}
             className="pb-32 overflow-x-clip"
         >
@@ -197,31 +197,31 @@ export default function Profile() {
             </main>
 
             {/* 退出登录确认弹窗 */}
-            <Modal
-                isOpen={showLogoutModal}
-                onClose={() => setShowLogoutModal(false)}
+            <ConfirmDialog
+                open={showLogoutModal}
+                onOpenChange={setShowLogoutModal}
                 onConfirm={confirmLogout}
                 title="退出登录"
-                message="确定要退出当前账号吗？您可以随时重新登录。"
+                description="确定要退出当前账号吗？您可以随时重新登录。"
                 confirmText="退出"
                 cancelText="取消"
-                type="danger"
+                destructive
             />
 
             {/* 删除宠物确认弹窗 */}
-            <Modal
-                isOpen={showDeletePetModal}
-                onClose={() => {
-                    setShowDeletePetModal(false);
-                    setPetToDelete(null);
+            <ConfirmDialog
+                open={showDeletePetModal}
+                onOpenChange={(open) => {
+                    setShowDeletePetModal(open);
+                    if (!open) setPetToDelete(null);
                 }}
                 onConfirm={confirmDeletePet}
                 title="删除宠物"
-                message={`确定要删除 "${petToDelete?.name || '这只宠物'}" 吗？此操作无法撤销。`}
+                description={`确定要删除 "${petToDelete?.name || '这只宠物'}" 吗？此操作无法撤销。`}
                 confirmText="删除"
                 cancelText="取消"
-                type="danger"
+                destructive
             />
-        </motion.div>
+        </Motion.div>
     );
 }

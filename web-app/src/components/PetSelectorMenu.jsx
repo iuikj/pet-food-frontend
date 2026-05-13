@@ -1,36 +1,17 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion as Motion } from 'framer-motion';
 import SecureImage from './SecureImage';
 import { usePets } from '../hooks/usePets';
-
-const overlayVariants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1 }
-};
-
-const menuVariants = {
-    hidden: {
-        y: '100%',
-        opacity: 0
-    },
-    visible: {
-        y: 0,
-        opacity: 1,
-        transition: {
-            type: 'spring',
-            damping: 25,
-            stiffness: 300
-        }
-    },
-    exit: {
-        y: '100%',
-        opacity: 0,
-        transition: {
-            duration: 0.2
-        }
-    }
-};
+import { registerBackButtonHandler } from '../hooks/useBackButton';
+import {
+    Drawer,
+    DrawerFooter,
+    DrawerHeader,
+    DrawerPanel,
+    DrawerPopup,
+    DrawerTitle,
+} from './ui/drawer';
 
 const itemVariants = {
     hidden: { opacity: 0, x: -20 },
@@ -48,6 +29,14 @@ export default function PetSelectorMenu({ isOpen, onClose, onSelectPet }) {
     const { pets, setCurrentPet } = usePets();
     const location = useLocation();
 
+    useEffect(() => {
+        if (!isOpen) return undefined;
+        return registerBackButtonHandler(() => {
+            onClose?.();
+            return true;
+        });
+    }, [isOpen, onClose]);
+
     const handlePetClick = (pet) => {
         setCurrentPet(pet.id);
         if (onSelectPet) {
@@ -57,44 +46,20 @@ export default function PetSelectorMenu({ isOpen, onClose, onSelectPet }) {
     };
 
     return (
-        <AnimatePresence>
-            {isOpen && (
-                <>
-                    {/* 背景遮罩 */}
-                    <motion.div
-                        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50"
-                        variants={overlayVariants}
-                        initial="hidden"
-                        animate="visible"
-                        exit="hidden"
-                        onClick={onClose}
-                    />
+        <Drawer open={isOpen} onOpenChange={(open) => !open && onClose?.()} position="bottom">
+            <DrawerPopup className="mx-auto max-w-md bg-white dark:bg-surface-dark [--drawer-height:min(70vh,620px)]" showBar>
+                <DrawerHeader className="items-center border-b border-gray-100 px-6 pb-4 pt-5 text-center dark:border-gray-800">
+                    <DrawerTitle className="text-lg font-bold text-text-main-light dark:text-text-main-dark">
+                        选择宠物
+                    </DrawerTitle>
+                    <p className="mt-1 text-sm text-text-muted-light dark:text-text-muted-dark">
+                        选择一个宠物或添加新成员
+                    </p>
+                </DrawerHeader>
 
-                    {/* 底部菜单 */}
-                    <motion.div
-                        className="fixed bottom-0 left-0 right-0 bg-white dark:bg-surface-dark rounded-t-3xl shadow-large z-50 max-h-[70vh] overflow-hidden"
-                        variants={menuVariants}
-                        initial="hidden"
-                        animate="visible"
-                        exit="exit"
-                    >
-                        {/* 拖动指示条 */}
-                        <div className="flex justify-center pt-3 pb-2">
-                            <div className="w-10 h-1 bg-gray-300 dark:bg-gray-600 rounded-full" />
-                        </div>
-
-                        {/* 标题 */}
-                        <div className="px-6 pb-4 border-b border-gray-100 dark:border-gray-800">
-                            <h3 className="text-lg font-bold text-center">选择宠物</h3>
-                            <p className="text-sm text-text-muted-light dark:text-text-muted-dark text-center mt-1">
-                                选择一个宠物或添加新成员
-                            </p>
-                        </div>
-
-                        {/* 宠物列表 */}
-                        <div className="px-4 py-4 space-y-2 max-h-[40vh] overflow-y-auto">
+                <DrawerPanel className="space-y-2 px-4 py-4" scrollFade={false}>
                             {pets.map((pet, index) => (
-                                <motion.button
+                                <Motion.button
                                     key={pet.id}
                                     custom={index}
                                     variants={itemVariants}
@@ -132,11 +97,11 @@ export default function PetSelectorMenu({ isOpen, onClose, onSelectPet }) {
                                     <span className="material-icons-round text-text-muted-light dark:text-text-muted-dark group-hover:text-primary group-hover:translate-x-1 transition-all">
                                         chevron_right
                                     </span>
-                                </motion.button>
+                                </Motion.button>
                             ))}
 
                             {/* 添加宠物选项 */}
-                            <motion.div
+                            <Motion.div
                                 custom={pets.length}
                                 variants={itemVariants}
                                 initial="hidden"
@@ -168,23 +133,20 @@ export default function PetSelectorMenu({ isOpen, onClose, onSelectPet }) {
                                         chevron_right
                                     </span>
                                 </Link>
-                            </motion.div>
-                        </div>
+                            </Motion.div>
+                </DrawerPanel>
 
-                        {/* 添加宠物按钮 */}
-                        <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-800 pb-safe">
-                            <Link
-                                to="/onboarding/step1"
-                                onClick={onClose}
-                                className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-primary text-white dark:text-gray-900 font-bold shadow-glow hover:shadow-glow-lg hover:brightness-110 hover:-translate-y-0.5 active:scale-[0.98] transition-all"
-                            >
-                                <span className="material-icons-round">add</span>
-                                添加宠物
-                            </Link>
-                        </div>
-                    </motion.div>
-                </>
-            )}
-        </AnimatePresence>
+                <DrawerFooter className="border-t border-gray-100 bg-white px-6 py-4 dark:border-gray-800 dark:bg-surface-dark">
+                    <Link
+                        to="/onboarding/step1"
+                        onClick={onClose}
+                        className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-4 font-bold text-white shadow-glow transition-all hover:brightness-110 active:scale-[0.98] dark:text-gray-900"
+                    >
+                        <span className="material-icons-round">add</span>
+                        添加宠物
+                    </Link>
+                </DrawerFooter>
+            </DrawerPopup>
+        </Drawer>
     );
 }

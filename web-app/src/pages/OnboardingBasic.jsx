@@ -5,6 +5,7 @@ import OnboardingLayout from '../components/OnboardingLayout';
 import PetIcon from '../components/icons/PetIcon';
 import WheelPicker from '../components/ui/WheelPicker';
 import WeightScale from '../components/ui/WeightScale';
+import { FormTextField } from '../components/ui/form-fields';
 
 export default function OnboardingBasic() {
     const navigate = useNavigate();
@@ -96,16 +97,16 @@ export default function OnboardingBasic() {
 
                     {/* 品种输入 */}
                     <div className="bg-surface-light dark:bg-surface-dark rounded-2xl p-6 shadow-soft">
-                        <label className="text-sm font-semibold text-text-main-light dark:text-text-main-dark ml-1 mb-4 block">品种</label>
-                        <div className="relative bg-background-light dark:bg-background-dark rounded-2xl shadow-inner transition-all focus-within:ring-2 focus-within:ring-primary/50 focus-within:shadow-glow">
-                            <input
+                        <div className="relative">
+                            <FormTextField
+                                label="品种"
                                 value={breed}
                                 onChange={(e) => setBreed(e.target.value)}
-                                className="w-full bg-transparent border-none py-4 pl-5 pr-12 text-base font-medium text-text-main-light dark:text-text-main-dark focus:ring-0 placeholder-gray-300 dark:placeholder-gray-600 rounded-2xl"
                                 placeholder="例如：金毛寻回犬"
                                 type="text"
+                                inputClassName="bg-background-light dark:bg-background-dark shadow-inner [&_[data-slot=input]]:pr-12 [&_[data-slot=input]]:font-medium [&_[data-slot=input]]:placeholder:text-gray-300 dark:[&_[data-slot=input]]:placeholder:text-gray-600"
                             />
-                            <span className="absolute right-4 top-1/2 -translate-y-1/2 material-icons-round text-primary/50">pets</span>
+                            <span className="pointer-events-none absolute right-4 top-[calc(50%+12px)] -translate-y-1/2 material-icons-round text-primary/50">pets</span>
                         </div>
                     </div>
 

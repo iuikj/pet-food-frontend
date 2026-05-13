@@ -1,7 +1,8 @@
-import React, { useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import DropdownMenu from './DropdownMenu';
 import SecureImage from './SecureImage';
+import { Menu, MenuTrigger } from './ui/menu';
 import { formatPetAge } from '../utils/petUtils';
 
 /**
@@ -13,7 +14,6 @@ import { formatPetAge } from '../utils/petUtils';
 export default function PetCard({ pet, onDelete, showActions = true }) {
     const navigate = useNavigate();
     const [menuOpen, setMenuOpen] = useState(false);
-    const menuButtonRef = useRef(null);
 
     const handleEdit = () => {
         navigate(`/pet/edit/${pet.id}`);
@@ -67,22 +67,20 @@ export default function PetCard({ pet, onDelete, showActions = true }) {
 
                         {/* 三点菜单按钮 */}
                         <div className="relative">
-                            <button
-                                ref={menuButtonRef}
-                                onClick={() => setMenuOpen(!menuOpen)}
-                                className="w-8 h-8 -mr-2 -mt-2 flex items-center justify-center rounded-full text-text-muted-light hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                            >
-                                <span className="material-icons-round text-lg">more_vert</span>
-                            </button>
+                            <Menu open={menuOpen} onOpenChange={setMenuOpen}>
+                                <MenuTrigger
+                                    aria-label="打开宠物操作菜单"
+                                    className="w-8 h-8 -mr-2 -mt-2 flex items-center justify-center rounded-full text-text-muted-light hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                >
+                                    <span className="material-icons-round text-lg">more_vert</span>
+                                </MenuTrigger>
 
-                            {/* 下拉菜单 */}
-                            <DropdownMenu
-                                isOpen={menuOpen}
-                                onClose={() => setMenuOpen(false)}
-                                items={menuItems}
-                                position="right"
-                                anchorRef={menuButtonRef}
-                            />
+                                <DropdownMenu
+                                    onClose={() => setMenuOpen(false)}
+                                    items={menuItems}
+                                    position="right"
+                                />
+                            </Menu>
                         </div>
                     </div>
 

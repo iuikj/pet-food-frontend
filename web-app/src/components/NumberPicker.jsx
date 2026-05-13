@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useRef, useEffect, useCallback } from 'react';
+import { Input } from './ui/input';
 
 /**
  * 数值选择器组件（步进器模式）
@@ -27,7 +28,6 @@ export default function NumberPicker({
 }) {
     const intervalRef = useRef(null);
     const timeoutRef = useRef(null);
-    const [isHolding, setIsHolding] = useState(false);
 
     // refs for touch event binding (non-passive)
     const decrementBtnRef = useRef(null);
@@ -55,7 +55,6 @@ export default function NumberPicker({
 
     const startIncrement = useCallback(() => {
         handleIncrement();
-        setIsHolding(true);
         timeoutRef.current = setTimeout(() => {
             intervalRef.current = setInterval(handleIncrement, 100);
         }, 400);
@@ -63,14 +62,12 @@ export default function NumberPicker({
 
     const startDecrement = useCallback(() => {
         handleDecrement();
-        setIsHolding(true);
         timeoutRef.current = setTimeout(() => {
             intervalRef.current = setInterval(handleDecrement, 100);
         }, 400);
     }, [handleDecrement]);
 
     const stopHolding = useCallback(() => {
-        setIsHolding(false);
         if (timeoutRef.current) {
             clearTimeout(timeoutRef.current);
             timeoutRef.current = null;
@@ -189,14 +186,17 @@ export default function NumberPicker({
 
                 {/* 数值输入 */}
                 <div className="flex-1 flex items-center justify-center gap-1 px-2">
-                    <input
+                    <Input
+                        aria-label={label || unit || '数值输入'}
+                        className={`border-none bg-transparent shadow-none ring-0 before:hidden focus-within:ring-0 [&_[data-slot=input]]:h-auto [&_[data-slot=input]]:bg-transparent [&_[data-slot=input]]:p-0 ${compact ? '[&_[data-slot=input]]:text-xl' : '[&_[data-slot=input]]:text-2xl'} [&_[data-slot=input]]:font-bold [&_[data-slot=input]]:text-center [&_[data-slot=input]]:text-text-main-light dark:[&_[data-slot=input]]:text-text-main-dark [&_[data-slot=input]]:focus:ring-0 [&_[data-slot=input]]:placeholder-gray-300 dark:[&_[data-slot=input]]:placeholder-gray-600`}
+                        nativeInput
+                        unstyled
                         type="text"
                         inputMode="decimal"
                         value={value}
                         onChange={handleInputChange}
                         onBlur={handleBlur}
                         placeholder={placeholder}
-                        className={`w-full bg-transparent border-none p-0 ${compact ? 'text-xl' : 'text-2xl'} font-bold text-center text-text-main-light dark:text-text-main-dark focus:ring-0 placeholder-gray-300 dark:placeholder-gray-600`}
                     />
                     {unit && (
                         <span className="text-sm font-bold text-text-muted-light dark:text-text-muted-dark whitespace-nowrap">
