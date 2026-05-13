@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion as Motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { showToast } from '../utils/toast';
 import { pageTransitions } from '../utils/animations';
@@ -70,7 +70,7 @@ export default function RecipesPage() {
         try {
             const res = await plansApi.applyPlan(plan.id);
             if (res.code !== 0) {
-                try { await showToast(res.message || '应用失败'); } catch { /* */ }
+                try { await showToast.error(res.message || '应用失败'); } catch { /* */ }
                 return;
             }
             await fetchPlans();
@@ -78,11 +78,11 @@ export default function RecipesPage() {
             try {
                 const linkedPet = plan.pet_id ? pets.find(p => p.id === plan.pet_id) : null;
                 const petName = linkedPet?.name || '宠物';
-                await showToast(`已应用「${petName}」的食谱，已生成${res.data?.meals_created || 0}天餐食`);
+                await showToast.success(`已应用「${petName}」的食谱，已生成${res.data?.meals_created || 0}天餐食`);
             } catch { /* */ }
         } catch (err) {
             console.error('Failed to apply plan:', err);
-            try { await showToast('应用食谱失败，请重试'); } catch { /* */ }
+            try { await showToast.error('应用食谱失败，请重试'); } catch { /* */ }
         } finally {
             setApplyingId(null);
         }
@@ -97,11 +97,11 @@ export default function RecipesPage() {
         try {
             const res = await plansApi.deletePlan(deletingId);
             if (res.code !== 0) throw new Error(res.message || '删除失败');
-            try { await showToast('食谱已删除'); } catch { /* */ }
+            try { await showToast.success('食谱已删除'); } catch { /* */ }
         } catch (err) {
             console.error('Failed to delete plan:', err);
             if (planToDelete) setPlans(prev => [planToDelete, ...prev]);
-            try { await showToast('删除失败，请重试'); } catch { /* */ }
+            try { await showToast.error('删除失败，请重试'); } catch { /* */ }
         }
         setDeletingId(null);
     };
@@ -148,9 +148,9 @@ export default function RecipesPage() {
         if (!pendingDeleteIng) return;
         const res = await ingredients.remove(pendingDeleteIng.id);
         if (res.success) {
-            try { await showToast('已删除'); } catch { /* */ }
+            try { await showToast.success('已删除'); } catch { /* */ }
         } else {
-            try { await showToast(res.message || '删除失败'); } catch { /* */ }
+            try { await showToast.error(res.message || '删除失败'); } catch { /* */ }
         }
         setPendingDeleteIng(null);
     };
@@ -186,7 +186,7 @@ export default function RecipesPage() {
         const petName = linkedPet?.name || '宠物';
 
         return (
-            <motion.div
+            <Motion.div
                 key={plan.id}
                 layout
                 initial={{ opacity: 0, y: 20 }}
@@ -268,7 +268,7 @@ export default function RecipesPage() {
                         删除
                     </button>
                 </div>
-            </motion.div>
+            </Motion.div>
         );
     };
 
@@ -333,18 +333,18 @@ export default function RecipesPage() {
                                         {petPlans.length} 个食谱
                                     </span>
                                 </div>
-                                <motion.span
+                                <Motion.span
                                     className="material-icons-round text-text-muted-light dark:text-text-muted-dark text-xl"
                                     animate={{ rotate: isCollapsed ? -90 : 0 }}
                                     transition={{ duration: 0.2 }}
                                 >
                                     expand_more
-                                </motion.span>
+                                </Motion.span>
                             </button>
 
                             <AnimatePresence initial={false}>
                                 {!isCollapsed && (
-                                    <motion.div
+                                    <Motion.div
                                         initial={{ height: 0, opacity: 0 }}
                                         animate={{ height: 'auto', opacity: 1 }}
                                         exit={{ height: 0, opacity: 0 }}
@@ -356,7 +356,7 @@ export default function RecipesPage() {
                                                 {petPlans.map(plan => renderPlanCard(plan))}
                                             </AnimatePresence>
                                         </div>
-                                    </motion.div>
+                                    </Motion.div>
                                 )}
                             </AnimatePresence>
                         </div>
@@ -523,7 +523,7 @@ export default function RecipesPage() {
     };
 
     return (
-        <motion.div {...pageTransitions} className="pb-28 overflow-x-clip">
+        <Motion.div {...pageTransitions} className="pb-28 overflow-x-clip">
             {/* Header */}
             <PageHeader
                 title={
@@ -574,14 +574,14 @@ export default function RecipesPage() {
             {/* 计划删除确认弹窗 */}
             <AnimatePresence>
                 {deletingId && (
-                    <motion.div
+                    <Motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center px-8"
                         onClick={() => setDeletingId(null)}
                     >
-                        <motion.div
+                        <Motion.div
                             initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.9, opacity: 0 }}
@@ -611,8 +611,8 @@ export default function RecipesPage() {
                                     </button>
                                 </div>
                             </div>
-                        </motion.div>
-                    </motion.div>
+                        </Motion.div>
+                    </Motion.div>
                 )}
             </AnimatePresence>
 
@@ -636,6 +636,6 @@ export default function RecipesPage() {
                 cancelText="取消"
                 type="danger"
             />
-        </motion.div>
+        </Motion.div>
     );
 }

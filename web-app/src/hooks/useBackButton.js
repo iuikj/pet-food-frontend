@@ -4,6 +4,18 @@ import { App as CapacitorApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import { Toast } from '@capacitor/toast';
 
+const overlayBackHandlers = [];
+
+export function registerBackButtonHandler(handler) {
+    overlayBackHandlers.push(handler);
+    return () => {
+        const index = overlayBackHandlers.lastIndexOf(handler);
+        if (index >= 0) {
+            overlayBackHandlers.splice(index, 1);
+        }
+    };
+}
+
 export function useBackButton() {
     const navigate = useNavigate();
     const location = useLocation();
@@ -16,6 +28,14 @@ export function useBackButton() {
         }
 
         const handler = CapacitorApp.addListener('backButton', ({ canGoBack }) => {
+            const overlayHandler = overlayBackHandlers.at(-1);
+            if (overlayHandler) {
+                const handled = overlayHandler();
+                if (handled !== false) {
+                    return;
+                }
+            }
+
             const currentPath = location.pathname;
 
             // 主页：双击退出

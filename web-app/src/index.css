@@ -47,6 +47,13 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  --destructive-foreground: var(--color-red-700);
+  --info: var(--color-blue-500);
+  --info-foreground: var(--color-blue-700);
+  --success: var(--color-emerald-500);
+  --success-foreground: var(--color-emerald-700);
+  --warning: var(--color-amber-500);
+  --warning-foreground: var(--color-amber-700);
 }
 
 .dark {
@@ -81,6 +88,13 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+  --destructive-foreground: var(--color-red-400);
+  --info: var(--color-blue-500);
+  --info-foreground: var(--color-blue-400);
+  --success: var(--color-emerald-500);
+  --success-foreground: var(--color-emerald-400);
+  --warning: var(--color-amber-500);
+  --warning-foreground: var(--color-amber-400);
 }
 
 /* ============================================
@@ -99,6 +113,8 @@
   --color-sh-primary-foreground: var(--primary-foreground);
   --color-sh-secondary: var(--secondary);
   --color-sh-secondary-foreground: var(--secondary-foreground);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
@@ -123,6 +139,17 @@
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
+  --animate-toast-success-odd: toast-success-odd 0.32s cubic-bezier(0.5, 1, 0.89, 1);
+  --animate-toast-success-even: toast-success-even 0.32s cubic-bezier(0.5, 1, 0.89, 1);
+  --animate-toast-error-odd: toast-error-odd 0.28s cubic-bezier(0.5, 1, 0.89, 1);
+  --animate-toast-error-even: toast-error-even 0.28s cubic-bezier(0.5, 1, 0.89, 1);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-warning: var(--warning);
+  --color-success-foreground: var(--success-foreground);
+  --color-success: var(--success);
+  --color-info-foreground: var(--info-foreground);
+  --color-info: var(--info);
+  --color-destructive-foreground: var(--destructive-foreground);
 }
 
 /* ============================================
@@ -235,11 +262,88 @@
   }
 }
 
+@keyframes toast-success-odd {
+  0% {
+    scale: 1;
+  }
+  30% {
+    scale: 1.025;
+  }
+  60% {
+    scale: 0.99;
+  }
+  100% {
+    scale: 1;
+  }
+}
+
+@keyframes toast-success-even {
+  0% {
+    scale: 1;
+  }
+  30% {
+    scale: 1.025;
+  }
+  60% {
+    scale: 0.99;
+  }
+  100% {
+    scale: 1;
+  }
+}
+
+@keyframes toast-error-odd {
+  0% {
+    translate: 0 0;
+  }
+  25% {
+    translate: -3px 0;
+  }
+  50% {
+    translate: 3px 0;
+  }
+  75% {
+    translate: -3px 0;
+  }
+  100% {
+    translate: 0 0;
+  }
+}
+
+@keyframes toast-error-even {
+  0% {
+    translate: 0 0;
+  }
+  25% {
+    translate: -3px 0;
+  }
+  50% {
+    translate: 3px 0;
+  }
+  75% {
+    translate: -3px 0;
+  }
+  100% {
+    translate: 0 0;
+  }
+}
+
+
 /* ============================================
-   7. unlayered border-color（PrefectHQ #377 教训，必须在 @layer base 外）
+   7. layered border-color compat
    ============================================ */
-* {
-  @apply border-border;
+/* v3 compat: Tailwind v4 defaults border-color to currentcolor. Keep the
+   old default in base so bare border width/style utilities inherit it, while
+   utility-layer colors such as border-white, border-gray-100, border-primary/50,
+   hover:border-*, and dark:border-* still override it. */
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-border);
+  }
 }
 
 /* v3 compat: preserve project's v3 borderRadius.DEFAULT = 1rem so bare

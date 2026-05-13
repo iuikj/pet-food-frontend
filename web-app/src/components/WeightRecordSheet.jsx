@@ -1,6 +1,20 @@
-import React, { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useEffect, useState } from 'react';
 import WeightScale from './ui/WeightScale';
+import { Button } from './ui/button';
+import {
+    Drawer,
+    DrawerClose,
+    DrawerDescription,
+    DrawerFooter,
+    DrawerHeader,
+    DrawerPanel,
+    DrawerPopup,
+    DrawerTitle,
+} from './ui/drawer';
+import { Field, FieldError, FieldLabel } from './ui/field';
+import { DatePicker } from './ui/date-picker';
+import { Textarea } from './ui/textarea';
+import { registerBackButtonHandler } from '../hooks/useBackButton';
 
 /**
  * YYYY-MM-DD → 本地日期字符串
@@ -33,7 +47,6 @@ export default function WeightRecordSheet({
     const [saving, setSaving] = useState(false);
     const [errorMsg, setErrorMsg] = useState('');
 
-    // 打开时重置表单
     useEffect(() => {
         if (isOpen) {
             setWeight(Number(defaultWeight) || 0);
@@ -43,11 +56,28 @@ export default function WeightRecordSheet({
         }
     }, [isOpen, defaultWeight]);
 
-    const handleSave = async () => {
+    useEffect(() => {
+        if (!isOpen) return undefined;
+        return registerBackButtonHandler(() => {
+            if (saving) return true;
+            onClose?.();
+            return true;
+        });
+    }, [isOpen, onClose, saving]);
+
+    const handleOpenChange = (open) => {
+        if (!open && !saving) {
+            onClose?.();
+        }
+    };
+
+    const handleSave = async (event) => {
+        event.preventDefault();
         if (!weight || weight <= 0) {
             setErrorMsg('请输入有效体重');
             return;
         }
+
         setSaving(true);
         setErrorMsg('');
         try {
@@ -67,110 +97,81 @@ export default function WeightRecordSheet({
     };
 
     return (
-        <AnimatePresence>
-            {isOpen && (
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="fixed inset-0 z-[90] flex items-end justify-center"
-                    onClick={onClose}
-                >
-                    {/* 背景遮罩 */}
-                    <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+        <Drawer open={isOpen} onOpenChange={handleOpenChange} position="bottom">
+            <DrawerPopup className="mx-auto max-w-md bg-white dark:bg-surface-dark" showBar>
+                <DrawerHeader className="items-center text-center">
+                    <DrawerTitle className="text-lg font-bold text-text-main-light dark:text-text-main-dark">
+                        记录体重
+                    </DrawerTitle>
+                    {petName && (
+                        <DrawerDescription className="text-xs text-text-muted-light dark:text-text-muted-dark">
+                            为 {petName} 记录体重变化
+                        </DrawerDescription>
+                    )}
+                </DrawerHeader>
 
-                    {/* 抽屉主体 */}
-                    <motion.div
-                        initial={{ y: '100%' }}
-                        animate={{ y: 0 }}
-                        exit={{ y: '100%' }}
-                        transition={{ type: 'spring', damping: 28, stiffness: 260 }}
-                        onClick={(e) => e.stopPropagation()}
-                        className="relative w-full max-w-md bg-white dark:bg-surface-dark rounded-t-3xl shadow-2xl px-6 pt-4 pb-8"
-                        style={{ paddingBottom: 'max(2rem, env(safe-area-inset-bottom))' }}
-                    >
-                        {/* 顶部把手 */}
-                        <div className="flex justify-center mb-3">
-                            <div className="w-10 h-1 rounded-full bg-gray-300 dark:bg-gray-600" />
-                        </div>
-
-                        {/* 标题 */}
-                        <div className="text-center mb-5">
-                            <h3 className="text-lg font-bold">记录体重</h3>
-                            {petName && (
-                                <p className="text-xs text-text-muted-light dark:text-text-muted-dark mt-1">
-                                    为 {petName} 记录体重变化
-                                </p>
-                            )}
-                        </div>
-
-                        {/* 体重刻度尺 */}
-                        <div className="mb-5">
+                <form onSubmit={handleSave} className="contents" noValidate>
+                    <DrawerPanel className="space-y-5 px-6 pb-1 pt-1" scrollable={false}>
+                        <Field>
+                            <FieldLabel className="text-xs font-bold uppercase tracking-wide text-text-muted-light dark:text-text-muted-dark">
+                                当前体重
+                            </FieldLabel>
                             <WeightScale value={weight} onChange={setWeight} min={0.1} max={100} />
-                        </div>
+                            {errorMsg && (
+                                <FieldError match className="text-center text-xs text-red-500">
+                                    {errorMsg}
+                                </FieldError>
+                            )}
+                        </Field>
 
-                        {/* 日期 */}
-                        <div className="mb-4">
-                            <label className="block text-xs font-bold text-text-muted-light dark:text-text-muted-dark mb-1.5 uppercase tracking-wide">
+                        <Field>
+                            <FieldLabel className="text-xs font-bold uppercase tracking-wide text-text-muted-light dark:text-text-muted-dark">
                                 记录日期
-                            </label>
-                            <input
-                                type="date"
+                            </FieldLabel>
+                            <DatePicker
                                 value={recordedDate}
                                 max={todayStr()}
-                                onChange={(e) => setRecordedDate(e.target.value)}
-                                className="w-full bg-gray-50 dark:bg-gray-800 text-text-main-light dark:text-text-main-dark rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary"
+                                onChange={(event) => setRecordedDate(event.target.value)}
+                                className="rounded-xl bg-gray-50 dark:bg-gray-800"
+                                aria-label="记录日期"
                             />
-                        </div>
+                        </Field>
 
-                        {/* 备注 */}
-                        <div className="mb-5">
-                            <label className="block text-xs font-bold text-text-muted-light dark:text-text-muted-dark mb-1.5 uppercase tracking-wide">
+                        <Field>
+                            <FieldLabel className="text-xs font-bold uppercase tracking-wide text-text-muted-light dark:text-text-muted-dark">
                                 备注（可选）
-                            </label>
-                            <textarea
+                            </FieldLabel>
+                            <Textarea
                                 value={notes}
-                                onChange={(e) => setNotes(e.target.value)}
+                                onChange={(event) => setNotes(event.target.value)}
                                 placeholder="例如：饭后称、身体不适"
                                 rows={2}
                                 maxLength={200}
-                                className="w-full bg-gray-50 dark:bg-gray-800 text-text-main-light dark:text-text-main-dark rounded-xl px-4 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary"
+                                className="rounded-xl bg-gray-50 dark:bg-gray-800"
+                                aria-label="备注"
                             />
-                        </div>
+                        </Field>
+                    </DrawerPanel>
 
-                        {/* 错误提示 */}
-                        {errorMsg && (
-                            <p className="text-xs text-red-500 text-center mb-3">{errorMsg}</p>
-                        )}
-
-                        {/* 按钮 */}
-                        <div className="flex gap-3">
-                            <button
-                                onClick={onClose}
-                                disabled={saving}
-                                className="flex-1 py-3 rounded-xl bg-gray-100 dark:bg-gray-800 text-text-main-light dark:text-text-main-dark font-bold disabled:opacity-50 active:scale-[0.98] transition-transform"
-                            >
-                                取消
-                            </button>
-                            <button
-                                onClick={handleSave}
-                                disabled={saving || !weight || weight <= 0}
-                                className="flex-1 py-3 rounded-xl bg-primary text-white dark:text-gray-900 font-bold disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] transition-transform flex items-center justify-center gap-2"
-                            >
-                                {saving ? (
-                                    <>
-                                        <span className="material-icons-round text-base animate-spin">refresh</span>
-                                        保存中
-                                    </>
-                                ) : (
-                                    '保存'
-                                )}
-                            </button>
-                        </div>
-                    </motion.div>
-                </motion.div>
-            )}
-        </AnimatePresence>
+                    <DrawerFooter className="grid grid-cols-2 gap-3 border-0 bg-transparent px-6 pt-2">
+                        <DrawerClose
+                            render={<Button variant="secondary" />}
+                            disabled={saving}
+                            className="h-12 rounded-xl font-bold"
+                        >
+                            取消
+                        </DrawerClose>
+                        <Button
+                            type="submit"
+                            loading={saving}
+                            disabled={saving || !weight || weight <= 0}
+                            className="h-12 rounded-xl bg-primary text-white hover:bg-primary/90 dark:text-gray-900"
+                        >
+                            保存
+                        </Button>
+                    </DrawerFooter>
+                </form>
+            </DrawerPopup>
+        </Drawer>
     );
 }

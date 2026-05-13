@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { toast } from 'sonner';
+import { motion as Motion, AnimatePresence } from 'framer-motion';
 import SecureImage from '../components/SecureImage';
 import TodoItemComponent from '../components/TodoItem';
 import TodoForm from '../components/TodoForm';
@@ -13,6 +12,7 @@ import { usePets } from '../hooks/usePets';
 import { calendarApi, todosApi } from '../api';
 import { autoSyncTodoToCalendar, exportTodoToCalendar, exportTodosAsIcs } from '../utils/calendarExport';
 import { Capacitor } from '@capacitor/core';
+import { showToast } from '../utils/toast';
 
 function formatDate(date) {
     const y = date.getFullYear();
@@ -195,10 +195,10 @@ export default function CalendarPage() {
                     return next;
                 });
             } else {
-                toast.error(res.message || '操作失败');
+                showToast.error(res.message || '操作失败');
             }
         } catch (error) {
-            toast.error(error instanceof Error && error.message ? error.message : '操作失败');
+            showToast.error(error instanceof Error && error.message ? error.message : '操作失败');
         }
     };
 
@@ -218,12 +218,12 @@ export default function CalendarPage() {
                     }
                     return next;
                 });
-                toast.success('已删除');
+                showToast.success('已删除');
             } else {
-                toast.error(res.message || '删除失败');
+                showToast.error(res.message || '删除失败');
             }
         } catch (error) {
-            toast.error(error instanceof Error && error.message ? error.message : '删除失败');
+            showToast.error(error instanceof Error && error.message ? error.message : '删除失败');
         }
     };
 
@@ -231,9 +231,9 @@ export default function CalendarPage() {
         setExportingId(todo.id);
         try {
             const result = await exportTodoToCalendar(todo);
-            toast[result.success ? 'success' : 'error'](result.message);
+            showToast[result.success ? 'success' : 'error'](result.message);
         } catch {
-            toast.error('导出失败');
+            showToast.error('导出失败');
         } finally {
             setExportingId(null);
         }
@@ -241,13 +241,13 @@ export default function CalendarPage() {
 
     const handleBatchExport = () => {
         const todos = getSelectedDateTodos().filter(t => !t.is_completed);
-        if (todos.length === 0) { toast.info('没有待导出的待办'); return; }
+        if (todos.length === 0) { showToast.info('没有待导出的待办'); return; }
         if (Capacitor.isNativePlatform()) {
             // 原生：逐个弹出系统日历
             todos.forEach(t => exportTodoToCalendar(t));
         } else {
             exportTodosAsIcs(todos);
-            toast.success('已下载 .ics 文件');
+            showToast.success('已下载 .ics 文件');
         }
     };
 
@@ -267,7 +267,7 @@ export default function CalendarPage() {
                 next[dk] = [...(next[dk] || []), updated];
                 return next;
             });
-            toast.success('已更新');
+            showToast.success('已更新');
         } else {
             const res = await todosApi.createTodo(data);
             if (res.code !== 0) {
@@ -278,7 +278,7 @@ export default function CalendarPage() {
                 const dk = created.due_date;
                 return { ...prev, [dk]: [...(prev[dk] || []), created] };
             });
-            toast.success('已创建');
+            showToast.success('已创建');
             autoSyncTodoToCalendar(created).catch(() => {});
         }
         setEditingTodo(null);
@@ -441,17 +441,17 @@ export default function CalendarPage() {
                                             <span className="text-xs text-text-muted-light dark:text-text-muted-dark">
                                                 {dayData.completed_meals}/{dayData.total_meals} 餐
                                             </span>
-                                            <motion.span
+                                            <Motion.span
                                                 className="material-icons-round text-text-muted-light dark:text-text-muted-dark text-lg"
                                                 animate={{ rotate: isCollapsed ? -90 : 0 }}
                                                 transition={{ duration: 0.2 }}
                                             >
                                                 expand_more
-                                            </motion.span>
+                                            </Motion.span>
                                         </button>
                                         <AnimatePresence initial={false}>
                                             {!isCollapsed && (
-                                                <motion.div
+                                                <Motion.div
                                                     initial={{ height: 0 }}
                                                     animate={{ height: 'auto' }}
                                                     exit={{ height: 0 }}
@@ -478,7 +478,7 @@ export default function CalendarPage() {
                                                             </button>
                                                         </div>
                                                     </div>
-                                                </motion.div>
+                                                </Motion.div>
                                             )}
                                         </AnimatePresence>
                                     </div>
@@ -495,7 +495,7 @@ export default function CalendarPage() {
     };
 
     return (
-        <motion.div {...pageTransitions} className="pb-32 overflow-x-clip">
+        <Motion.div {...pageTransitions} className="pb-32 overflow-x-clip">
             {/* Header */}
             <PageHeader
                 title="饮食日历"
@@ -559,6 +559,6 @@ export default function CalendarPage() {
                 editTodo={editingTodo}
             />
 
-        </motion.div>
+        </Motion.div>
     );
 }

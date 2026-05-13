@@ -6,7 +6,7 @@ import { MealProvider } from './context/MealProvider';
 import { PetProvider } from './context/PetProvider';
 import { UserProvider } from './context/UserProvider';
 import { useUser } from './hooks/useUser';
-import { Toaster } from './components/ui/sonner';
+import { AnchoredToastProvider, ToastProvider } from './components/ui/toast';
 import Layout from './components/layout/Layout';
 import Login from './pages/Login';
 import { useBackButton } from './hooks/useBackButton';
@@ -240,10 +240,13 @@ function App() {
         <PetProvider>
           <MealProvider>
             <PlanGenerationProvider>
-              <ErrorBoundary>
-                <AnimatedRoutes />
-              </ErrorBoundary>
-              <Toaster />
+              <ToastProvider position="top-center">
+                <AnchoredToastProvider>
+                  <ErrorBoundary>
+                    <AnimatedRoutes />
+                  </ErrorBoundary>
+                </AnchoredToastProvider>
+              </ToastProvider>
             </PlanGenerationProvider>
           </MealProvider>
         </PetProvider>

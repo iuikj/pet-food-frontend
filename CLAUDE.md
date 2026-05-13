@@ -99,6 +99,14 @@ web-app/src/
 └── assets/               # 静态资源（SVG、PNG）
 ```
 
+### UI 组件库迁移状态
+
+- `src/components/ui/` 使用 shadcn 风格本地组件入口，业务代码继续从 `@/components/ui/*` 导入。
+- 已迁移到 coss/Base UI 模式：`button`、`badge`、`select`、`scroll-area`、`separator`、`tooltip`、`alert-dialog`、`collapsible`、`toast`、`drawer`、`field`、`input`、`textarea`。
+- `DatePicker` 当前为项目本地兼容包装，基于 coss `Input` + 原生 `type="date"`；coss registry 暂无独立 `date-picker` 组件时不要假设存在 `@coss/date-picker`。
+- Toast 已从 Sonner 切到 coss `ToastProvider` / `toastManager`；跨平台提示应继续通过 `src/utils/toast.js` 的 `showToast` 语义方法调用，保留 Capacitor native fallback。
+- 抽屉类移动端表单优先复用 `WeightRecordSheet.jsx` 的 `Drawer + Field + Input/Textarea/DatePicker` 结构，并验证 Android 返回键和 WebView 手势。
+
 ## 路由结构
 
 **公开路由**: `/login`
@@ -211,7 +219,7 @@ PlanGenerationProvider (计划生成)
 - 动画：使用 `tw-animate-css`，**不再**依赖 `tailwindcss-animate`
 - 自定义 utility（`glass`、`card-hover`、`transition-smooth`、`btn-hover`、`btn-active`、`card-active`）用顶层 `@utility name { ... }` 定义，**不再**写在 `@layer utilities` 内
 - 自定义 `@keyframes`（`shimmer`、`bounce-gentle`、`float`、`dot-blink`、`paw-step`、`pulse-slow`、`spin-slow`）必须放在 `@theme` 块**外**（unlayered，issue #14622 限制）
-- `* { @apply border-border }` 必须 unlayered（PrefectHQ #377 教训）；`outline-none` 统一改为 `outline-hidden`
+- 全局默认边框色用 `@layer base` raw CSS `border-color: var(--color-border)` 兼容 v3；不要用 unlayered `* { @apply border-border }`，否则会覆盖 `border-white` / `border-gray-*` / `border-primary/*` 等显式 utility；`outline-none` 统一改为 `outline-hidden`
 
 ### 主题色
 - Primary: `#A3D9A5` (sage green)

@@ -113,7 +113,7 @@ export default function WeightScale({ value = 0, onChange, min = 0, max = 100, s
     const containerWidth = '100%';
 
     return (
-        <div className="space-y-3">
+        <div className="w-full space-y-3">
             {/* 数字显示 — 点击可直接输入 */}
             <div className="flex items-baseline justify-center gap-1">
                 {editing ? (
@@ -124,11 +124,17 @@ export default function WeightScale({ value = 0, onChange, min = 0, max = 100, s
                         value={inputVal}
                         onChange={(e) => setInputVal(e.target.value)}
                         onBlur={handleDirectInput}
-                        onKeyDown={(e) => e.key === 'Enter' && handleDirectInput()}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handleDirectInput();
+                            }
+                        }}
                         className="w-24 text-center text-4xl font-bold bg-transparent border-b-2 border-primary text-text-main-light dark:text-text-main-dark focus:outline-none"
                     />
                 ) : (
                     <button
+                        type="button"
                         onClick={() => { setInputVal(String(value || 0)); setEditing(true); }}
                         className="text-4xl font-bold text-text-main-light dark:text-text-main-dark leading-none hover:text-primary transition-colors"
                     >
@@ -169,12 +175,14 @@ export default function WeightScale({ value = 0, onChange, min = 0, max = 100, s
             {/* 快捷按钮 */}
             <div className="flex justify-center gap-4">
                 <button
+                    type="button"
                     onClick={() => adjust(-0.5)}
                     className="px-4 py-2 rounded-xl bg-primary/10 dark:bg-primary/20 text-primary text-sm font-bold active:bg-primary active:text-white active:scale-95 transition-all touch-manipulation"
                 >
                     -0.5
                 </button>
                 <button
+                    type="button"
                     onClick={() => adjust(0.5)}
                     className="px-4 py-2 rounded-xl bg-primary/10 dark:bg-primary/20 text-primary text-sm font-bold active:bg-primary active:text-white active:scale-95 transition-all touch-manipulation"
                 >

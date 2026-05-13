@@ -387,7 +387,7 @@ export default function Login() {
             if (result.success) {
                 setCodeSent(true);
                 startCountdown(setCountdown, countdownTimerRef);
-                await showToast(result.message || '验证码已发送，请注意查收邮箱');
+                await showToast.success(result.message || '验证码已发送，请注意查收邮箱');
                 return;
             }
 
@@ -545,7 +545,7 @@ export default function Login() {
             if (result.success) {
                 setResetCodeSent(true);
                 startCountdown(setResetCountdown, resetCountdownTimerRef);
-                await showToast(result.message || '重置验证码已发送，请注意查收邮箱');
+                await showToast.success(result.message || '重置验证码已发送，请注意查收邮箱');
                 return;
             }
 
@@ -574,7 +574,7 @@ export default function Login() {
             );
 
             if (result.success) {
-                await showToast(result.message || '密码重置成功，请使用新密码登录');
+                await showToast.success(result.message || '密码重置成功，请使用新密码登录');
                 setIdentity(normalizeEmail(resetForm.email));
                 setPassword('');
                 setIsRegister(false);
