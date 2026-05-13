@@ -3,11 +3,15 @@ import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { Capacitor } from '@capacitor/core';
 import { Keyboard } from '@capacitor/keyboard';
 import { usePlanGeneration } from '../../hooks/usePlanGeneration';
+import { useUser } from '../../hooks/useUser';
+import { useAuthEntry } from '../../hooks/useAuthEntry';
 
 export default function BottomNav() {
     const location = useLocation();
     const navigate = useNavigate();
     const { status } = usePlanGeneration();
+    const { isAuthenticated } = useUser();
+    const { requireAuth } = useAuthEntry();
     const [keyboardVisible, setKeyboardVisible] = useState(false);
 
     useEffect(() => {
@@ -46,6 +50,11 @@ export default function BottomNav() {
     const handleFabClick = (e) => {
         e.preventDefault();
 
+        if (!isAuthenticated) {
+            requireAuth('/plan/create', { context: 'plan' });
+            return;
+        }
+
         if (status === 'generating') {
             // 任务进行中，导航到 loading 页面
             navigate('/planning');
@@ -59,11 +68,11 @@ export default function BottomNav() {
     };
 
     const navItems = [
-        { name: '主页', icon: 'home', path: '/' },
-        { name: '日历', icon: 'calendar_today', path: '/calendar' },
-        { name: '规划', icon: 'menu_book', path: '/plan/create', isFab: true },
-        { name: '食谱', icon: 'restaurant_menu', path: '/recipes' },
-        { name: '我的', icon: 'person', path: '/profile' },
+        { name: '主页', icon: 'home', path: '/', context: 'default' },
+        { name: '日历', icon: 'calendar_today', path: '/calendar', context: 'calendar' },
+        { name: '规划', icon: 'menu_book', path: '/plan/create', isFab: true, context: 'plan' },
+        { name: '食谱', icon: 'restaurant_menu', path: '/recipes', context: 'recipes' },
+        { name: '我的', icon: 'person', path: '/profile', context: 'profile' },
     ];
 
     // 获取 FAB 图标 - 根据任务状态显示不同图标
@@ -107,6 +116,12 @@ export default function BottomNav() {
                         <Link
                             key={item.name}
                             to={item.path}
+                            onClick={(event) => {
+                                if (item.path !== '/' && !isAuthenticated) {
+                                    event.preventDefault();
+                                    requireAuth(item.path, { context: item.context });
+                                }
+                            }}
                             aria-label={item.name}
                             className={`flex flex-col items-center gap-1 w-12 transition-colors ${isActive(item.path)
                                 ? 'text-primary'
