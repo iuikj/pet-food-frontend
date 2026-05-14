@@ -16,6 +16,7 @@ export default function AuthDrawer({
     onSubmittingChange,
     onSuccess,
     open,
+    resetSignal,
     submitting,
     view,
 }) {
@@ -66,6 +67,7 @@ export default function AuthDrawer({
         >
             <DrawerPopup
                 className="mx-auto max-w-[430px] bg-background-light dark:bg-background-dark [--drawer-height:min(96dvh,820px)]"
+                keepMounted
                 showBar={false}
             >
                 <DrawerBar />
@@ -89,6 +91,7 @@ export default function AuthDrawer({
                         onModeChange={onModeChange}
                         onSubmittingChange={onSubmittingChange}
                         onSuccess={onSuccess}
+                        resetSignal={resetSignal}
                         view={view}
                     />
                 </DrawerPanel>

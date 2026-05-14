@@ -156,6 +156,7 @@ export default function AuthPanel({
     onModeChange,
     onSubmittingChange,
     onSuccess,
+    resetSignal,
     showMockControls = false,
     mockControls = null,
     view,
@@ -218,6 +219,31 @@ export default function AuthPanel({
     useEffect(() => {
         onSubmittingChange?.(isLoading);
     }, [isLoading, onSubmittingChange]);
+
+    useEffect(() => {
+        if (resetSignal === undefined) return;
+        setIdentity(initialEmail);
+        setPassword('');
+        setUsername('');
+        setCode('');
+        setError('');
+        setFieldErrors({});
+        setPasswordVisible(false);
+        setCodeSent(false);
+        setCountdown(0);
+        if (countdownTimerRef.current) {
+            clearInterval(countdownTimerRef.current);
+            countdownTimerRef.current = null;
+        }
+        setResetForm({ email: initialEmail, code: '', newPassword: '' });
+        setResetFieldErrors({});
+        setResetCodeSent(false);
+        setResetCountdown(0);
+        if (resetCountdownTimerRef.current) {
+            clearInterval(resetCountdownTimerRef.current);
+            resetCountdownTimerRef.current = null;
+        }
+    }, [resetSignal, initialEmail]);
 
     useEffect(() => () => {
         if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
