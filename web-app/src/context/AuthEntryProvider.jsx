@@ -45,6 +45,7 @@ export function AuthEntryProvider({ children }) {
     const [authView, setAuthView] = useState('login');
     const [submitting, setSubmitting] = useState(false);
     const [entry, setEntry] = useState({ target: '/', context: 'default' });
+    const [resetSignal, setResetSignal] = useState(0);
     const drawerOpenRef = useRef(false);
     const authViewRef = useRef('login');
     const submittingRef = useRef(false);
@@ -65,6 +66,7 @@ export function AuthEntryProvider({ children }) {
         if (submittingRef.current) return;
         setDrawerOpen(false);
         setAuthView('login');
+        setResetSignal((prev) => prev + 1);
         if (!fromHistory && isAuthHistoryState(window.history.state)) {
             window.history.back();
         }
@@ -113,6 +115,7 @@ export function AuthEntryProvider({ children }) {
         const target = entry.target || '/';
         setDrawerOpen(false);
         setAuthView('login');
+        setResetSignal((prev) => prev + 1);
         if (isAuthHistoryState(window.history.state)) {
             window.history.replaceState(
                 {
@@ -171,6 +174,7 @@ export function AuthEntryProvider({ children }) {
                 onSubmittingChange={setSubmitting}
                 onSuccess={handleAuthSuccess}
                 open={drawerOpen}
+                resetSignal={resetSignal}
                 submitting={submitting}
                 view={authView}
             />
