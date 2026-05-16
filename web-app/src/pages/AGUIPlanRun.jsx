@@ -20,9 +20,11 @@ const AGUI_BASE_URL = import.meta.env.VITE_AGUI_BASE_URL || 'http://localhost:80
  * /planning/detailed — v2 任务式生成主战场。
  */
 export default function AGUIPlanRun() {
+    const threadId = useMemo(() => crypto.randomUUID(), []);
+
     const { agent, setForwardedProps } = useMemo(
-        () => createContextualHttpAgent({ url: `${AGUI_BASE_URL}/langgraph` }),
-        [],
+        () => createContextualHttpAgent({ url: `${AGUI_BASE_URL}/langgraph`, threadId }),
+        [threadId],
     );
 
     return (
@@ -34,13 +36,13 @@ export default function AGUIPlanRun() {
                 agents__unsafe_dev_only={{ [AGENT_ID]: agent }}
                 showDevConsole={false}
             >
-                <RunInner setForwardedProps={setForwardedProps} />
+                <RunInner setForwardedProps={setForwardedProps} threadId={threadId} />
             </CopilotKitProvider>
         </div>
     );
 }
 
-function RunInner({ setForwardedProps }) {
+function RunInner({ setForwardedProps, threadId }) {
     const navigate = useNavigate();
     const { currentPet } = usePets();
     const { completeWithAguiResult } = usePlanGeneration();
@@ -114,22 +116,18 @@ function RunInner({ setForwardedProps }) {
         };
     }, [isRunning]);
 
-    // 完成后接回原 SSE 结果流程:PlanGenerationContext → /plan/summary
+    // 完成后注入 PlanGenerationContext（不再自动 navigate）
     useEffect(() => {
         if (!completedDetail) return;
-        // 给 BackgroundMode disable 一点时间再跳
         const t = setTimeout(() => {
-            void completeWithAguiResult(completedDetail)
-                .then(() => {
-                    sessionStorage.removeItem('pending_agui_plan_payload');
-                    navigate('/plan/summary', { replace: true });
-                })
-                .catch((e) => {
-                    console.error('[AGUIPlanRun] result handoff failed', e);
-                });
+            void completeWithAguiResult(completedDetail, {
+                completedPlanId: completedDetail.plan_id || threadId,
+            }).catch((e) => {
+                console.error('[AGUIPlanRun] result handoff failed', e);
+            });
         }, 400);
         return () => clearTimeout(t);
-    }, [completedDetail, completeWithAguiResult, navigate]);
+    }, [completedDetail, completeWithAguiResult, threadId]);
 
     const handleBack = () => {
         if (isRunning) {
@@ -169,6 +167,9 @@ function RunInner({ setForwardedProps }) {
                     <TimelineFeed
                         events={events}
                         emptyText={hasStarted ? '等待第一个事件...' : '正在启动...'}
+                        completedDetail={completedDetail}
+                        threadId={threadId}
+                        petName={displayPet?.name}
                     />
                 </div>
             </main>

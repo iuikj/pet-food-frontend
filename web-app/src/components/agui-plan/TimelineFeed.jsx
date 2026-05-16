@@ -13,6 +13,7 @@ import SubAgentParallelBlock from './SubAgentParallelBlock';
 import ToolGroupChip, { isCoTEvent, isMainStreamElement, isTaskDispatchToolEvent } from './ToolGroupChip';
 import ToolGroupSheet from './ToolGroupSheet';
 import FanoutDetailView from './FanoutDetailView';
+import PlanCompletionCard from './PlanCompletionCard';
 import { organizeEventsForTimeline, eventKey } from '../../utils/aguiPlanEvents';
 import { useFanoutDetail } from '@/hooks/useFanoutDetail';
 
@@ -68,7 +69,7 @@ function buildCoTBlocks(stream) {
     return result;
 }
 
-export default function TimelineFeed({ events, emptyText, compact = false, disableNestedBlocks = false }) {
+export default function TimelineFeed({ events, emptyText, compact = false, disableNestedBlocks = false, completedDetail = null, threadId = null, petName = null }) {
     const [sheetEvents, setSheetEvents] = useState(null);
     // PR3 grill #8 修复：详情页内的 TimelineFeed 必须直接铺平 events 渲染，
     // 不再二次拆解出 week_block / subagent_block，否则详情页会再渲染一张同款 fanout 卡。
@@ -175,6 +176,14 @@ export default function TimelineFeed({ events, emptyText, compact = false, disab
                             );
                         })}
                     </AnimatePresence>
+                    {/* 完成卡片：仅顶层非嵌套时渲染 */}
+                    {!disableNestedBlocks && !compact && completedDetail && (
+                        <PlanCompletionCard
+                            detail={completedDetail}
+                            threadId={threadId}
+                            petName={petName}
+                        />
+                    )}
                 </ConversationContent>
                 <ConversationScrollButton className="agui-scroll-button" />
             </Conversation>

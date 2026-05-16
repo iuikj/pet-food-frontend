@@ -105,3 +105,43 @@ export function loadPendingPlanTask(): PendingPlanTask | null {
 export function clearPendingPlanTask(): void {
   removeStorageItem(STORAGE_KEYS.pendingPlanTask);
 }
+
+// ────────────────────────────────────────────
+// AG-UI 完成卡片 → PlanSummary 自动保存标记
+// 使用 sessionStorage（一次性消费，刷新即失效）
+// ────────────────────────────────────────────
+
+const PENDING_SAVE_KEY = 'pending_save';
+
+export interface PendingSave {
+  planId: string;
+  mode: 'agui' | 'sse';
+}
+
+export function savePendingSave(data: PendingSave): void {
+  try {
+    sessionStorage.setItem(PENDING_SAVE_KEY, JSON.stringify(data));
+  } catch {
+    // sessionStorage 不可用时静默
+  }
+}
+
+export function loadPendingSave(): PendingSave | null {
+  try {
+    const raw = sessionStorage.getItem(PENDING_SAVE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed?.planId) return null;
+    return parsed as PendingSave;
+  } catch {
+    return null;
+  }
+}
+
+export function clearPendingSave(): void {
+  try {
+    sessionStorage.removeItem(PENDING_SAVE_KEY);
+  } catch {
+    // 静默
+  }
+}

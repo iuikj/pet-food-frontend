@@ -7,7 +7,7 @@
  *   - clone 后的实例共享 prototype 上的 requestInit，所以 box 闭包对所有 clone 副本生效。
  *
  * 用法：
- *   const { agent, setForwardedProps } = createContextualHttpAgent({ url: '/agent/...' });
+ *   const { agent, setForwardedProps } = createContextualHttpAgent({ url: '/agent/...', threadId });
  *   setForwardedProps({ pet_information: {...}, user_id: '123' });
  *   // 之后 agent.run() 时 forwardedProps 会自动 merge 进入 HTTP body
  */
@@ -15,18 +15,25 @@ import { HttpAgent } from '@copilotkit/react-core/v2';
 
 export function createContextualHttpAgent(config) {
     const box = { value: {} };
+    const { threadId, ...agentConfig } = config;
 
     class ContextualHttpAgent extends HttpAgent {
         requestInit(input) {
             return super.requestInit({
                 ...input,
                 forwardedProps: { ...(input?.forwardedProps || {}), ...box.value },
+                ...(threadId ? { threadId } : {}),
             });
         }
     }
 
+    const agentOptions = { ...agentConfig };
+    if (threadId) {
+        agentOptions.threadId = threadId;
+    }
+
     return {
-        agent: new ContextualHttpAgent(config),
+        agent: new ContextualHttpAgent(agentOptions),
         setForwardedProps(props) {
             box.value = props && typeof props === 'object' ? props : {};
         },

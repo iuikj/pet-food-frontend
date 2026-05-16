@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion as Motion, AnimatePresence } from 'framer-motion';
 import { pageTransitions } from '../utils/animations';
@@ -7,6 +7,7 @@ import { usePets } from '../hooks/usePets';
 import { plansApi } from '../api';
 import { transformPetDietPlan } from '../models/dietPlan';
 import { showToast } from '../utils/toast';
+import { loadPendingSave, clearPendingSave } from '../utils/storage';
 import PlanDetails from './PlanDetails';
 import Skeleton from '../components/ui/Skeleton';
 import PageHeader from '../components/layout/PageHeader';
@@ -24,6 +25,31 @@ export default function PlanSummary() {
 
     // 保存状态
     const [isSaved, setIsSaved] = useState(false);
+
+    // AG-UI 完成卡片 → 自动 confirm（一次性消费 sessionStorage.pending_save）
+    const autoConfirmRef = useRef(false);
+    useEffect(() => {
+        if (autoConfirmRef.current) return;
+        const pending = loadPendingSave();
+        if (!pending || !pending.planId || !currentPet?.id) return;
+        autoConfirmRef.current = true;
+        clearPendingSave();
+
+        (async () => {
+            try {
+                const res = await plansApi.confirmPlan(pending.planId);
+                const confirmedId = res.data?.plan_id || pending.planId;
+                setActivePlan(currentPet.id, confirmedId);
+                setIsSaved(true);
+                await showToast.success('食谱已保存并应用');
+            } catch (err) {
+                console.error('Auto confirm failed:', err);
+                setActivePlan(currentPet.id, pending.planId);
+                setIsSaved(true);
+                await showToast.info('食谱已本地应用（云端保存失败）');
+            }
+        })();
+    }, [currentPet, setActivePlan]);
 
     // 餐食详情弹窗状态
     const [selectedMeal, setSelectedMeal] = useState(null);
