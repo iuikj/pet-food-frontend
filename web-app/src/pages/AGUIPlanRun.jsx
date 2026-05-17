@@ -14,7 +14,9 @@ import TimelineFeed from '../components/agui-plan/TimelineFeed';
 import TaskQueueCompact from '../components/agui-plan/TaskQueueCompact';
 import { Square, RotateCcw } from 'lucide-react';
 
-const AGUI_BASE_URL = import.meta.env.VITE_AGUI_BASE_URL || 'http://localhost:8000';
+const AGUI_BASE_URL = import.meta.env.VITE_AGUI_BASE_URL
+    || import.meta.env.VITE_API_BASE_URL?.replace(/\/api\/v1\/?$/, '')
+    || 'http://localhost:8000';
 
 /**
  * /planning/detailed — v2 任务式生成主战场。

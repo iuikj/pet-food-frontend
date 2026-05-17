@@ -14,7 +14,9 @@ import PageHeader from '../components/layout/PageHeader';
 // v2 入口内部 import './index.css'，由 vite-plugin-copilotkit-v2-css 拦截转为运行时 <style> 注入
 // 见 vite.config.js（避开项目 Tailwind 3.4 与 v2 CSS 中 @layer properties 等 v4 指令的冲突）
 
-const AGUI_BASE_URL = import.meta.env.VITE_AGUI_BASE_URL || 'http://localhost:8000';
+const AGUI_BASE_URL = import.meta.env.VITE_AGUI_BASE_URL
+    || import.meta.env.VITE_API_BASE_URL?.replace(/\/api\/v1\/?$/, '')
+    || 'http://localhost:8000';
 const AGUI_AGENT_NAME = import.meta.env.VITE_AGUI_AGENT_NAME || 'v2agent';
 
 const PET_TYPE_LABEL = { cat: '猫咪', dog: '狗狗' };
