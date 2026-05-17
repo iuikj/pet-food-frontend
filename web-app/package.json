@@ -16,7 +16,7 @@
     "cap:ios": "cap open ios",
     "mobile:build": "npm run build && cap sync",
     "mobile:build:local": "npm run build:local && cap sync",
-    "capacitor:sync:after": "node scripts/patch-mainactivity.js"
+    "capacitor:sync:after": "node scripts/patch-mainactivity.cjs"
   },
   "dependencies": {
     "@anuradev/capacitor-background-mode": "^7.2.1",
