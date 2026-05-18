@@ -10,6 +10,7 @@ WORKDIR /app
 ARG VITE_API_BASE_URL=http://localhost/api/v1
 ARG VITE_ENABLE_SSE=true
 ARG VITE_RECONNECT_DELAY=3000
+ARG VITE_AGUI_BASE_URL=http://localhost
 
 # 先拷 package 做依赖层缓存
 COPY package*.json ./
@@ -21,8 +22,8 @@ RUN npm ci --prefer-offline --no-audit --no-fund \
 COPY . .
 
 # 将构建参数写入 .env.production（Vite 编译期读取）
-RUN printf "VITE_API_BASE_URL=%s\nVITE_ENABLE_SSE=%s\nVITE_RECONNECT_DELAY=%s\n" \
-        "$VITE_API_BASE_URL" "$VITE_ENABLE_SSE" "$VITE_RECONNECT_DELAY" \
+RUN printf "VITE_API_BASE_URL=%s\nVITE_ENABLE_SSE=%s\nVITE_RECONNECT_DELAY=%s\nVITE_AGUI_BASE_URL=%s\n" \
+        "$VITE_API_BASE_URL" "$VITE_ENABLE_SSE" "$VITE_RECONNECT_DELAY" "$VITE_AGUI_BASE_URL" \
         > .env.production \
     && cat .env.production
 
