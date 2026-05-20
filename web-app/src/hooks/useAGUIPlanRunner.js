@@ -18,6 +18,7 @@ import {
 } from '@copilotkit/react-core/v2';
 import { usePets } from './usePets';
 import { useUser } from './useUser';
+import { createClientId } from '../utils/id';
 
 export const AGENT_ID = import.meta.env.VITE_AGUI_AGENT_NAME || 'v2agent';
 
@@ -251,7 +252,7 @@ function buildToolPayload({ toolName, args, status, result, callId, node, taskNa
     };
 }
 
-function logAguiEvent(event) {
+function logAguiEvent() {
     // console.log('[AG-UI event]', event?.type, {
     //     metadata: getEventMetadata(event),
     //     rawMetadata: getRawEventMetadata(event),
@@ -793,7 +794,7 @@ export function useAGUIPlanRunner({ setForwardedProps }) {
 
         // AG-UI runAgent 需要至少一条 user message 作为本次任务入口
         agent.addMessage({
-            id: crypto.randomUUID(),
+            id: createClientId('message'),
             role: 'user',
             content: `请为我的 ${runPet.type === 'cat' ? '猫咪' : '狗狗'}「${runPet.name || '宠物'}」生成月度饮食计划。`,
         });

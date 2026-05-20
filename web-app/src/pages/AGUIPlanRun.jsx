@@ -12,7 +12,8 @@ import ConfirmDialog from '../components/ui/ConfirmDialog';
 import PlanRunHeader from '../components/agui-plan/PlanRunHeader';
 import TimelineFeed from '../components/agui-plan/TimelineFeed';
 import TaskQueueCompact from '../components/agui-plan/TaskQueueCompact';
-import { Square, RotateCcw } from 'lucide-react';
+import { createClientId } from '../utils/id';
+import { Square, RotateCcw, TriangleAlert } from 'lucide-react';
 
 const AGUI_BASE_URL = import.meta.env.VITE_AGUI_BASE_URL
     || import.meta.env.VITE_API_BASE_URL?.replace(/\/api\/v1\/?$/, '')
@@ -22,7 +23,7 @@ const AGUI_BASE_URL = import.meta.env.VITE_AGUI_BASE_URL
  * /planning/detailed — v2 任务式生成主战场。
  */
 export default function AGUIPlanRun() {
-    const threadId = useMemo(() => crypto.randomUUID(), []);
+    const threadId = useMemo(() => createClientId('thread'), []);
 
     const { agent, setForwardedProps } = useMemo(
         () => createContextualHttpAgent({ url: `${AGUI_BASE_URL}/langgraph`, threadId }),
@@ -61,6 +62,7 @@ function RunInner({ setForwardedProps, threadId }) {
     } = useAGUIPlanRunner({ setForwardedProps });
 
     const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+    const [staleStreamStartedAt, setStaleStreamStartedAt] = useState(null);
     const [pendingPayload] = useState(() => {
         const raw = sessionStorage.getItem('pending_agui_plan_payload');
         if (!raw) return null;
@@ -84,6 +86,25 @@ function RunInner({ setForwardedProps, threadId }) {
         if (!pendingPayload || hasStarted) return;
         start(pendingPayload);
     }, [pendingPayload, hasStarted, start]);
+
+    const isStreamStale = Boolean(
+        staleStreamStartedAt &&
+        hasStarted &&
+        events.length === 0 &&
+        !error &&
+        !completedDetail,
+    );
+
+    useEffect(() => {
+        if (!hasStarted || events.length > 0 || error || completedDetail || staleStreamStartedAt) {
+            return undefined;
+        }
+
+        const timer = setTimeout(() => {
+            setStaleStreamStartedAt(Date.now());
+        }, 12000);
+        return () => clearTimeout(timer);
+    }, [completedDetail, error, events.length, hasStarted, staleStreamStartedAt]);
 
     // Capacitor 后台模式:运行中开,完成 / 错误 / 取消时关
     useEffect(() => {
@@ -147,6 +168,7 @@ function RunInner({ setForwardedProps, threadId }) {
     };
 
     const retry = () => {
+        setStaleStreamStartedAt(null);
         reset();
         start(pendingPayload);
     };
@@ -165,6 +187,23 @@ function RunInner({ setForwardedProps, threadId }) {
             <PlanRunHeader pet={displayPet} onBack={handleBack} />
 
             <main className="relative flex min-h-0 flex-1 flex-col pb-32">
+                {(error || isStreamStale) && (
+                    <div className="px-4 py-3">
+                        <div className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-red-700 shadow-sm dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-200">
+                            <div className="flex items-start gap-3">
+                                <TriangleAlert className="mt-0.5 size-4 shrink-0" />
+                                <div className="min-w-0 flex-1">
+                                    <p className="text-sm font-semibold">
+                                        {error ? '生成启动失败' : '还没有收到生成事件'}
+                                    </p>
+                                    <p className="mt-1 text-xs leading-5 text-red-600/80 dark:text-red-200/80">
+                                        {error || '已发起生成请求，但长时间没有收到 AG-UI 事件。请检查浏览器 Network 里的 /langgraph 请求状态。'}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
                 <div className="min-h-0 flex-1">
                     <TimelineFeed
                         events={events}
@@ -200,6 +239,16 @@ function RunInner({ setForwardedProps, threadId }) {
                         >
                             <RotateCcw className="mr-1.5 size-3.5" />
                             重试
+                        </Button>
+                    )}
+                    {hasStarted && !isStreamStale && events.length === 0 && !error && (
+                        <Button
+                            type="button"
+                            onClick={() => setStaleStreamStartedAt(Date.now())}
+                            className="h-9 cursor-pointer rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 text-[13px] font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                            variant="ghost"
+                        >
+                            检查连接
                         </Button>
                     )}
                 </nav>
