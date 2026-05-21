@@ -37,12 +37,13 @@ const RestrictedPreview = lazy(() => import('./pages/RestrictedPreview'));
 class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { hasError: false };
+    this.state = { hasError: false, error: null, info: null };
   }
-  static getDerivedStateFromError() {
-    return { hasError: true };
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
   }
   componentDidCatch(error, info) {
+    this.setState({ error, info });
     console.error('[ErrorBoundary]', error, info);
   }
   render() {
@@ -52,6 +53,11 @@ class ErrorBoundary extends React.Component {
           <span className="material-icons-round text-5xl text-red-400 mb-4">error_outline</span>
           <h2 className="text-lg font-bold mb-2">页面出了点问题</h2>
           <p className="text-sm text-text-muted-light mb-6">请尝试刷新页面，如果问题持续请联系客服</p>
+          <pre className="max-w-full overflow-auto text-left text-xs bg-red-50 text-red-700 p-3 rounded-lg whitespace-pre-wrap mb-4 mx-4 max-h-48">
+            {String(this.state.error?.message || this.state.error)}
+            {'\n'}
+            {String(this.state.error?.stack || '').split('\n').slice(0, 6).join('\n')}
+          </pre>
           <button
             onClick={() => window.location.reload()}
             className="px-6 py-2.5 rounded-xl bg-primary text-white font-bold text-sm cursor-pointer"

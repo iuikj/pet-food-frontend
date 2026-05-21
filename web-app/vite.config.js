@@ -150,7 +150,7 @@ export default defineConfig(({ command }) => ({
   },
   esbuild: command === 'build'
     ? {
-        drop: ['console', 'debugger'],
+        drop: ['debugger'],
         pure: ['console.log', 'console.info', 'console.debug'],
       }
     : undefined,
